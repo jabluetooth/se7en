@@ -12,7 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { calculatePlates } from '../../utils/plateCalculator';
 import { BarType } from '../../types';
-import { BAR_WEIGHTS, BORDER_RADIUS, SPACING } from '../../constants';
+import { BAR_WEIGHTS, DEFAULT_METRIC_PLATES, DEFAULT_IMPERIAL_PLATES, BORDER_RADIUS, SPACING } from '../../constants';
 import { Button } from '../common/Button';
 
 const BAR_OPTIONS: { label: string; value: BarType }[] = [
@@ -28,13 +28,27 @@ interface Props {
   onClose: () => void;
   initialWeight?: number;
   initialBarType?: BarType;
+  unit?: 'kg' | 'lb';
   onApply?: (weight: number, platesPerSide: number[]) => void;
 }
 
-export function PlateCalculator({ visible, onClose, initialWeight = 60, initialBarType = 'barbell', onApply }: Props) {
+export function PlateCalculator({
+  visible,
+  onClose,
+  initialWeight = 60,
+  initialBarType = 'barbell',
+  unit = 'kg',
+  onApply,
+}: Props) {
   const { colors } = useTheme();
   const availablePlates = useSettingsStore((s) => s.settings.availablePlates);
-  const weightUnit = useSettingsStore((s) => s.settings.weightUnit);
+
+  const plates =
+    availablePlates.length > 0
+      ? availablePlates
+      : unit === 'lb'
+      ? DEFAULT_IMPERIAL_PLATES
+      : DEFAULT_METRIC_PLATES;
 
   const [targetWeight, setTargetWeight] = useState(String(initialWeight));
   const [barType, setBarType] = useState<BarType>(initialBarType);
@@ -42,13 +56,9 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
 
   const barWeight = BAR_WEIGHTS[barType] ?? 0;
   const target = parseFloat(targetWeight) || 0;
-  const result = calculatePlates(target, barWeight, availablePlates);
+  const result = calculatePlates(target, barWeight, plates);
 
-  // Apply manual overrides
-  const finalPlates = result.platesPerSide.filter((_, i) => {
-    const plateVal = result.platesPerSide[i];
-    return !manualOverrides.has(i);
-  });
+  const finalPlates = result.platesPerSide.filter((_, i) => !manualOverrides.has(i));
   const finalTotal = barWeight + finalPlates.reduce((s, p) => s + p, 0) * 2;
 
   useEffect(() => {
@@ -79,7 +89,6 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
           <View style={styles.handle} />
           <Text style={[styles.title, { color: colors.text }]}>Plate Calculator</Text>
 
-          {/* Target weight input */}
           <View style={styles.inputRow}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Target Weight</Text>
             <TextInput
@@ -90,10 +99,9 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
               placeholder="0"
               placeholderTextColor={colors.textMuted}
             />
-            <Text style={[styles.unit, { color: colors.textSecondary }]}>{weightUnit === 'lb' ? 'lb' : 'kg'}</Text>
+            <Text style={[styles.unitLabel, { color: colors.textSecondary }]}>{unit}</Text>
           </View>
 
-          {/* Bar type selector */}
           <Text style={[styles.label, { color: colors.textSecondary }]}>Bar Type</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.barScroll}>
             {BAR_OPTIONS.map((opt) => (
@@ -101,7 +109,10 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
                 key={opt.value}
                 style={[
                   styles.barOption,
-                  { borderColor: barType === opt.value ? colors.accent : colors.border, backgroundColor: barType === opt.value ? colors.accentDim : colors.surfaceElevated },
+                  {
+                    borderColor: barType === opt.value ? colors.accent : colors.border,
+                    backgroundColor: barType === opt.value ? colors.accentDim : colors.surfaceElevated,
+                  },
                 ]}
                 onPress={() => setBarType(opt.value)}
               >
@@ -112,10 +123,8 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
             ))}
           </ScrollView>
 
-          {/* Visual plate diagram */}
           <View style={[styles.diagram, { borderColor: colors.border }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diagramContent}>
-              {/* Left side (reversed) */}
               {[...result.platesPerSide].reverse().map((plate, idx) => {
                 const realIdx = result.platesPerSide.length - 1 - idx;
                 const suppressed = manualOverrides.has(realIdx);
@@ -128,13 +137,11 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
                 );
               })}
 
-              {/* Bar */}
               <View style={[styles.bar, { backgroundColor: colors.textMuted }]}>
                 <Text style={[styles.barLabel, { color: colors.text }]}>BAR</Text>
-                <Text style={[styles.barWeightLabel, { color: colors.textSecondary }]}>{barWeight}kg</Text>
+                <Text style={[styles.barWeightLabel, { color: colors.textSecondary }]}>{barWeight}{unit}</Text>
               </View>
 
-              {/* Right side */}
               {result.platesPerSide.map((plate, idx) => {
                 const suppressed = manualOverrides.has(idx);
                 return (
@@ -148,18 +155,17 @@ export function PlateCalculator({ visible, onClose, initialWeight = 60, initialB
             </ScrollView>
           </View>
 
-          {/* Weight breakdown */}
           <View style={[styles.breakdown, { backgroundColor: colors.surfaceElevated, borderRadius: BORDER_RADIUS.md }]}>
             <Text style={[styles.breakdownRow, { color: colors.textSecondary }]}>
-              Bar: <Text style={{ color: colors.text }}>{barWeight}kg</Text>
+              Bar: <Text style={{ color: colors.text }}>{barWeight}{unit}</Text>
               {'  '}+{'  '}
-              Plates/side: <Text style={{ color: colors.text }}>{finalPlates.reduce((s, p) => s + p, 0)}kg × 2</Text>
+              Plates/side: <Text style={{ color: colors.text }}>{finalPlates.reduce((s, p) => s + p, 0)}{unit} × 2</Text>
               {'  '}={' '}
-              <Text style={[styles.total, { color: colors.accent }]}>{finalTotal}kg</Text>
+              <Text style={[styles.total, { color: colors.accent }]}>{finalTotal}{unit}</Text>
             </Text>
             {result.warning && Math.abs(finalTotal - target) > 0.01 && (
               <Text style={[styles.warning, { color: colors.warning }]}>
-                ⚠ Closest achievable: {finalTotal}kg (target: {target}kg)
+                ⚠ Closest achievable: {finalTotal}{unit} (target: {target}{unit})
               </Text>
             )}
           </View>
@@ -195,7 +201,7 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.md },
   label: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 },
   input: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, width: 90, textAlign: 'center', fontSize: 18, fontWeight: '700' },
-  unit: { fontSize: 14 },
+  unitLabel: { fontSize: 14 },
   barScroll: { marginBottom: SPACING.md },
   barOption: { borderWidth: 1, borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, marginRight: SPACING.sm },
   barText: { fontSize: 12, fontWeight: '600' },

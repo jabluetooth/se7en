@@ -1,13 +1,11 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, WeightUnit, PlateSystem, Theme } from '../types';
-import { DEFAULT_METRIC_PLATES, DEFAULT_IMPERIAL_PLATES } from '../constants';
+import { Settings } from '../types';
+import { DEFAULT_METRIC_PLATES } from '../constants';
 
 const STORAGE_KEY = '@se7en_settings';
 
 const defaultSettings: Settings = {
-  weightUnit: 'kg',
-  plateSystem: 'metric',
   availablePlates: DEFAULT_METRIC_PLATES,
   theme: 'dark',
   autoBackup: true,
@@ -36,8 +34,13 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Settings;
-        set({ settings: { ...defaultSettings, ...parsed }, loaded: true });
+        const parsed = JSON.parse(raw) as Partial<Settings>;
+        const migrated: Settings = {
+          ...defaultSettings,
+          ...parsed,
+          availablePlates: parsed.availablePlates ?? defaultSettings.availablePlates,
+        };
+        set({ settings: migrated, loaded: true });
       } else {
         set({ loaded: true });
       }

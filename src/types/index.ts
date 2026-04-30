@@ -1,12 +1,9 @@
 // ─── Settings ────────────────────────────────────────────────────────────────
 export type WeightUnit = 'kg' | 'lb' | 'plates' | 'bodyweight';
-export type PlateSystem = 'metric' | 'imperial' | 'custom';
 export type Theme = 'dark' | 'light';
 export type BackupFrequency = 'daily' | 'weekly';
 
 export interface Settings {
-  weightUnit: WeightUnit;
-  plateSystem: PlateSystem;
   availablePlates: number[];
   theme: Theme;
   autoBackup: boolean;
@@ -15,6 +12,68 @@ export interface Settings {
   activePlanId: string | null;
   currentDayPosition: number; // 1–7
   createdAt: string;
+}
+
+// ─── Onboarding Profile ───────────────────────────────────────────────────────
+export type UserGoal = 'muscle' | 'strength' | 'weightloss' | 'general';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type EquipmentType = 'full_gym' | 'home_gym' | 'bodyweight';
+
+export interface UserProfile {
+  goal: UserGoal;
+  experience: ExperienceLevel;
+  daysPerWeek: number;
+  equipment: EquipmentType;
+}
+
+// ─── Exercise Library ─────────────────────────────────────────────────────────
+export interface ExerciseLibraryItem {
+  id: string;
+  name: string;
+  muscleGroup: string;
+  equipment: EquipmentType | 'any';
+  defaultSets: number;
+  defaultRepsMin: number;
+  defaultRepsMax: number;
+  defaultWeight: number;
+  defaultUnit: 'kg' | 'lb' | 'bodyweight';
+  barType: BarType;
+  setType: SetType;
+}
+
+// ─── Plan Templates ───────────────────────────────────────────────────────────
+export interface PlanTemplateExercise {
+  exerciseId: string;
+  targetSets: number;
+  targetRepsMin: number | null;
+  targetRepsMax: number | null;
+  targetWeight: number | null;
+  weightUnit: WeightUnit;
+  barType: BarType;
+  toFailure: boolean;
+  setType: SetType;
+  notes: string;
+}
+
+export interface PlanTemplateDay {
+  dayPosition: number;
+  label: string;
+  isRestDay: boolean;
+  exercises: PlanTemplateExercise[];
+}
+
+export interface PlanTemplate {
+  id: string;
+  name: string;
+  splitType: string;
+  description: string;
+  tags: {
+    experience: ExperienceLevel[];
+    goal: UserGoal[];
+    daysPerWeek: number;
+    equipment: EquipmentType[];
+  };
+  days: PlanTemplateDay[];
 }
 
 // ─── Set Types ────────────────────────────────────────────────────────────────

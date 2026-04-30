@@ -11,6 +11,8 @@ import {
 } from '../types';
 import { generateId } from '../utils/idGen';
 import { BAR_WEIGHTS } from '../constants';
+import { PLAN_TEMPLATES } from '../data/planTemplates';
+import { findExercise } from '../data/exercises';
 
 const STORAGE_KEY = '@se7en_plans';
 
@@ -21,6 +23,7 @@ interface PlanStore {
   load: () => Promise<void>;
   persist: () => Promise<void>;
   createPlan: (name: string, splitType: string) => WorkoutPlan;
+  createPlanFromTemplate: (templateId: string, name?: string) => WorkoutPlan;
   importPlan: (importData: ImportPlan) => WorkoutPlan;
   updatePlan: (planId: string, partial: Partial<WorkoutPlan>) => void;
   deletePlan: (planId: string) => void;
@@ -81,6 +84,69 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     return plan;
   },
 
+  createPlanFromTemplate: (templateId, name) => {
+    const template = PLAN_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) throw new Error(`Template ${templateId} not found`);
+
+    const days: WorkoutDay[] = Array.from({ length: 7 }, (_, i) => {
+      const dayPos = i + 1;
+      const templateDay = template.days.find((d) => d.dayPosition === dayPos);
+
+      if (!templateDay || templateDay.isRestDay) {
+        return {
+          id: generateId(),
+          dayPosition: dayPos,
+          label: templateDay?.label ?? `Day ${dayPos}`,
+          isRestDay: true,
+          exercises: [],
+        };
+      }
+
+      const exercises: Exercise[] = templateDay.exercises.map((te, idx) => {
+        const libItem = findExercise(te.exerciseId);
+        return {
+          id: generateId(),
+          name: libItem?.name ?? te.exerciseId,
+          order: idx + 1,
+          setType: te.setType,
+          supersetGroup: null,
+          targetSets: te.targetSets,
+          targetRepsMin: te.targetRepsMin,
+          targetRepsMax: te.targetRepsMax,
+          toFailure: te.toFailure,
+          targetWeight: te.targetWeight,
+          weightUnit: te.weightUnit,
+          barType: te.barType,
+          barWeight: BAR_WEIGHTS[te.barType] ?? 0,
+          perSetTargets: null,
+          notes: te.notes,
+          createdAt: new Date().toISOString(),
+        };
+      });
+
+      return {
+        id: generateId(),
+        dayPosition: dayPos,
+        label: templateDay.label,
+        isRestDay: false,
+        exercises,
+      };
+    });
+
+    const plan: WorkoutPlan = {
+      id: generateId(),
+      name: name ?? template.name,
+      splitType: template.splitType,
+      description: template.description,
+      createdAt: new Date().toISOString(),
+      isActive: false,
+      days,
+    };
+    set((s) => ({ plans: [...s.plans, plan] }));
+    get().persist();
+    return plan;
+  },
+
   importPlan: (importData) => {
     const days: WorkoutDay[] = importData.days.map((d) => ({
       id: generateId(),
@@ -107,7 +173,6 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       })),
     }));
 
-    // Fill missing days (1–7)
     const existingPositions = new Set(days.map((d) => d.dayPosition));
     for (let i = 1; i <= 7; i++) {
       if (!existingPositions.has(i)) {

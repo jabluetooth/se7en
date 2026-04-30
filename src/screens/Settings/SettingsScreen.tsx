@@ -23,7 +23,7 @@ import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import { validateImportJSON } from '../../utils/importValidator';
 import { WorkoutPlan, Exercise, WeightUnit, BarType, SetType } from '../../types';
-import { SPACING, BORDER_RADIUS, BAR_WEIGHTS, SET_TYPE_LABELS, DEFAULT_METRIC_PLATES, DEFAULT_IMPERIAL_PLATES, SPLIT_TYPES } from '../../constants';
+import { SPACING, BORDER_RADIUS, BAR_WEIGHTS, SET_TYPE_LABELS, SPLIT_TYPES } from '../../constants';
 import { generateId } from '../../utils/idGen';
 
 export function SettingsScreen() {
@@ -202,46 +202,13 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.pageTitle, { color: colors.text }]}>Settings</Text>
 
-        {/* Weight Unit */}
+        {/* Plate Calculator Plates */}
         <Card style={styles.card}>
-          <Section title="Weight & Plates" />
-          <Row label="Weight Unit">
-            <View style={styles.optRow}>
-              {(['kg', 'lb'] as const).map((u) => (
-                <TouchableOpacity
-                  key={u}
-                  style={[styles.optBtn, { borderColor: settings.weightUnit === u ? colors.accent : colors.border, backgroundColor: settings.weightUnit === u ? colors.accentDim : 'transparent' }]}
-                  onPress={() => save({ weightUnit: u })}
-                >
-                  <Text style={[styles.optText, { color: settings.weightUnit === u ? colors.accent : colors.textSecondary }]}>{u}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Row>
-
-          <Row label="Plate System">
-            <View style={styles.optRow}>
-              {(['metric', 'imperial'] as const).map((ps) => (
-                <TouchableOpacity
-                  key={ps}
-                  style={[styles.optBtn, { borderColor: settings.plateSystem === ps ? colors.accent : colors.border, backgroundColor: settings.plateSystem === ps ? colors.accentDim : 'transparent' }]}
-                  onPress={() =>
-                    save({
-                      plateSystem: ps,
-                      availablePlates: ps === 'metric' ? DEFAULT_METRIC_PLATES : DEFAULT_IMPERIAL_PLATES,
-                    })
-                  }
-                >
-                  <Text style={[styles.optText, { color: settings.plateSystem === ps ? colors.accent : colors.textSecondary }]}>
-                    {ps === 'metric' ? 'Metric' : 'Imperial'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Row>
-
-          {/* Plate Manager */}
+          <Section title="Plate Calculator" />
           <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Available Plates</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            These plates are used by the calculator. Weight unit is set per exercise.
+          </Text>
           <View style={styles.plateGrid}>
             {settings.availablePlates.map((p) => (
               <TouchableOpacity

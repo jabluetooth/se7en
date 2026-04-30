@@ -260,6 +260,7 @@ export function HomeScreen({ onFinishWorkout }: Props) {
         onClose={() => setPlateCalcVisible(false)}
         initialWeight={selectedSet?.targetWeight ?? 60}
         initialBarType={selectedExercise?.barType ?? 'barbell'}
+        unit={selectedExercise?.weightUnit === 'lb' ? 'lb' : 'kg'}
         onApply={(weight, plates) => {
           if (selectedSet && selectedExercise) {
             useSessionStore.getState().completeSet(selectedExercise.id, selectedSet.id, {
