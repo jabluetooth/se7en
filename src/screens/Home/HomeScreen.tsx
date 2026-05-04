@@ -1,329 +1,213 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Modal,
-} from 'react-native';
+﻿import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { usePlanStore } from '../../stores/planStore';
-import { useSettingsStore } from '../../stores/settingsStore';
-import { useSessionStore } from '../../stores/sessionStore';
-import { usePRStore } from '../../stores/prStore';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView } from '../../components/common/GlassView';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
-import { PlateCalculator } from '../../components/PlateCalculator/PlateCalculator';
 import { Button } from '../../components/common/Button';
-import { Card } from '../../components/common/Card';
-import { Modal as CustomModal } from '../../components/common/Modal';
-import { detectPRs } from '../../utils/prDetection';
-import { SetLog, SessionExercise, SkipReason, WorkoutDay } from '../../types';
-import { SKIP_REASONS, SPACING, BORDER_RADIUS } from '../../constants';
+import { usePlanStore } from '../../stores/planStore';
+import { useSessionStore } from '../../stores/sessionStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { GRAD, COLORS, SPACING } from '../../constants';
 
-interface Props {
-  onFinishWorkout?: (sessionId: string) => void;
-}
+const QUOTES = [
+  'The pain you feel today is the strength you feel tomorrow.',
+  'Discipline: doing it even when you do not feel like it.',
+  'Every rep is a vote for who you are becoming.',
+  'Show up. That is already more than most.',
+  'Progress, not perfection.',
+];
 
-export function HomeScreen({ onFinishWorkout }: Props) {
-  const { colors } = useTheme();
+interface Props { onFinish: () => void; }
+
+export function HomeScreen({ onFinish }: Props) {
   const { activePlan } = usePlanStore();
-  const { settings, advanceDay } = useSettingsStore();
-  const {
-    activeSession,
-    sessions,
-    sessionTimer,
-    startSession,
-    finishSession,
-    skipDay,
-    clearActiveSession,
-  } = useSessionStore();
-  const { records, upsertPR } = usePRStore();
+  const { activeSession, startSession, finishSession, skipDay, sessionTimer } = useSessionStore();
+  const { settings } = useSettingsStore();
+  const [quoteIdx, setQuoteIdx] = useState(0);
 
-  const [plateCalcVisible, setPlateCalcVisible] = useState(false);
-  const [selectedSet, setSelectedSet] = useState<SetLog | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<SessionExercise | null>(null);
-  const [skipModalVisible, setSkipModalVisible] = useState(false);
-  const [finishing, setFinishing] = useState(false);
-  const [postWorkoutSessionId, setPostWorkoutSessionId] = useState<string | null>(null);
+  useEffect(() => {
+    const id = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 5000);
+    return () => clearInterval(id);
+  }, []);
 
-  const dayPosition = settings.currentDayPosition;
-  const currentDay: WorkoutDay | undefined = activePlan?.days.find(
-    (d) => d.dayPosition === dayPosition,
-  );
+  const currentDay = activePlan?.days.find(d => d.dayPosition === settings.currentDayPosition);
+  const isRest     = currentDay?.isRestDay ?? false;
+  const totalSets  = activeSession ? activeSession.exercises.reduce((a, e) => a + e.sets.length, 0) : 0;
+  const doneSets   = activeSession ? activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0) : 0;
+  const pct        = totalSets > 0 ? doneSets / totalSets : 0;
+  const mins       = Math.floor(sessionTimer / 60);
+  const secs       = sessionTimer % 60;
+  const timeStr    = mins + ':' + String(secs).padStart(2, '0');
+  const volume     = activeSession
+    ? activeSession.exercises.reduce((a, e) =>
+        a + e.sets.filter(s => s.isCompleted).reduce((b, s) => b + (s.actualWeight ?? 0) * (s.actualReps || 1), 0), 0)
+    : 0;
+  const volumeStr = volume >= 1000 ? (volume / 1000).toFixed(1) + 'k' : String(volume);
 
-  const iterationCount = () => {
-    const completed = sessions.filter(
-      (s) => s.dayPosition === dayPosition && s.status === 'completed',
-    ).length;
-    return completed + 1;
-  };
-
-  const formatTimer = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const allExercisesComplete = activeSession?.exercises.every((e) => e.isCompleted) ?? false;
-
-  const handleStartWorkout = () => {
-    if (!currentDay || !activePlan) return;
+  const handleStartSession = () => {
+    if (!activePlan || !currentDay) return;
     startSession(activePlan.id, currentDay);
   };
 
-  const handleFinishWorkout = async () => {
-    if (!activeSession) return;
-    setFinishing(true);
-    try {
-      const finished = await finishSession();
-      const { updatedPRs, prsBreached } = detectPRs({ ...finished, prsBreached: [] }, records);
-      await Promise.all(updatedPRs.map((pr) => upsertPR(pr)));
-      setPostWorkoutSessionId(finished.id);
-      await advanceDay();
-      onFinishWorkout?.(finished.id);
-    } finally {
-      setFinishing(false);
-    }
-  };
-
-  const handleSkip = async (reason?: SkipReason) => {
+  const handleSkip = () => {
     if (!activePlan || !currentDay) return;
-    setSkipModalVisible(false);
-    await skipDay(activePlan.id, currentDay.dayPosition, currentDay.label, reason);
-    await advanceDay();
+    skipDay(activePlan.id, currentDay.dayPosition, currentDay.label, 'Other');
   };
 
   if (!activePlan) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.empty}>
-          <Ionicons name="barbell-outline" size={64} color={colors.textMuted} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No Plan Active</Text>
-          <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-            Go to Settings → Manage Plans to create or activate a workout plan.
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!currentDay) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.empty}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Day not found</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Rest day
-  if (currentDay.isRestDay) {
-    const nextDay = activePlan.days.find(
-      (d) => d.dayPosition === (dayPosition >= 7 ? 1 : dayPosition + 1),
-    );
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <View style={styles.header}>
-            <Text style={[styles.dayLabel, { color: colors.textSecondary }]}>
-              Day {dayPosition} · Cycle {iterationCount()}
-            </Text>
-            <Text style={[styles.dayTitle, { color: colors.text }]}>{currentDay.label}</Text>
-          </View>
-
-          <Card style={styles.restCard}>
-            <Text style={styles.restEmoji}>💤</Text>
-            <Text style={[styles.restTitle, { color: colors.text }]}>Rest Day</Text>
-            <Text style={[styles.restDesc, { color: colors.textSecondary }]}>
-              Recovery is as important as the work. Rest, stretch, and hydrate.
-            </Text>
-          </Card>
-
-          {nextDay && !nextDay.isRestDay && (
-            <Card style={styles.nextCard}>
-              <Text style={[styles.nextTitle, { color: colors.textSecondary }]}>Next Up: Day {nextDay.dayPosition}</Text>
-              <Text style={[styles.nextLabel, { color: colors.text }]}>{nextDay.label}</Text>
-              {nextDay.exercises.slice(0, 4).map((ex) => (
-                <Text key={ex.id} style={[styles.nextEx, { color: colors.textSecondary }]}>
-                  · {ex.name} — {ex.targetSets}×{ex.targetRepsMin ?? '?'} @ {ex.targetWeight ?? '?'}{ex.weightUnit}
-                </Text>
-              ))}
-              {nextDay.exercises.length > 4 && (
-                <Text style={[styles.nextEx, { color: colors.textMuted }]}>
-                  +{nextDay.exercises.length - 4} more
-                </Text>
-              )}
-            </Card>
-          )}
-
-          <Button label="Continue to Next Day" onPress={() => advanceDay()} style={styles.cta} />
-        </ScrollView>
-      </SafeAreaView>
+      <View style={s.emptyWrap}>
+        <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
+        <Text style={s.emptyTitle}>No plan active</Text>
+        <Text style={s.emptySub}>Set up a plan in Settings to get started.</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.dayLabel, { color: colors.textSecondary }]}>
-              Day {dayPosition} · Cycle {iterationCount()}
-            </Text>
-            <Text style={[styles.dayTitle, { color: colors.text }]}>{currentDay.label}</Text>
-          </View>
-          {activeSession && (
-            <View style={[styles.timer, { backgroundColor: colors.accentDim }]}>
-              <Ionicons name="time-outline" size={14} color={colors.accent} />
-              <Text style={[styles.timerText, { color: colors.accent }]}>
-                {formatTimer(sessionTimer)}
-              </Text>
+    <View style={{ flex: 1 }}>
+      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[s.orb, { top: -100, right: -80, width: 300, height: 300, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
+        <View style={[s.orb, { bottom: 120, left: -80, width: 260, height: 260, backgroundColor: 'rgba(123,94,250,0.10)' }]} />
+        <View style={[s.orb, { top: 300, right: -50, width: 200, height: 200, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
+      </View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View style={s.quotePad}>
+          <GlassView opacity="mid" radius={999} style={s.quoteRow}>
+            <Text style={s.quoteGlyph}>*</Text>
+            <Text style={s.quoteText} numberOfLines={1}>{QUOTES[quoteIdx]}</Text>
+            <View style={s.quoteDots}>
+              {QUOTES.map((_, i) => <View key={i} style={[s.dot, i === quoteIdx && s.dotActive]} />)}
             </View>
-          )}
+          </GlassView>
         </View>
-
-        {/* Exercises */}
-        {currentDay.exercises.length === 0 ? (
-          <Card>
-            <Text style={[styles.emptyExText, { color: colors.textSecondary }]}>
-              No exercises configured for this day. Edit in Settings → Manage Plans.
-            </Text>
-          </Card>
-        ) : activeSession ? (
-          activeSession.exercises.map((ex) => (
-            <ExerciseCard
-              key={ex.id}
-              exercise={ex}
-              onOpenPlateCalc={(set, exercise) => {
-                setSelectedSet(set);
-                setSelectedExercise(exercise);
-                setPlateCalcVisible(true);
-              }}
-            />
-          ))
-        ) : (
-          <Card>
-            <Text style={[styles.previewTitle, { color: colors.text }]}>Today's Workout</Text>
-            {currentDay.exercises.map((ex) => (
-              <View key={ex.id} style={[styles.previewEx, { borderColor: colors.border }]}>
-                <Text style={[styles.previewExName, { color: colors.text }]}>{ex.name}</Text>
-                <Text style={[styles.previewExDetail, { color: colors.textSecondary }]}>
-                  {ex.targetSets} sets ·{' '}
-                  {ex.toFailure
-                    ? 'To Failure'
-                    : ex.targetRepsMin === ex.targetRepsMax
-                    ? `${ex.targetRepsMin} reps`
-                    : `${ex.targetRepsMin}–${ex.targetRepsMax} reps`}
-                  {ex.targetWeight ? ` @ ${ex.targetWeight}${ex.weightUnit}` : ''}
-                </Text>
+        <View style={s.header}>
+          <View>
+            <Text style={s.dayCycle}>Day {settings.currentDayPosition}</Text>
+            <Text style={s.title}>{currentDay?.label ?? 'Rest Day'}</Text>
+          </View>
+          <GlassView radius={14} style={s.logoBadge} glow>
+            <Text style={s.logoNum}>7</Text>
+          </GlassView>
+        </View>
+        {activeSession ? (
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+            <View style={s.statsRow}>
+              {[
+                { label: 'Sets Done', value: doneSets + '/' + totalSets, accent: true  },
+                { label: 'Timer',     value: timeStr,                     accent: false },
+                { label: 'Volume',    value: volumeStr + ' kg',           accent: false },
+              ].map((stat, i) => (
+                <GlassView key={i} radius={16} style={s.statCard}>
+                  <Text style={s.statLabel}>{stat.label}</Text>
+                  <Text style={[s.statValue, stat.accent && s.statAccent]}>{stat.value}</Text>
+                </GlassView>
+              ))}
+            </View>
+            <GlassView radius={16} style={s.progressCard}>
+              <View style={s.progressHeader}>
+                <Text style={s.progressLbl}>Session Progress</Text>
+                <Text style={s.progressPct}>{Math.round(pct * 100)}%</Text>
               </View>
-            ))}
-          </Card>
+              <View style={s.progressTrack}>
+                <LinearGradient colors={GRAD.progress} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={[s.progressFill, { width: pct * 100 + '%' as any }]} />
+              </View>
+              <View style={s.pills}>
+                {activeSession.exercises.map((ex, i) => {
+                  const d = ex.sets.filter(s => s.isCompleted).length;
+                  const a = d === ex.sets.length;
+                  return (
+                    <View key={i} style={[s.pill, a && s.pillDone]}>
+                      <View style={[s.pillDot, a && s.pillDotDone]} />
+                      <Text style={[s.pillText, a && s.pillTextDone]}>{ex.exerciseName.split(' ')[0]}</Text>
+                      <Text style={s.pillCount}>{d}/{ex.sets.length}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </GlassView>
+            {activeSession.exercises.map(ex => <ExerciseCard key={ex.id} exercise={ex} />)}
+            <View style={{ height: 140 }} />
+          </ScrollView>
+        ) : (
+          <View style={s.startWrap}>
+            {isRest ? (
+              <Text style={s.restMsg}>Recovery Day. Your muscles grow during rest.</Text>
+            ) : (
+              <>
+                <Text style={s.workoutMeta}>{currentDay?.exercises.length ?? 0} exercises planned</Text>
+                <Button label="Start Workout" onPress={handleStartSession} size="lg" />
+              </>
+            )}
+          </View>
         )}
-
-        {/* Sticky Bottom Actions */}
-        <View style={styles.actions}>
-          {!activeSession ? (
-            <>
-              <Button
-                label="Start Workout"
-                onPress={handleStartWorkout}
-                style={styles.mainBtn}
-              />
-              <Button
-                label="Skip Today"
-                variant="ghost"
-                onPress={() => setSkipModalVisible(true)}
-                style={styles.skipBtn}
-              />
-            </>
-          ) : (
-            <Button
-              label={allExercisesComplete ? 'Finish Workout' : 'Finish Workout Early'}
-              onPress={handleFinishWorkout}
-              loading={finishing}
-              style={styles.mainBtn}
-            />
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Plate Calculator */}
-      <PlateCalculator
-        visible={plateCalcVisible}
-        onClose={() => setPlateCalcVisible(false)}
-        initialWeight={selectedSet?.targetWeight ?? 60}
-        initialBarType={selectedExercise?.barType ?? 'barbell'}
-        unit={selectedExercise?.weightUnit === 'lb' ? 'lb' : 'kg'}
-        onApply={(weight, plates) => {
-          if (selectedSet && selectedExercise) {
-            useSessionStore.getState().completeSet(selectedExercise.id, selectedSet.id, {
-              actualWeight: weight,
-              platesUsed: plates,
-            });
-          }
-        }}
-      />
-
-      {/* Skip Modal */}
-      <CustomModal visible={skipModalVisible} title="Skip Today?" onClose={() => setSkipModalVisible(false)}>
-        <Text style={[styles.skipDesc, { color: colors.textSecondary }]}>
-          Select a reason (optional):
-        </Text>
-        <View style={styles.skipOptions}>
-          {SKIP_REASONS.map((r) => (
-            <TouchableOpacity
-              key={r}
-              style={[styles.skipOption, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
-              onPress={() => handleSkip(r as SkipReason)}
-            >
-              <Text style={[styles.skipOptionText, { color: colors.text }]}>{r}</Text>
+        {activeSession && (
+          <View style={s.cta}>
+            <TouchableOpacity style={s.ctaBtn} onPress={async () => { await finishSession(); onFinish(); }} activeOpacity={0.9}>
+              <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaGrad}>
+                <Text style={s.ctaText}>Finish Workout</Text>
+              </LinearGradient>
             </TouchableOpacity>
-          ))}
-        </View>
-        <Button label="Skip Without Reason" variant="ghost" onPress={() => handleSkip()} style={{ marginTop: SPACING.sm }} />
-        <Button label="Cancel" variant="secondary" onPress={() => setSkipModalVisible(false)} style={{ marginTop: SPACING.sm }} />
-      </CustomModal>
-    </SafeAreaView>
+            <GlassView radius={16} style={s.skipBtn}>
+              <TouchableOpacity onPress={handleSkip} style={s.skipInner}>
+                <Text style={s.skipText}>Skip</Text>
+              </TouchableOpacity>
+            </GlassView>
+          </View>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xxl },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.lg },
-  dayLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
-  dayTitle: { fontSize: 24, fontWeight: '800' },
-  timer: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.full },
-  timerText: { fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, gap: SPACING.md },
-  emptyTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
-  emptyDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  emptyExText: { fontSize: 14, lineHeight: 20 },
-  previewTitle: { fontSize: 16, fontWeight: '700', marginBottom: SPACING.md },
-  previewEx: { borderTopWidth: 1, paddingVertical: SPACING.sm },
-  previewExName: { fontSize: 14, fontWeight: '600' },
-  previewExDetail: { fontSize: 12, marginTop: 2 },
-  actions: { marginTop: SPACING.lg, gap: SPACING.sm },
-  mainBtn: {},
-  skipBtn: {},
-  restCard: { alignItems: 'center', paddingVertical: SPACING.xl, marginBottom: SPACING.md },
-  restEmoji: { fontSize: 48, marginBottom: SPACING.sm },
-  restTitle: { fontSize: 22, fontWeight: '800', marginBottom: SPACING.sm },
-  restDesc: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  nextCard: { marginBottom: SPACING.md },
-  nextTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-  nextLabel: { fontSize: 16, fontWeight: '700', marginBottom: SPACING.sm },
-  nextEx: { fontSize: 13, lineHeight: 20 },
-  cta: { marginTop: SPACING.md },
-  skipDesc: { fontSize: 14, marginBottom: SPACING.md },
-  skipOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  skipOption: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  skipOptionText: { fontSize: 14, fontWeight: '600' },
+const s = StyleSheet.create({
+  emptyWrap:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyTitle:     { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  emptySub:       { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  orb:            { position: 'absolute', borderRadius: 999 },
+  quotePad:       { paddingHorizontal: 16, paddingBottom: 8 },
+  quoteRow:       { paddingHorizontal: 16, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  quoteGlyph:     { fontSize: 13, color: COLORS.accent },
+  quoteText:      { flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.75)', fontStyle: 'italic' },
+  quoteDots:      { flexDirection: 'row', gap: 3 },
+  dot:            { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.30)' },
+  dotActive:      { width: 12, backgroundColor: COLORS.accent },
+  header:         { paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  dayCycle:       { fontSize: 12, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 3 },
+  title:          { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  logoBadge:      { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', padding: 0 },
+  logoNum:        { fontSize: 24, fontWeight: '900', color: COLORS.accent },
+  scroll:         { paddingHorizontal: 16 },
+  statsRow:       { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  statCard:       { flex: 1, padding: 12 },
+  statLabel:      { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
+  statValue:      { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
+  statAccent:     { color: COLORS.accent },
+  progressCard:   { padding: 16, marginBottom: 8 },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  progressLbl:    { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.75)' },
+  progressPct:    { fontSize: 16, fontWeight: '900', color: COLORS.accent },
+  progressTrack:  { height: 5, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 10 },
+  progressFill:   { height: '100%', borderRadius: 99 },
+  pills:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pill:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  pillDone:       { backgroundColor: 'rgba(123,94,250,0.15)', borderColor: 'rgba(123,94,250,0.35)' },
+  pillDot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.textMuted },
+  pillDotDone:    { backgroundColor: COLORS.accent },
+  pillText:       { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
+  pillTextDone:   { color: COLORS.accent },
+  pillCount:      { fontSize: 10, color: COLORS.textMuted },
+  startWrap:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
+  restMsg:        { fontSize: 15, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 22 },
+  workoutMeta:    { fontSize: 14, color: COLORS.textSecondary, marginBottom: 8 },
+  cta:            { position: 'absolute', bottom: 96, left: 16, right: 16, flexDirection: 'row', gap: 10 },
+  ctaBtn:         { flex: 1, borderRadius: 16, overflow: 'hidden' },
+  ctaGrad:        { height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
+  ctaText:        { fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: -0.2 },
+  skipBtn:        { borderRadius: 16 },
+  skipInner:      { height: 54, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+  skipText:       { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
 });

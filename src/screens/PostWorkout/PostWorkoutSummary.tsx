@@ -1,310 +1,186 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { useSessionStore } from '../../stores/sessionStore';
-import { usePlanStore } from '../../stores/planStore';
-import { useSettingsStore } from '../../stores/settingsStore';
-import { WorkoutSession } from '../../types';
+﻿import React, { useState } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GlassView } from '../../components/common/GlassView';
 import { Button } from '../../components/common/Button';
-import { Card } from '../../components/common/Card';
+import { SectionHeader } from '../../components/common/SectionHeader';
+import { SetTypeBadge } from '../../components/common/SetTypeBadge';
 import { Badge } from '../../components/common/Badge';
-import { SPACING, BORDER_RADIUS } from '../../constants';
-
-type Tab = 'today' | 'progress' | 'next';
+import { StatCard } from '../../components/common/StatCard';
+import { TrophyIcon } from '../../components/common/TrophyIcon';
+import { GRAD, COLORS, SPACING } from '../../constants';
+import { WorkoutSession, WorkoutDay } from '../../types';
 
 interface Props {
   session: WorkoutSession;
-  visible: boolean;
+  nextDay?: WorkoutDay;
   onDone: () => void;
 }
 
-export function PostWorkoutSummary({ session, visible, onDone }: Props) {
-  const { colors } = useTheme();
-  const { sessions } = useSessionStore();
-  const { activePlan } = usePlanStore();
-  const { settings } = useSettingsStore();
-  const [activeTab, setActiveTab] = useState<Tab>('today');
-  const [sessionNote, setSessionNote] = useState('');
+export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
+  const [tab, setTab]   = useState<'today'|'progress'|'next'>('today');
+  const [note, setNote] = useState('');
+  const tabs = ['today','progress','next'] as const;
 
-  const dayPosition = settings.currentDayPosition;
-  const nextDay = activePlan?.days.find((d) => d.dayPosition === dayPosition);
-
-  const lastSession = sessions
-    .filter(
-      (s) =>
-        s.dayPosition === session.dayPosition &&
-        s.status === 'completed' &&
-        s.id !== session.id,
-    )
-    .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())[0];
-
-  const formatDuration = (mins: number) => {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-  };
-
-  const allNotes = session.exercises.flatMap((ex) =>
-    ex.sets
-      .filter((s) => s.notes)
-      .map((s) => ({ exercise: ex.exerciseName, note: s.notes, setNum: s.setNumber })),
-  );
-
-  const renderToday = () => (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      <View style={styles.statsGrid}>
-        <StatCard label="Duration" value={formatDuration(session.duration)} icon="time-outline" colors={colors} />
-        <StatCard label="Exercises" value={`${session.exercises.filter((e) => e.isCompleted).length}/${session.exercises.length}`} icon="barbell-outline" colors={colors} />
-        <StatCard label="Sets Done" value={String(session.exercises.reduce((s, e) => s + e.sets.filter((st) => st.isCompleted).length, 0))} icon="checkmark-circle-outline" colors={colors} />
-        <StatCard label="Volume" value={`${Math.round(session.totalVolume)}`} icon="trending-up-outline" colors={colors} />
+  return (
+    <View style={{ flex: 1 }}>
+      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={[s.orb, { top: -80, right: -60, width: 280, height: 280, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
+        <View style={[s.orb, { bottom: 80, left: -80, width: 240, height: 240, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
       </View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        {/* Header */}
+        <View style={s.header}>
+          <View style={s.headerRow}>
+            <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.trophyBadge}>
+              <TrophyIcon size={18} color="#000" />
+            </LinearGradient>
+            <Text style={s.accentLabel}>Workout Complete</Text>
+          </View>
+          <Text style={s.title}>{session.dayLabel}</Text>
+          <Text style={s.sub}>{session.prsBreached.length > 0 ? session.prsBreached.length + ' PRs broken today' : 'Great session!'}</Text>
+        </View>
 
-      {session.prsBreached.length > 0 && (
-        <Card style={styles.prCard}>
-          <Text style={[styles.prTitle, { color: colors.accent }]}>🏆 New PRs!</Text>
-          {session.prsBreached.map((name) => (
-            <View key={name} style={styles.prRow}>
-              <Ionicons name="trophy" size={14} color={colors.accent} />
-              <Text style={[styles.prName, { color: colors.text }]}>{name}</Text>
-            </View>
-          ))}
-        </Card>
-      )}
-
-      {allNotes.length > 0 && (
-        <Card style={styles.notesCard}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Set Notes</Text>
-          {allNotes.map((n, i) => (
-            <View key={i} style={[styles.noteRow, { borderColor: colors.border }]}>
-              <Text style={[styles.noteExercise, { color: colors.accent }]}>{n.exercise} · Set {n.setNum}</Text>
-              <Text style={[styles.noteText, { color: colors.text }]}>📝 {n.note}</Text>
-            </View>
-          ))}
-        </Card>
-      )}
-    </ScrollView>
-  );
-
-  const renderProgress = () => (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      {session.exercises.map((ex) => {
-        const lastEx = lastSession?.exercises.find((e) => e.exerciseName === ex.exerciseName);
-        const lastMaxWeight = lastEx
-          ? Math.max(...lastEx.sets.filter((s) => s.isCompleted).map((s) => s.actualWeight ?? 0))
-          : null;
-        const lastMaxReps = lastEx
-          ? Math.max(...lastEx.sets.filter((s) => s.isCompleted).map((s) => s.actualRepsToFailure ?? s.actualReps))
-          : null;
-        const todayMaxWeight = Math.max(...ex.sets.filter((s) => s.isCompleted).map((s) => s.actualWeight ?? 0));
-        const todayMaxReps = Math.max(...ex.sets.filter((s) => s.isCompleted).map((s) => s.actualRepsToFailure ?? s.actualReps));
-
-        const weightDelta = lastMaxWeight !== null ? todayMaxWeight - lastMaxWeight : null;
-        const repsDelta = lastMaxReps !== null ? todayMaxReps - lastMaxReps : null;
-
-        return (
-          <Card key={ex.id} style={styles.progressCard}>
-            <Text style={[styles.progressExName, { color: colors.text }]}>{ex.exerciseName}</Text>
-            <View style={styles.progressRow}>
-              <DeltaCol label="Weight" today={todayMaxWeight > 0 ? `${todayMaxWeight}` : '—'} last={lastMaxWeight !== null ? `${lastMaxWeight}` : '—'} delta={weightDelta} colors={colors} />
-              <DeltaCol label="Reps" today={todayMaxReps > 0 ? `${todayMaxReps}` : '—'} last={lastMaxReps !== null ? `${lastMaxReps}` : '—'} delta={repsDelta} colors={colors} />
-            </View>
-            {ex.sets.some((s) => s.notes) && (
-              <View style={[styles.exNotes, { borderTopColor: colors.border }]}>
-                {ex.sets.filter((s) => s.notes).map((s) => (
-                  <Text key={s.id} style={[styles.exNoteText, { color: colors.textSecondary }]}>
-                    Set {s.setNumber}: {s.notes}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </Card>
-        );
-      })}
-
-      {session.exercises.length === 0 && (
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No exercises logged.</Text>
-      )}
-    </ScrollView>
-  );
-
-  const renderNext = () => {
-    const reminders = allNotes.filter((n) => n.note.toLowerCase().includes('next') || n.note.toLowerCase().includes('increase') || n.note.toLowerCase().includes('improve'));
-    return (
-      <ScrollView contentContainerStyle={styles.tabContent}>
-        {nextDay ? (
-          <>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              Next: Day {nextDay.dayPosition} · {nextDay.label}
-            </Text>
-            {nextDay.isRestDay ? (
-              <Card style={styles.restPreview}>
-                <Text style={styles.restEmoji}>💤</Text>
-                <Text style={[styles.restText, { color: colors.text }]}>Rest Day</Text>
-              </Card>
-            ) : (
-              nextDay.exercises.map((ex) => (
-                <Card key={ex.id} style={styles.nextExCard}>
-                  <Text style={[styles.nextExName, { color: colors.text }]}>{ex.name}</Text>
-                  <Text style={[styles.nextExDetail, { color: colors.textSecondary }]}>
-                    {ex.targetSets} sets ·{' '}
-                    {ex.toFailure
-                      ? 'To Failure'
-                      : ex.targetRepsMin === ex.targetRepsMax
-                      ? `${ex.targetRepsMin} reps`
-                      : `${ex.targetRepsMin}–${ex.targetRepsMax} reps`}
-                    {ex.targetWeight ? ` @ ${ex.targetWeight}${ex.weightUnit}` : ''}
-                  </Text>
-                </Card>
-              ))
-            )}
-          </>
-        ) : (
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>Plan not available.</Text>
-        )}
-
-        {reminders.length > 0 && (
-          <Card style={styles.remindersCard}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Improvement Reminders</Text>
-            {reminders.map((r, i) => (
-              <Text key={i} style={[styles.reminderText, { color: colors.text }]}>
-                📝 {r.exercise}: {r.note}
-              </Text>
+        {/* Tab bar */}
+        <View style={s.tabBarWrap}>
+          <GlassView radius={12} style={s.tabBar}>
+            {tabs.map(t => (
+              <TouchableOpacity key={t} onPress={() => setTab(t)} style={[s.tabBtn, tab === t && s.tabBtnActive]} activeOpacity={0.8}>
+                {tab === t
+                  ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.tabGrad}><Text style={s.tabTextActive}>{t === 'next' ? 'Next Up' : t.charAt(0).toUpperCase() + t.slice(1)}</Text></LinearGradient>
+                  : <Text style={s.tabText}>{t === 'next' ? 'Next Up' : t.charAt(0).toUpperCase() + t.slice(1)}</Text>}
+              </TouchableOpacity>
             ))}
-          </Card>
-        )}
-      </ScrollView>
-    );
-  };
-
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onDone}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text }]}>Workout Complete 🎉</Text>
+          </GlassView>
         </View>
 
-        {/* Tabs */}
-        <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-          {(['today', 'progress', 'next'] as Tab[]).map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && [styles.activeTab, { borderBottomColor: colors.accent }]]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[styles.tabText, { color: activeTab === tab ? colors.accent : colors.textSecondary }]}>
-                {tab === 'today' ? 'Today' : tab === 'progress' ? 'Progress' : 'Next Workout'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          {tab === 'today' && (
+            <>
+              <View style={s.statsGrid}>
+                <StatCard label="Duration"  value={String(session.duration)} unit="min" />
+                <StatCard label="Sets Done"  value={String(session.exercises.reduce((a,e)=>a+e.sets.filter(s=>s.isCompleted).length,0))} accent />
+              </View>
+              <View style={[s.statsGrid, { marginTop: 8 }]}>
+                <StatCard label="Volume"    value={(session.totalVolume/1000).toFixed(1) + 'k'} unit="kg" />
+                <StatCard label="Exercises" value={String(session.exercises.length)} />
+              </View>
+              {session.prsBreached.length > 0 && (
+                <GlassView radius={16} style={s.prCard}>
+                  <SectionHeader title="Personal Records" />
+                  {session.prsBreached.map((prId, i) => (
+                    <View key={i} style={[s.prRow, i < session.prsBreached.length-1 && s.prRowBorder]}>
+                      <Text style={s.prName}>{prId}</Text>
+                      <Badge label="NEW PR" variant="accent" size="xs" />
+                    </View>
+                  ))}
+                </GlassView>
+              )}
+            </>
+          )}
 
-        {/* Tab Content */}
-        <View style={{ flex: 1 }}>
-          {activeTab === 'today' && renderToday()}
-          {activeTab === 'progress' && renderProgress()}
-          {activeTab === 'next' && renderNext()}
-        </View>
+          {tab === 'progress' && (
+            <GlassView radius={16} style={s.progressCard}>
+              {session.exercises.map((ex, i) => {
+                const completedSets = ex.sets.filter(s => s.isCompleted);
+                const topSet = completedSets.reduce((best, s) => (s.actualWeight ?? 0) > (best.actualWeight ?? 0) ? s : best, completedSets[0]);
+                return (
+                  <View key={ex.id} style={[s.exRow, i < session.exercises.length-1 && s.exRowBorder]}>
+                    <Text style={s.exName}>{ex.exerciseName}</Text>
+                    <View style={s.exMeta}>
+                      <Text style={s.exDone}>{completedSets.length}/{ex.sets.length} sets</Text>
+                      {topSet && <Text style={s.exTop}>{topSet.actualWeight ?? '-'}{ex.weightUnit} x {topSet.actualReps}</Text>}
+                    </View>
+                  </View>
+                );
+              })}
+            </GlassView>
+          )}
 
-        {/* Footer */}
-        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          {tab === 'next' && nextDay && (
+            <>
+              <GlassView radius={16} style={s.nextCard}>
+                <View style={s.nextHeader}>
+                  <Text style={s.nextTitle}>{nextDay.label}</Text>
+                  <Text style={s.nextSub}>{nextDay.exercises.length} exercises</Text>
+                </View>
+                {nextDay.exercises.slice(0,4).map((ex, i) => (
+                  <View key={ex.id} style={[s.nextRow, i < Math.min(nextDay.exercises.length,4)-1 && s.nextRowBorder]}>
+                    <View style={s.nextLeft}>
+                      <SetTypeBadge type={ex.setType} />
+                      <Text style={s.nextEx}>{ex.name}</Text>
+                    </View>
+                    <Text style={s.nextTarget}>{ex.targetSets} x {ex.targetRepsMin ?? 'f'}</Text>
+                  </View>
+                ))}
+              </GlassView>
+            </>
+          )}
+          <View style={{ height: 140 }} />
+        </ScrollView>
+
+        {/* Bottom */}
+        <View style={s.bottom}>
           <TextInput
-            style={[styles.sessionNote, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-            value={sessionNote}
-            onChangeText={setSessionNote}
+            style={s.noteInput}
             placeholder="Add a session note..."
-            placeholderTextColor={colors.textMuted}
-            multiline
+            placeholderTextColor={COLORS.textMuted}
+            value={note}
+            onChangeText={setNote}
           />
-          <Button label="Done" onPress={onDone} />
+          <TouchableOpacity onPress={onDone} activeOpacity={0.9} style={s.doneBtn}>
+            <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.doneGrad}>
+              <Text style={s.doneText}>Done</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
-  );
-}
-
-function StatCard({ label, value, icon, colors }: { label: string; value: string; icon: any; colors: any }) {
-  return (
-    <View style={[statStyles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Ionicons name={icon} size={20} color={colors.accent} />
-      <Text style={[statStyles.value, { color: colors.text }]}>{value}</Text>
-      <Text style={[statStyles.label, { color: colors.textSecondary }]}>{label}</Text>
+      </SafeAreaView>
     </View>
   );
 }
 
-function DeltaCol({ label, today, last, delta, colors }: { label: string; today: string; last: string; delta: number | null; colors: any }) {
-  const up = delta !== null && delta > 0;
-  const down = delta !== null && delta < 0;
-  return (
-    <View style={deltaStyles.col}>
-      <Text style={[deltaStyles.label, { color: colors.textMuted }]}>{label}</Text>
-      <Text style={[deltaStyles.today, { color: colors.text }]}>{today}</Text>
-      <Text style={[deltaStyles.last, { color: colors.textSecondary }]}>Last: {last}</Text>
-      {delta !== null && delta !== 0 && (
-        <Text style={[deltaStyles.delta, { color: up ? colors.success : colors.danger }]}>
-          {up ? '+' : ''}{delta}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  topBar: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xl, paddingBottom: SPACING.md, borderBottomWidth: 1 },
-  title: { fontSize: 22, fontWeight: '800' },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1 },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: SPACING.md, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  activeTab: {},
-  tabText: { fontSize: 13, fontWeight: '700' },
-  tabContent: { padding: SPACING.md, paddingBottom: SPACING.xxl },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
-  prCard: { marginBottom: SPACING.md },
-  prTitle: { fontSize: 16, fontWeight: '800', marginBottom: SPACING.sm },
-  prRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, marginBottom: 4 },
-  prName: { fontSize: 14, fontWeight: '600' },
-  notesCard: { marginBottom: SPACING.md },
-  sectionTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: SPACING.sm },
-  noteRow: { borderTopWidth: 1, paddingTop: SPACING.sm, marginTop: SPACING.sm },
-  noteExercise: { fontSize: 12, fontWeight: '700', marginBottom: 2 },
-  noteText: { fontSize: 13 },
-  progressCard: { marginBottom: SPACING.sm },
-  progressExName: { fontSize: 15, fontWeight: '700', marginBottom: SPACING.sm },
-  progressRow: { flexDirection: 'row', gap: SPACING.lg },
-  exNotes: { borderTopWidth: 1, marginTop: SPACING.sm, paddingTop: SPACING.sm },
-  exNoteText: { fontSize: 12, marginBottom: 2 },
-  emptyText: { textAlign: 'center', marginTop: SPACING.xl, fontSize: 14 },
-  restPreview: { alignItems: 'center', padding: SPACING.xl },
-  restEmoji: { fontSize: 40, marginBottom: SPACING.sm },
-  restText: { fontSize: 18, fontWeight: '700' },
-  nextExCard: { marginBottom: SPACING.sm },
-  nextExName: { fontSize: 14, fontWeight: '700' },
-  nextExDetail: { fontSize: 12, marginTop: 2 },
-  remindersCard: { marginTop: SPACING.md },
-  reminderText: { fontSize: 13, marginBottom: SPACING.sm },
-  footer: { borderTopWidth: 1, padding: SPACING.md, gap: SPACING.sm },
-  sessionNote: { borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm, fontSize: 14, minHeight: 64 },
-});
-
-const statStyles = StyleSheet.create({
-  card: { width: '47%', borderWidth: 1, borderRadius: BORDER_RADIUS.md, padding: SPACING.md, alignItems: 'center', gap: 4 },
-  value: { fontSize: 22, fontWeight: '800' },
-  label: { fontSize: 11, fontWeight: '600' },
-});
-
-const deltaStyles = StyleSheet.create({
-  col: { flex: 1 },
-  label: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 2 },
-  today: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
-  last: { fontSize: 12, marginBottom: 2 },
-  delta: { fontSize: 13, fontWeight: '700' },
+const s = StyleSheet.create({
+  orb:           { position: 'absolute', borderRadius: 999 },
+  header:        { paddingHorizontal: 20, paddingBottom: 16 },
+  headerRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  trophyBadge:   { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  accentLabel:   { fontSize: 13, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase' },
+  title:         { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  sub:           { fontSize: 13, color: COLORS.textSecondary, marginTop: 3 },
+  tabBarWrap:    { paddingHorizontal: 16, marginBottom: 12 },
+  tabBar:        { padding: 4, flexDirection: 'row', gap: 4 },
+  tabBtn:        { flex: 1, borderRadius: 9, overflow: 'hidden' },
+  tabBtnActive:  {},
+  tabGrad:       { height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
+  tabText:       { height: 36, lineHeight: 36, textAlign: 'center', fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
+  tabTextActive: { fontSize: 13, fontWeight: '800', color: '#000' },
+  scroll:        { paddingHorizontal: 16 },
+  statsGrid:     { flexDirection: 'row', gap: 8 },
+  prCard:        { padding: 16, marginTop: 8 },
+  prRow:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  prRowBorder:   { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  prName:        { fontSize: 14, fontWeight: '600', color: '#fff' },
+  progressCard:  { padding: 16 },
+  exRow:         { paddingVertical: 12 },
+  exRowBorder:   { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  exName:        { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  exMeta:        { flexDirection: 'row', gap: 12 },
+  exDone:        { fontSize: 13, color: COLORS.accent },
+  exTop:         { fontSize: 13, color: COLORS.textSecondary },
+  nextCard:      { padding: 16 },
+  nextHeader:    { marginBottom: 12 },
+  nextTitle:     { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  nextSub:       { fontSize: 13, color: COLORS.textSecondary },
+  nextRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  nextRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  nextLeft:      { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  nextEx:        { fontSize: 14, fontWeight: '600', color: '#fff' },
+  nextTarget:    { fontSize: 12, color: COLORS.textSecondary },
+  bottom:        { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: 'rgba(11,8,20,0.85)', gap: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  noteInput:     { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 12, height: 44, paddingHorizontal: 14, color: '#fff', fontSize: 14 },
+  doneBtn:       { borderRadius: 14, overflow: 'hidden' },
+  doneGrad:      { height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
+  doneText:      { fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: -0.2 },
 });

@@ -1,53 +1,60 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme';
-import { SessionExercise, SetLog } from '../../types';
+import { GlassView } from '../common/GlassView';
+import { ProgressRing } from '../common/ProgressRing';
+import { SetTypeBadge } from '../common/SetTypeBadge';
 import { SetLogger } from '../SetLogger/SetLogger';
-import { Badge } from '../common/Badge';
-import { SET_TYPE_LABELS, BORDER_RADIUS, SPACING } from '../../constants';
+import { COLORS, SPACING, SET_TYPE_LABELS, BORDER_RADIUS } from '../../constants';
+import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 
-interface Props {
-  exercise: SessionExercise;
-  onOpenPlateCalc: (set: SetLog, exercise: SessionExercise) => void;
-}
+interface Props { exercise: SessionExercise; }
 
-export function ExerciseCard({ exercise, onOpenPlateCalc }: Props) {
-  const { colors } = useTheme();
+export function ExerciseCard({ exercise }: Props) {
   const { completeSet } = useSessionStore();
   const [expanded, setExpanded] = useState(!exercise.isCompleted);
-
-  const completedSets = exercise.sets.filter((s) => s.isCompleted).length;
-  const totalSets = exercise.sets.length;
-  const progress = `${completedSets}/${totalSets}`;
+  const done  = exercise.sets.filter(s => s.isCompleted).length;
+  const total = exercise.sets.length;
+  const allDone = done === total;
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: exercise.isCompleted ? colors.accent : colors.border }]}>
-      {/* Header */}
-      <TouchableOpacity style={styles.header} onPress={() => setExpanded((p) => !p)} activeOpacity={0.8}>
-        <View style={styles.headerLeft}>
-          {exercise.isCompleted && (
-            <Ionicons name="checkmark-circle" size={18} color={colors.accent} style={styles.checkIcon} />
-          )}
-          <View>
-            <Text style={[styles.name, { color: colors.text }]}>{exercise.exerciseName}</Text>
-            <View style={styles.meta}>
-              <Badge label={SET_TYPE_LABELS[exercise.setType] ?? exercise.setType} />
-              <Text style={[styles.progressText, { color: colors.textSecondary }]}>{progress} sets</Text>
-            </View>
+    <GlassView
+      radius={16}
+      style={[
+        s.card,
+        allDone && s.cardDone,
+        expanded && !allDone && s.cardExpanded,
+      ]}
+      glow={allDone}
+      borderColor={allDone ? 'rgba(123,94,250,0.40)' : expanded ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.08)'}
+    >
+      <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
+        <ProgressRing value={done} max={total} size={44} strokeWidth={3} label={done + '/' + total} />
+        <View style={s.info}>
+          <View style={s.nameRow}>
+            <Text style={[s.name, allDone && s.nameDone]}>{exercise.exerciseName}</Text>
+            <SetTypeBadge type={exercise.setType} />
           </View>
+          <Text style={s.meta}>
+            {exercise.setType === 'toFailure'
+              ? total + ' x failure'
+              : (() => {
+                  const t = exercise.sets[0];
+                  if (!t) return '';
+                  const w = t.targetWeight ? t.targetWeight + exercise.weightUnit : '';
+                  const r = t.targetReps ? t.targetReps + ' reps' : '';
+                  return total + ' x ' + [r, w].filter(Boolean).join(' @ ');
+                })()
+            }
+          </Text>
         </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMuted}
-        />
+        <View style={[s.chevron, expanded && s.chevronUp]}>
+          <Text style={s.chevronText}>{'>'}</Text>
+        </View>
       </TouchableOpacity>
 
-      {/* Sets */}
       {expanded && (
-        <View style={styles.sets}>
+        <View style={s.sets}>
           {exercise.sets.map((set, idx) => (
             <SetLogger
               key={set.id}
@@ -55,32 +62,26 @@ export function ExerciseCard({ exercise, onOpenPlateCalc }: Props) {
               setIndex={idx}
               exercise={exercise}
               onComplete={(data) => completeSet(exercise.id, set.id, data)}
-              onOpenPlateCalc={(s) => onOpenPlateCalc(s, exercise)}
             />
           ))}
         </View>
       )}
-    </View>
+    </GlassView>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1.5,
-    borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.md,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: SPACING.sm },
-  checkIcon: { marginRight: 4 },
-  name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  progressText: { fontSize: 12, fontWeight: '600' },
-  sets: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md },
+const s = StyleSheet.create({
+  card:         { marginBottom: SPACING.sm, overflow: 'hidden' },
+  cardDone:     {},
+  cardExpanded: {},
+  header:       { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, gap: SPACING.sm },
+  info:         { flex: 1, minWidth: 0 },
+  nameRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
+  name:         { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  nameDone:     { color: COLORS.accent },
+  meta:         { fontSize: 12, color: COLORS.textMuted },
+  chevron:      { transform: [{ rotate: '90deg' }] },
+  chevronUp:    { transform: [{ rotate: '270deg' }] },
+  chevronText:  { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
+  sets:         { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
 });

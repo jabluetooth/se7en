@@ -1,5 +1,5 @@
-import React from 'react';
-import { ViewStyle } from 'react-native';
+﻿import React from 'react';
+import { ViewStyle, StyleSheet } from 'react-native';
 import { GlassView } from './GlassView';
 import { SPACING } from '../../constants';
 
@@ -14,7 +14,8 @@ interface Props {
 
 export function Card({ children, style, elevated, glow, radius = 16, padding = SPACING.md }: Props) {
   return (
-    <GlassView opacity={elevated ? 'mid' : 'low'} radius={radius} glow={glow} style={[{ padding }, style]}>
+    <GlassView opacity={elevated ? 'mid' : 'low'} radius={radius} glow={glow}
+      style={StyleSheet.flatten([{ padding }, style]) as ViewStyle}>
       {children}
     </GlassView>
   );

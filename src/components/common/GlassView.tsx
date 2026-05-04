@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, ViewStyle, StyleSheet, Platform } from 'react-native';
+﻿import React from 'react';
+import { View, StyleSheet, Platform } from 'react-native';
 
 interface Props {
   children?: React.ReactNode;
-  style?: ViewStyle;
+  style?: any;
   opacity?: 'low' | 'mid' | 'high';
   radius?: number;
   borderColor?: string;
@@ -15,27 +15,25 @@ export function GlassView({ children, style, opacity = 'low', radius = 16, borde
   const bc = borderColor ?? (opacity === 'high' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)');
   return (
     <View style={[
-      styles.glass,
+      ss.glass,
       {
         backgroundColor: bg,
         borderColor: bc,
         borderRadius: radius,
-        shadowColor: glow ? 'rgba(123,94,250,0.5)' : '#000',
-        shadowOpacity: glow ? 0.6 : 0.3,
-        shadowRadius: glow ? 16 : 12,
+        ...(glow ? Platform.select({ ios: { shadowColor: 'rgba(123,94,250,0.5)', shadowOpacity: 0.6, shadowRadius: 16 }, android: {} }) : {}),
       },
-      style,
+      ...(Array.isArray(style) ? style : [style]),
     ]}>
       {children}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const ss = StyleSheet.create({
   glass: {
     borderWidth: 1,
     ...Platform.select({
-      ios: { shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 },
       android: { elevation: 6 },
     }),
   },
