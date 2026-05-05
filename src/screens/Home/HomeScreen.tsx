@@ -115,7 +115,9 @@ export function HomeScreen() {
           style={s.scroll}
           contentContainerStyle={s.scrollContent}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
         >
+          {/* ── Orbit + slider ── */}
           <CycleOrbitWidget
             currentDay={settings.currentDayPosition}
             sessions={planSessions}
@@ -127,14 +129,20 @@ export function HomeScreen() {
             sessions={planSessions}
           />
 
+          {/* ── Mission card ── */}
           <MissionCard
             currentDay={currentDay}
             currentDayNum={settings.currentDayPosition}
             onStart={handleStart}
           />
 
+          {/* ── Divider ── */}
+          <View style={s.sectionGap} />
+
+          {/* ── Heatmap ── */}
           <ContributionHeatmap sessions={planSessions} />
 
+          {/* ── Bento stats ── */}
           <BentoGrid
             sessions={planSessions}
             latestPR={latestPR}
@@ -160,7 +168,8 @@ const s = StyleSheet.create({
   dateText:   { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   logoBadge:  { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
   logoNum:    { fontSize: 22, fontWeight: '900', color: COLORS.accent },
-  scroll:     { flex: 1 },
-  scrollContent: { paddingTop: 4 },
-  bottomPad:  { height: 120 },
+  scroll:      { flex: 1 },
+  scrollContent: { paddingTop: 4, paddingBottom: 8 },
+  sectionGap:  { height: 8 },
+  bottomPad:   { height: 120 },
 });
