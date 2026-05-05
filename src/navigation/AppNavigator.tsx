@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FloatingDock, TabName } from '../components/FloatingDock/FloatingDock';
@@ -7,6 +7,7 @@ import { CycleScreen } from '../screens/Cycle/CycleScreen';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { PostWorkoutSummary } from '../screens/PostWorkout/PostWorkoutSummary';
+import { ActiveSessionScreen } from '../screens/ActiveSession/ActiveSessionScreen';
 import { RestTimerScreen } from '../screens/RestTimer/RestTimerScreen';
 import { ExerciseBuilderScreen } from '../screens/ExerciseBuilder/ExerciseBuilderScreen';
 import { useSessionStore } from '../stores/sessionStore';
@@ -19,16 +20,21 @@ export function AppNavigator() {
   const [showRestTimer,   setShowRestTimer   ] = useState(false);
   const [showBuilder,     setShowBuilder     ] = useState(false);
   const [finishedSession, setFinishedSession ] = useState<WorkoutSession | null>(null);
-  const { finishSession } = useSessionStore();
 
-  const handleFinish = async () => {
-    const session = await finishSession();
-    if (session) { setFinishedSession(session); setShowPostWorkout(true); }
+  const { activeSession } = useSessionStore();
+
+  // ActiveSession modal is driven entirely by store state — it auto-shows
+  // when a session starts (including on app resume) and auto-hides when done.
+  const showActiveSession = activeSession !== null;
+
+  const handleSessionFinish = (session: WorkoutSession) => {
+    setFinishedSession(session);
+    setShowPostWorkout(true);
   };
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'Home':     return <HomeScreen onFinish={handleFinish} />;
+      case 'Home':     return <HomeScreen />;
       case 'Cycle':    return <CycleScreen />;
       case 'Progress': return <ProgressScreen />;
       case 'Settings': return <SettingsScreen onOpenExerciseBuilder={() => setShowBuilder(true)} />;
@@ -40,17 +46,29 @@ export function AppNavigator() {
       <View style={s.container}>
         <View style={s.content}>{renderTab()}</View>
         <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
+
+        {/* Active workout session — shows whenever a session exists in the store */}
+        <Modal visible={showActiveSession} animationType="slide" presentationStyle="fullScreen">
+          <ActiveSessionScreen onFinish={handleSessionFinish} />
+        </Modal>
+
         <Modal visible={showPostWorkout} animationType="slide" presentationStyle="fullScreen">
           {finishedSession ? (
             <PostWorkoutSummary
               session={finishedSession}
-              onDone={() => { setShowPostWorkout(false); setFinishedSession(null); setActiveTab('Home'); }}
+              onDone={() => {
+                setShowPostWorkout(false);
+                setFinishedSession(null);
+                setActiveTab('Home');
+              }}
             />
           ) : null}
         </Modal>
+
         <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
           <RestTimerScreen onClose={() => setShowRestTimer(false)} />
         </Modal>
+
         <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
           <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
         </Modal>

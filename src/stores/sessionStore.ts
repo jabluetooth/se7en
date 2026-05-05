@@ -83,7 +83,18 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       ]);
       const activeSession = rawSession ? (JSON.parse(rawSession) as WorkoutSession) : null;
       const sessions = rawHistory ? (JSON.parse(rawHistory) as WorkoutSession[]) : [];
-      set({ activeSession, sessions, loaded: true });
+
+      // Resume elapsed timer from startedAt so the clock is accurate after a reload
+      let resumedTimer = 0;
+      if (activeSession?.startedAt) {
+        resumedTimer = Math.floor(
+          (Date.now() - new Date(activeSession.startedAt).getTime()) / 1000,
+        );
+      }
+
+      set({ activeSession, sessions, loaded: true, sessionTimer: Math.max(0, resumedTimer) });
+
+      if (activeSession) get().startTimer();
     } catch {
       set({ loaded: true });
     }

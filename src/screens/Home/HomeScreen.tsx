@@ -1,213 +1,166 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
-import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
-import { Button } from '../../components/common/Button';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { GRAD, COLORS, SPACING } from '../../constants';
+import { usePRStore } from '../../stores/prStore';
+import { GRAD, COLORS } from '../../constants';
+import { WorkoutSession, PersonalRecord } from '../../types';
+import { CycleOrbitWidget } from './CycleOrbitWidget';
+import { DaySlider } from './DaySlider';
+import { MissionCard } from './MissionCard';
+import { ContributionHeatmap } from './ContributionHeatmap';
+import { BentoGrid } from './BentoGrid';
 
-const QUOTES = [
-  'The pain you feel today is the strength you feel tomorrow.',
-  'Discipline: doing it even when you do not feel like it.',
-  'Every rep is a vote for who you are becoming.',
-  'Show up. That is already more than most.',
-  'Progress, not perfection.',
-];
+// HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
+// (shown as a modal in AppNavigator whenever activeSession !== null).
 
-interface Props { onFinish: () => void; }
+function computeStreak(sessions: WorkoutSession[]): number {
+  const completed = sessions
+    .filter(s => s.status === 'completed' && s.finishedAt)
+    .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime());
 
-export function HomeScreen({ onFinish }: Props) {
-  const { activePlan } = usePlanStore();
-  const { activeSession, startSession, finishSession, skipDay, sessionTimer } = useSessionStore();
-  const { settings } = useSettingsStore();
-  const [quoteIdx, setQuoteIdx] = useState(0);
+  if (completed.length === 0) return 0;
 
-  useEffect(() => {
-    const id = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 5000);
-    return () => clearInterval(id);
-  }, []);
+  let streak = 1;
+  let prev   = new Date(completed[0].finishedAt!);
+  prev.setHours(0, 0, 0, 0);
 
-  const currentDay = activePlan?.days.find(d => d.dayPosition === settings.currentDayPosition);
-  const isRest     = currentDay?.isRestDay ?? false;
-  const totalSets  = activeSession ? activeSession.exercises.reduce((a, e) => a + e.sets.length, 0) : 0;
-  const doneSets   = activeSession ? activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0) : 0;
-  const pct        = totalSets > 0 ? doneSets / totalSets : 0;
-  const mins       = Math.floor(sessionTimer / 60);
-  const secs       = sessionTimer % 60;
-  const timeStr    = mins + ':' + String(secs).padStart(2, '0');
-  const volume     = activeSession
-    ? activeSession.exercises.reduce((a, e) =>
-        a + e.sets.filter(s => s.isCompleted).reduce((b, s) => b + (s.actualWeight ?? 0) * (s.actualReps || 1), 0), 0)
-    : 0;
-  const volumeStr = volume >= 1000 ? (volume / 1000).toFixed(1) + 'k' : String(volume);
+  for (let i = 1; i < completed.length; i++) {
+    const cur = new Date(completed[i].finishedAt!);
+    cur.setHours(0, 0, 0, 0);
+    if ((prev.getTime() - cur.getTime()) / 86_400_000 <= 1.5) {
+      streak++;
+      prev = cur;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
 
-  const handleStartSession = () => {
+export function HomeScreen() {
+  const { activePlan }                          = usePlanStore();
+  const { sessions, startSession }              = useSessionStore();
+  const { settings }                            = useSettingsStore();
+  const { records }                             = usePRStore();
+
+  const currentDay   = activePlan?.days.find(d => d.dayPosition === settings.currentDayPosition);
+  const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
+
+  const streak: number = computeStreak(planSessions);
+  const latestPR: PersonalRecord | null = records.length > 0
+    ? [...records].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+    : null;
+
+  const handleStart = () => {
     if (!activePlan || !currentDay) return;
     startSession(activePlan.id, currentDay);
-  };
-
-  const handleSkip = () => {
-    if (!activePlan || !currentDay) return;
-    skipDay(activePlan.id, currentDay.dayPosition, currentDay.label, 'Other');
+    // AppNavigator detects activeSession !== null and opens ActiveSessionScreen
   };
 
   if (!activePlan) {
     return (
       <View style={s.emptyWrap}>
-        <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={GRAD.bg}
+          locations={GRAD.bgLocations}
+          start={GRAD.bgStart}
+          end={GRAD.bgEnd}
+          style={StyleSheet.absoluteFill}
+        />
         <Text style={s.emptyTitle}>No plan active</Text>
-        <Text style={s.emptySub}>Set up a plan in Settings to get started.</Text>
+        <Text style={s.emptySub}>Head to Settings to set up your plan.</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
+    <View style={s.root}>
+      <LinearGradient
+        colors={GRAD.bg}
+        locations={GRAD.bgLocations}
+        start={GRAD.bgStart}
+        end={GRAD.bgEnd}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Ambient orbs */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -100, right: -80, width: 300, height: 300, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 120, left: -80, width: 260, height: 260, backgroundColor: 'rgba(123,94,250,0.10)' }]} />
-        <View style={[s.orb, { top: 300, right: -50, width: 200, height: 200, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
+        <View style={[s.orb, { top: -80,  right: -60,  width: 280, height: 280, backgroundColor: 'rgba(144,53,240,0.11)' }]} />
+        <View style={[s.orb, { bottom: 180, left: -70, width: 240, height: 240, backgroundColor: 'rgba(123,94,250,0.09)' }]} />
+        <View style={[s.orb, { top: 300,  right: -40,  width: 180, height: 180, backgroundColor: 'rgba(76,170,240,0.07)'  }]} />
       </View>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={s.quotePad}>
-          <GlassView opacity="mid" radius={999} style={s.quoteRow}>
-            <Text style={s.quoteGlyph}>*</Text>
-            <Text style={s.quoteText} numberOfLines={1}>{QUOTES[quoteIdx]}</Text>
-            <View style={s.quoteDots}>
-              {QUOTES.map((_, i) => <View key={i} style={[s.dot, i === quoteIdx && s.dotActive]} />)}
-            </View>
-          </GlassView>
-        </View>
+
+      <SafeAreaView style={s.safe} edges={['top']}>
+        {/* Header */}
         <View style={s.header}>
           <View>
-            <Text style={s.dayCycle}>Day {settings.currentDayPosition}</Text>
-            <Text style={s.title}>{currentDay?.label ?? 'Rest Day'}</Text>
+            <Text style={s.planLabel}>{activePlan.name}</Text>
+            <Text style={s.dateText}>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+              })}
+            </Text>
           </View>
-          <GlassView radius={14} style={s.logoBadge} glow>
+          <GlassView radius={14} glow style={s.logoBadge}>
             <Text style={s.logoNum}>7</Text>
           </GlassView>
         </View>
-        {activeSession ? (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-            <View style={s.statsRow}>
-              {[
-                { label: 'Sets Done', value: doneSets + '/' + totalSets, accent: true  },
-                { label: 'Timer',     value: timeStr,                     accent: false },
-                { label: 'Volume',    value: volumeStr + ' kg',           accent: false },
-              ].map((stat, i) => (
-                <GlassView key={i} radius={16} style={s.statCard}>
-                  <Text style={s.statLabel}>{stat.label}</Text>
-                  <Text style={[s.statValue, stat.accent && s.statAccent]}>{stat.value}</Text>
-                </GlassView>
-              ))}
-            </View>
-            <GlassView radius={16} style={s.progressCard}>
-              <View style={s.progressHeader}>
-                <Text style={s.progressLbl}>Session Progress</Text>
-                <Text style={s.progressPct}>{Math.round(pct * 100)}%</Text>
-              </View>
-              <View style={s.progressTrack}>
-                <LinearGradient colors={GRAD.progress} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={[s.progressFill, { width: pct * 100 + '%' as any }]} />
-              </View>
-              <View style={s.pills}>
-                {activeSession.exercises.map((ex, i) => {
-                  const d = ex.sets.filter(s => s.isCompleted).length;
-                  const a = d === ex.sets.length;
-                  return (
-                    <View key={i} style={[s.pill, a && s.pillDone]}>
-                      <View style={[s.pillDot, a && s.pillDotDone]} />
-                      <Text style={[s.pillText, a && s.pillTextDone]}>{ex.exerciseName.split(' ')[0]}</Text>
-                      <Text style={s.pillCount}>{d}/{ex.sets.length}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </GlassView>
-            {activeSession.exercises.map(ex => <ExerciseCard key={ex.id} exercise={ex} />)}
-            <View style={{ height: 140 }} />
-          </ScrollView>
-        ) : (
-          <View style={s.startWrap}>
-            {isRest ? (
-              <Text style={s.restMsg}>Recovery Day. Your muscles grow during rest.</Text>
-            ) : (
-              <>
-                <Text style={s.workoutMeta}>{currentDay?.exercises.length ?? 0} exercises planned</Text>
-                <Button label="Start Workout" onPress={handleStartSession} size="lg" />
-              </>
-            )}
-          </View>
-        )}
-        {activeSession && (
-          <View style={s.cta}>
-            <TouchableOpacity style={s.ctaBtn} onPress={async () => { await finishSession(); onFinish(); }} activeOpacity={0.9}>
-              <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaGrad}>
-                <Text style={s.ctaText}>Finish Workout</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <GlassView radius={16} style={s.skipBtn}>
-              <TouchableOpacity onPress={handleSkip} style={s.skipInner}>
-                <Text style={s.skipText}>Skip</Text>
-              </TouchableOpacity>
-            </GlassView>
-          </View>
-        )}
+
+        <ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <CycleOrbitWidget
+            currentDay={settings.currentDayPosition}
+            sessions={planSessions}
+          />
+
+          <DaySlider
+            days={activePlan.days}
+            currentDay={settings.currentDayPosition}
+            sessions={planSessions}
+          />
+
+          <MissionCard
+            currentDay={currentDay}
+            currentDayNum={settings.currentDayPosition}
+            onStart={handleStart}
+          />
+
+          <ContributionHeatmap sessions={planSessions} />
+
+          <BentoGrid
+            sessions={planSessions}
+            latestPR={latestPR}
+            streak={streak}
+          />
+
+          <View style={s.bottomPad} />
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  emptyWrap:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle:     { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  emptySub:       { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
-  orb:            { position: 'absolute', borderRadius: 999 },
-  quotePad:       { paddingHorizontal: 16, paddingBottom: 8 },
-  quoteRow:       { paddingHorizontal: 16, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  quoteGlyph:     { fontSize: 13, color: COLORS.accent },
-  quoteText:      { flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.75)', fontStyle: 'italic' },
-  quoteDots:      { flexDirection: 'row', gap: 3 },
-  dot:            { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.30)' },
-  dotActive:      { width: 12, backgroundColor: COLORS.accent },
-  header:         { paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  dayCycle:       { fontSize: 12, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 3 },
-  title:          { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  logoBadge:      { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', padding: 0 },
-  logoNum:        { fontSize: 24, fontWeight: '900', color: COLORS.accent },
-  scroll:         { paddingHorizontal: 16 },
-  statsRow:       { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  statCard:       { flex: 1, padding: 12 },
-  statLabel:      { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
-  statValue:      { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
-  statAccent:     { color: COLORS.accent },
-  progressCard:   { padding: 16, marginBottom: 8 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  progressLbl:    { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.75)' },
-  progressPct:    { fontSize: 16, fontWeight: '900', color: COLORS.accent },
-  progressTrack:  { height: 5, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 10 },
-  progressFill:   { height: '100%', borderRadius: 99 },
-  pills:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pill:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  pillDone:       { backgroundColor: 'rgba(123,94,250,0.15)', borderColor: 'rgba(123,94,250,0.35)' },
-  pillDot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.textMuted },
-  pillDotDone:    { backgroundColor: COLORS.accent },
-  pillText:       { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
-  pillTextDone:   { color: COLORS.accent },
-  pillCount:      { fontSize: 10, color: COLORS.textMuted },
-  startWrap:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  restMsg:        { fontSize: 15, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 22 },
-  workoutMeta:    { fontSize: 14, color: COLORS.textSecondary, marginBottom: 8 },
-  cta:            { position: 'absolute', bottom: 96, left: 16, right: 16, flexDirection: 'row', gap: 10 },
-  ctaBtn:         { flex: 1, borderRadius: 16, overflow: 'hidden' },
-  ctaGrad:        { height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
-  ctaText:        { fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: -0.2 },
-  skipBtn:        { borderRadius: 16 },
-  skipInner:      { height: 54, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
-  skipText:       { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  root:       { flex: 1 },
+  safe:       { flex: 1 },
+  emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  orb:        { position: 'absolute', borderRadius: 999 },
+  header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  planLabel:  { fontSize: 11, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
+  dateText:   { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  logoBadge:  { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
+  logoNum:    { fontSize: 22, fontWeight: '900', color: COLORS.accent },
+  scroll:     { flex: 1 },
+  scrollContent: { paddingTop: 4 },
+  bottomPad:  { height: 120 },
 });

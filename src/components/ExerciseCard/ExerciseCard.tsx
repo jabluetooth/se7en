@@ -8,11 +8,16 @@ import { COLORS, SPACING, SET_TYPE_LABELS, BORDER_RADIUS } from '../../constants
 import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 
-interface Props { exercise: SessionExercise; }
+interface Props {
+  exercise:        SessionExercise;
+  defaultExpanded?: boolean; // override initial open/closed state
+}
 
-export function ExerciseCard({ exercise }: Props) {
+export function ExerciseCard({ exercise, defaultExpanded }: Props) {
   const { completeSet } = useSessionStore();
-  const [expanded, setExpanded] = useState(!exercise.isCompleted);
+  const [expanded, setExpanded] = useState(
+    defaultExpanded !== undefined ? defaultExpanded : !exercise.isCompleted,
+  );
   const done  = exercise.sets.filter(s => s.isCompleted).length;
   const total = exercise.sets.length;
   const allDone = done === total;
