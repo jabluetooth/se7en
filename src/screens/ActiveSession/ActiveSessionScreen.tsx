@@ -53,8 +53,8 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 
       {/* Ambient orbs */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -60, right: -50, width: 240, height: 240, backgroundColor: 'rgba(144,53,240,0.10)' }]} />
-        <View style={[s.orb, { bottom: 100, left: -60, width: 220, height: 220, backgroundColor: 'rgba(76,170,240,0.07)'  }]} />
+        <View style={[s.orb, { top: -60, right: -50, width: 240, height: 240, backgroundColor: 'rgba(10,132,255,0.08)' }]} />
+        <View style={[s.orb, { bottom: 100, left: -60, width: 220, height: 220, backgroundColor: 'rgba(64,156,255,0.05)' }]} />
       </View>
 
       <SafeAreaView style={s.safe} edges={['top']}>

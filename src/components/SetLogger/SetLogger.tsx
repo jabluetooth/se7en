@@ -216,17 +216,17 @@ const s = StyleSheet.create({
   checkWrap:    { borderRadius: 10, overflow: 'hidden' },
   checkBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
 
-  doneRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, marginBottom: 0, gap: 8, backgroundColor: 'rgba(123,94,250,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(123,94,250,0.20)' },
+  doneRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, marginBottom: 0, gap: 8, backgroundColor: 'rgba(10,132,255,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(10,132,255,0.20)' },
   doneCheck:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   doneLabel:    { fontSize: 12, fontWeight: '800', color: COLORS.accent, width: 24 },
   doneVal:      { fontSize: 13, fontWeight: '600', color: '#fff' },
   doneNote:     { fontSize: 11, color: COLORS.textMuted, flex: 1 },
-  restToggle:   { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(123,94,250,0.35)', backgroundColor: 'rgba(123,94,250,0.10)' },
+  restToggle:   { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(10,132,255,0.28)', backgroundColor: 'rgba(10,132,255,0.10)' },
   restToggleTxt:{ fontSize: 9, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.8 },
 });
 
 const r = StyleSheet.create({
-  wrap:          { backgroundColor: 'rgba(76,170,240,0.07)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(76,170,240,0.18)', padding: 10, marginBottom: 6, marginTop: 2 },
+  wrap:          { backgroundColor: 'rgba(100,210,255,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(100,210,255,0.16)', padding: 10, marginBottom: 6, marginTop: 2 },
   mainRow:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconCol:       { width: 24, alignItems: 'center' },
   icon:          { fontSize: 16, color: COLORS.rest },
@@ -240,7 +240,7 @@ const r = StyleSheet.create({
   doneText:      { fontSize: 15, fontWeight: '800', color: COLORS.accent },
   presetsCol:    { flexDirection: 'row', gap: 4 },
   preset:        { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)' },
-  presetActive:  { borderColor: COLORS.rest, backgroundColor: 'rgba(91,142,200,0.18)' },
+  presetActive:  { borderColor: COLORS.rest, backgroundColor: 'rgba(100,210,255,0.13)' },
   presetTxt:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted },
   presetTxtActive:{ color: COLORS.rest },
   closeBtn:      { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },

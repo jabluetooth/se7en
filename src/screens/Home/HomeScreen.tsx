@@ -88,11 +88,11 @@ export function HomeScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Ambient orbs */}
+      {/* Ambient orbs — subtle iOS-blue, barely perceptible */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -80,  right: -60,  width: 280, height: 280, backgroundColor: 'rgba(144,53,240,0.11)' }]} />
-        <View style={[s.orb, { bottom: 180, left: -70, width: 240, height: 240, backgroundColor: 'rgba(123,94,250,0.09)' }]} />
-        <View style={[s.orb, { top: 300,  right: -40,  width: 180, height: 180, backgroundColor: 'rgba(76,170,240,0.07)'  }]} />
+        <View style={[s.orb, { top: -80,  right: -60,  width: 300, height: 300, backgroundColor: 'rgba(10,132,255,0.09)' }]} />
+        <View style={[s.orb, { bottom: 180, left: -70, width: 240, height: 240, backgroundColor: 'rgba(10,132,255,0.06)' }]} />
+        <View style={[s.orb, { top: 320,  right: -40,  width: 180, height: 180, backgroundColor: 'rgba(64,156,255,0.05)' }]} />
       </View>
 
       <SafeAreaView style={s.safe} edges={['top']}>

@@ -39,18 +39,19 @@ export function CycleOrbitWidget({ currentDay, sessions }: Props) {
     <View style={s.container}>
       <Svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}>
         <Defs>
+          {/* Both gradients share the same two-stop iOS-blue ramp */}
           <SvgGrad id="done" x1="0%" y1="0%" x2="100%" y2="100%">
             <Stop offset="0%"   stopColor={GRAD.accent[0]} stopOpacity="1" />
-            <Stop offset="100%" stopColor={GRAD.accent[2]} stopOpacity="1" />
+            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="1" />
           </SvgGrad>
           <SvgGrad id="curr" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%"   stopColor={GRAD.accent[1]} stopOpacity="1" />
-            <Stop offset="100%" stopColor={GRAD.accent[3]} stopOpacity="1" />
+            <Stop offset="0%"   stopColor={GRAD.accent[0]} stopOpacity="1" />
+            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="0.7" />
           </SvgGrad>
         </Defs>
 
         {/* Inner dark circle first so arcs sit on top */}
-        <Circle cx={cx} cy={cy} r={ri - 1} fill="rgba(11,8,20,0.92)" />
+        <Circle cx={cx} cy={cy} r={ri - 1} fill="rgba(8,9,15,0.92)" />
 
         {Array.from({ length: 7 }, (_, i) => {
           const day = i + 1;

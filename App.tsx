@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StatusBar } from 'react-native';
+import { View, ActivityIndicator, StatusBar, UIManager, Platform } from 'react-native';
+
+// LayoutAnimation smooth reorder on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSettingsStore } from './src/stores/settingsStore';

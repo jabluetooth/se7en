@@ -1,65 +1,74 @@
-// ─── Gradient Palette: Violet → Indigo → Cobalt → Teal ─────────────
-// Hex approximations of the OKLCH design tokens
+// ─── Se7en · Apple-style Design System ───────────────────────
+// Accent: iOS System Blue · Background: near-black with subtle cool tint
 
 export const GRAD = {
-  // Main accent gradient (buttons, active states, progress)
-  accent:    ['#9035F0', '#7B5EFA', '#4CAAF0', '#2ECAC4'] as const,
-  // Soft version for backgrounds / subtle fills
-  accentSoft:['rgba(144,53,240,0.18)', 'rgba(123,94,250,0.14)', 'rgba(76,170,240,0.10)', 'rgba(46,202,196,0.08)'] as const,
-  // Danger gradient
-  danger:    ['#FF5A5A', '#E83535'] as const,
-  // Warning gradient
-  warn:      ['#F2C044', '#E8A020'] as const,
-  // Full screen background
-  bg:        ['#0B0814', '#080B18', '#060C16', '#060E14'] as const,
-  bgLocations: [0, 0.35, 0.65, 1] as const,
-  bgStart:   { x: 0.2, y: 0 } as const,
-  bgEnd:     { x: 0.8, y: 1 } as const,
-  // Progress bar / ring
-  progress:  ['#8B30EE', '#7B5EFA', '#2ECAC4'] as const,
+  // Primary CTA — iOS blue, short two-stop gradient (not a rainbow)
+  accent:      ['#0A84FF', '#409CFF'] as const,
+  // Soft fill for backgrounds / subtle highlights
+  accentSoft:  ['rgba(10,132,255,0.16)', 'rgba(64,156,255,0.08)'] as const,
+  // Danger
+  danger:      ['#FF453A', '#FF3B30'] as const,
+  // Warning
+  warn:        ['#FFD60A', '#FF9F0A'] as const,
+  // App background — near-black with barely-perceptible cool-blue depth
+  bg:          ['#08090F', '#070A13', '#060B15', '#070A13'] as const,
+  bgLocations: [0, 0.30, 0.65, 1] as const,
+  bgStart:     { x: 0.3, y: 0 } as const,
+  bgEnd:       { x: 0.7, y: 1 } as const,
+  // Progress bars / rings — stays in the blue family
+  progress:    ['#0A84FF', '#409CFF'] as const,
 };
 
 export const COLORS = {
-  // Dark theme base
-  background:       '#0B0814',
-  surface:          '#12121F',
-  surfaceElevated:  '#1A1A2E',
-  border:           '#252540',
-  borderFaint:      '#1A1A30',
-  // Text
-  text:             '#F2F2F6',
-  textSecondary:    '#8888A0',
-  textMuted:        '#44445A',
-  // Accent — electric indigo (mid-gradient point)
-  accent:           '#7B5EFA',
-  accentDim:        '#3D2E7D',
-  // Semantic
-  danger:           '#F05050',
-  dangerDim:        '#5A1A1A',
-  warning:          '#F2B040',
-  warningDim:       '#4A3010',
-  rest:             '#5B8EC8',
-  // Gradient endpoint aliases
-  gradientStart:    '#9035F0',
-  gradientEnd:      '#2ECAC4',
-  // Misc
-  white:            '#ffffff',
-  black:            '#000000',
-  // Glass surfaces
-  glass06:          'rgba(255,255,255,0.06)',
-  glass09:          'rgba(255,255,255,0.09)',
-  glassBorder:      'rgba(255,255,255,0.12)',
-  glassBorderHi:    'rgba(255,255,255,0.18)',
-  // Accent glow
-  accentGlow:       'rgba(123, 94, 250, 0.45)',
-  // Light theme overrides
-  lightBackground:  '#F0F0FA',
-  lightSurface:     '#FFFFFF',
-  lightSurfaceElevated: '#EDEDF5',
-  lightBorder:      '#D0D0E0',
-  lightText:        '#0D0D1A',
-  lightTextSecondary:'#55557A',
-  lightTextMuted:   '#9A9AB0',
+  // ── Backgrounds ───────────────────────────────────────────
+  background:           '#000000',       // true black (OLED)
+  surface:              '#1C1C1E',       // iOS secondary background (dark)
+  surfaceElevated:      '#2C2C2E',       // iOS tertiary background (dark)
+  border:               '#38383A',       // iOS separator (dark)
+  borderFaint:          '#2C2C2E',
+
+  // ── Text — Apple's exact gray scale ───────────────────────
+  text:                 '#FFFFFF',
+  textSecondary:        '#AEAEB2',       // iOS Label/Secondary
+  textMuted:            '#636366',       // iOS Label/Tertiary
+  textLabel:            '#48484A',       // iOS Label/Quaternary
+
+  // ── Accent — iOS System Blue (dark mode) ──────────────────
+  accent:               '#0A84FF',
+  accentHigh:           '#409CFF',       // lighter blue for gradient end
+  accentDim:            '#0A3F7A',       // dark blue tint for backgrounds
+
+  // ── Semantic ──────────────────────────────────────────────
+  danger:               '#FF453A',       // iOS Red (dark)
+  dangerDim:            '#3A0F0D',
+  warning:              '#FFD60A',       // iOS Yellow (dark)
+  warningDim:           '#3A2E00',
+  rest:                 '#64D2FF',       // iOS Cyan (dark) — rest timer
+
+  // ── Gradient aliases ──────────────────────────────────────
+  gradientStart:        '#0A84FF',
+  gradientEnd:          '#409CFF',
+
+  // ── Misc ──────────────────────────────────────────────────
+  white:                '#FFFFFF',
+  black:                '#000000',
+
+  // ── Glass surfaces ────────────────────────────────────────
+  glass06:              'rgba(255,255,255,0.06)',
+  glass09:              'rgba(255,255,255,0.09)',
+  glassBorder:          'rgba(255,255,255,0.11)',
+  glassBorderHi:        'rgba(255,255,255,0.17)',
+  // Subtle blue glow (replaces purple glow)
+  accentGlow:           'rgba(10,132,255,0.30)',
+
+  // ── Light theme (unchanged structurally) ──────────────────
+  lightBackground:      '#F2F2F7',       // iOS system background
+  lightSurface:         '#FFFFFF',
+  lightSurfaceElevated: '#F2F2F7',
+  lightBorder:          '#C6C6C8',
+  lightText:            '#000000',
+  lightTextSecondary:   '#6D6D72',
+  lightTextMuted:       '#AEAEB2',
 };
 
 export const BAR_WEIGHTS: Record<string, number> = {
@@ -96,13 +105,40 @@ export const SET_TYPE_VARIANTS: Record<string, string> = {
 export const DAY_STATUS_ICONS = {
   completed: '✓',
   missed:    '✗',
-  rest:      '💤',
+  rest:      '·',
   current:   '●',
   upcoming:  '○',
 };
 
 export const SKIP_REASONS = ['Sick', 'Travel', 'Rest', 'Other'] as const;
 export const SPLIT_TYPES  = ['PPL', 'Arnold', 'Upper/Lower', 'Bro Split', 'Full Body', 'Custom'];
+
+// ─── Muscle-group tags ────────────────────────────────────────
+export const MUSCLE_TAGS = [
+  'Chest', 'Back', 'Shoulders',
+  'Biceps', 'Triceps', 'Forearms',
+  'Core', 'Quads', 'Hamstrings',
+  'Glutes', 'Calves', 'Cardio', 'Full Body',
+] as const;
+
+export type MuscleTag = typeof MUSCLE_TAGS[number];
+
+// Foreground color for each tag (badge text + border tint)
+export const MUSCLE_TAG_COLOR: Record<string, string> = {
+  'Chest':      '#FF6B6B',
+  'Back':       '#4ECDC4',
+  'Shoulders':  '#FFD93D',
+  'Biceps':     '#6BCB77',
+  'Triceps':    '#409CFF',
+  'Forearms':   '#C084FC',
+  'Core':       '#FF9F43',
+  'Quads':      '#48CAE4',
+  'Hamstrings': '#2EC4B6',
+  'Glutes':     '#F472B6',
+  'Calves':     '#94A3B8',
+  'Cardio':     '#FB7185',
+  'Full Body':  '#A78BFA',
+};
 
 export const SPACING = {
   xs:  4,
@@ -122,6 +158,6 @@ export const BORDER_RADIUS = {
   full: 999,
 };
 
-export const DOCK_HEIGHT         = 72;
-export const ANALYTICS_DEFAULT_DAYS = 14;
-export const MAX_BACKUPS         = 7;
+export const DOCK_HEIGHT              = 72;
+export const ANALYTICS_DEFAULT_DAYS  = 14;
+export const MAX_BACKUPS              = 7;

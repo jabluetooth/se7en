@@ -112,6 +112,7 @@ export interface Exercise {
   perSetTargets: PerSetTarget[] | null;
   notes: string;
   createdAt: string;
+  muscleTags?: string[]; // body-part labels e.g. ['Chest','Triceps']
 }
 
 export interface WorkoutDay {
