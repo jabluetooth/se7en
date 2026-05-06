@@ -1,237 +1,234 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fsSessions, fsActiveSession } from '../services/firestoreService';
 import {
-  WorkoutSession,
-  SessionExercise,
-  SetLog,
-  WorkoutDay,
-  Exercise,
-  SessionStatus,
-  SkipReason,
+  WorkoutSession, SessionExercise, SetLog,
+  WorkoutDay, Exercise, SessionStatus, SkipReason,
 } from '../types';
 import { generateId } from '../utils/idGen';
 import { sessionTotalVolume } from '../utils/volume';
+import type { Unsubscribe } from 'firebase/firestore';
 
-const SESSION_KEY = '@se7en_active_session';
+const ACTIVE_KEY  = '@se7en_active_session';
 const HISTORY_KEY = '@se7en_session_history';
 
 interface SessionStore {
   activeSession: WorkoutSession | null;
-  sessions: WorkoutSession[];
-  loaded: boolean;
-  sessionTimer: number; // elapsed seconds
+  sessions:      WorkoutSession[];
+  loaded:        boolean;
+  sessionTimer:  number;
   timerInterval: ReturnType<typeof setInterval> | null;
+  _unsub:        Unsubscribe | null;
 
-  load: () => Promise<void>;
-  startSession: (planId: string, day: WorkoutDay) => void;
-  completeSet: (exerciseId: string, setId: string, data: Partial<SetLog>) => void;
-  addSetNote: (exerciseId: string, setId: string, note: string) => void;
-  finishSession: (sessionNote?: string) => Promise<WorkoutSession>;
-  skipDay: (planId: string, dayPosition: number, dayLabel: string, reason?: SkipReason) => Promise<WorkoutSession>;
-  acknowledgeRestDay: (planId: string, dayPosition: number, dayLabel: string) => Promise<void>;
+  load:       (uid: string) => Promise<void>;
+  startSync:  (uid: string) => void;
+  stopSync:   () => void;
+
+  startSession:           (planId: string, day: WorkoutDay) => void;
+  completeSet:            (exerciseId: string, setId: string, data: Partial<SetLog>) => void;
+  addSetNote:             (exerciseId: string, setId: string, note: string) => void;
+  finishSession:          (sessionNote?: string) => Promise<WorkoutSession>;
+  skipDay:                (planId: string, dayPosition: number, dayLabel: string, reason?: SkipReason) => Promise<WorkoutSession>;
+  acknowledgeRestDay:     (planId: string, dayPosition: number, dayLabel: string) => Promise<void>;
   getSessionsForExercise: (exerciseName: string) => WorkoutSession[];
-  getLastSession: (dayPosition: number) => WorkoutSession | undefined;
-  startTimer: () => void;
-  stopTimer: () => void;
-  clearActiveSession: () => void;
+  getLastSession:         (dayPosition: number) => WorkoutSession | undefined;
+  startTimer:             () => void;
+  stopTimer:              () => void;
+  clearActiveSession:     () => void;
 }
 
-function buildSessionExercises(day: WorkoutDay): SessionExercise[] {
-  return day.exercises
-    .sort((a, b) => a.order - b.order)
-    .map((ex) => ({
-      id: generateId(),
-      exerciseId: ex.id,
-      exerciseName: ex.name,
-      order: ex.order,
-      setType: ex.setType,
-      weightUnit: ex.weightUnit,
-      barType: ex.barType,
-      barWeight: ex.barWeight,
-      isCompleted: false,
-      sets: Array.from({ length: ex.targetSets }, (_, i) => {
-        const perSet = ex.perSetTargets?.find((p) => p.setNumber === i + 1);
-        return {
-          id: generateId(),
-          setNumber: i + 1,
-          targetReps: perSet?.targetReps ?? ex.targetRepsMin ?? null,
-          targetWeight: perSet?.targetWeight ?? ex.targetWeight ?? null,
-          actualReps: 0,
-          actualRepsToFailure: ex.toFailure ? 0 : null,
-          actualWeight: ex.targetWeight ?? null,
-          platesUsed: [],
-          notes: '',
-          isCompleted: false,
-          completedAt: null,
-        } as SetLog;
-      }),
-    }));
+function buildExercises(day: WorkoutDay): SessionExercise[] {
+  return day.exercises.sort((a, b) => a.order - b.order).map(ex => ({
+    id: generateId(), exerciseId: ex.id, exerciseName: ex.name, order: ex.order,
+    setType: ex.setType, weightUnit: ex.weightUnit, barType: ex.barType,
+    barWeight: ex.barWeight, isCompleted: false,
+    sets: Array.from({ length: ex.targetSets }, (_, i) => {
+      const per = ex.perSetTargets?.find(p => p.setNumber === i + 1);
+      return {
+        id: generateId(), setNumber: i + 1,
+        targetReps:   per?.targetReps  ?? ex.targetRepsMin ?? null,
+        targetWeight: per?.targetWeight ?? ex.targetWeight ?? null,
+        actualReps: 0, actualRepsToFailure: ex.toFailure ? 0 : null,
+        actualWeight: ex.targetWeight ?? null,
+        platesUsed: [], notes: '', isCompleted: false, completedAt: null,
+      } as SetLog;
+    }),
+  }));
+}
+
+async function getUid() {
+  return (await import('../config/firebase')).auth.currentUser?.uid ?? null;
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
-  activeSession: null,
-  sessions: [],
-  loaded: false,
-  sessionTimer: 0,
-  timerInterval: null,
+  activeSession: null, sessions: [], loaded: false,
+  sessionTimer: 0, timerInterval: null, _unsub: null,
 
-  load: async () => {
+  load: async (uid) => {
+    // Cache first
     try {
-      const [rawSession, rawHistory] = await Promise.all([
-        AsyncStorage.getItem(SESSION_KEY),
+      const [rawActive, rawHistory] = await Promise.all([
+        AsyncStorage.getItem(ACTIVE_KEY),
         AsyncStorage.getItem(HISTORY_KEY),
       ]);
-      const activeSession = rawSession ? (JSON.parse(rawSession) as WorkoutSession) : null;
-      const sessions = rawHistory ? (JSON.parse(rawHistory) as WorkoutSession[]) : [];
-
-      // Resume elapsed timer from startedAt so the clock is accurate after a reload
-      let resumedTimer = 0;
-      if (activeSession?.startedAt) {
-        resumedTimer = Math.floor(
-          (Date.now() - new Date(activeSession.startedAt).getTime()) / 1000,
-        );
+      const cached   = rawActive  ? JSON.parse(rawActive)  as WorkoutSession : null;
+      const history  = rawHistory ? JSON.parse(rawHistory) as WorkoutSession[] : [];
+      if (cached) {
+        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(cached.startedAt!).getTime()) / 1000));
+        set({ activeSession: cached, sessions: history, loaded: true, sessionTimer: elapsed });
+        get().startTimer();
+      } else {
+        set({ sessions: history, loaded: true });
       }
+    } catch {}
 
-      set({ activeSession, sessions, loaded: true, sessionTimer: Math.max(0, resumedTimer) });
+    // Firestore authoritative
+    try {
+      const [remoteActive, remoteHistory] = await Promise.all([
+        fsActiveSession.get(uid),
+        fsSessions.getAll(uid),
+      ]);
+      if (remoteActive) {
+        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(remoteActive.startedAt!).getTime()) / 1000));
+        set({ activeSession: remoteActive, sessionTimer: elapsed });
+        await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(remoteActive));
+        if (!get().timerInterval) get().startTimer();
+      }
+      if (remoteHistory.length > 0) {
+        set({ sessions: remoteHistory });
+        await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remoteHistory));
+      }
+    } catch {}
 
-      if (activeSession) get().startTimer();
-    } catch {
-      set({ loaded: true });
-    }
+    set({ loaded: true });
+  },
+
+  startSync: (uid) => {
+    get()._unsub?.();
+    const unsub = fsSessions.listen(uid, async sessions => {
+      set({ sessions });
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+    });
+    set({ _unsub: unsub });
+  },
+
+  stopSync: () => {
+    get().stopTimer();
+    get()._unsub?.();
+    set({ activeSession: null, sessions: [], loaded: false, sessionTimer: 0, _unsub: null });
+    AsyncStorage.multiRemove([ACTIVE_KEY, HISTORY_KEY]);
   },
 
   startSession: (planId, day) => {
-    const exercises = buildSessionExercises(day);
     const session: WorkoutSession = {
-      id: generateId(),
-      planId,
-      dayPosition: day.dayPosition,
-      dayLabel: day.label,
-      status: 'partial',
-      startedAt: new Date().toISOString(),
-      finishedAt: null,
-      duration: 0,
-      skipReason: null,
-      sessionNote: null,
-      totalVolume: 0,
-      prsBreached: [],
-      exercises,
+      id: generateId(), planId, dayPosition: day.dayPosition, dayLabel: day.label,
+      status: 'partial', startedAt: new Date().toISOString(), finishedAt: null,
+      duration: 0, skipReason: null, sessionNote: null, totalVolume: 0,
+      prsBreached: [], exercises: buildExercises(day),
     };
     set({ activeSession: session });
-    AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
+    getUid().then(uid => { if (uid) fsActiveSession.set(uid, session).catch(() => {}); });
     get().startTimer();
   },
 
   completeSet: (exerciseId, setId, data) => {
-    set((s) => {
+    set(s => {
       if (!s.activeSession) return s;
-      const exercises = s.activeSession.exercises.map((ex) => {
+      const exercises = s.activeSession.exercises.map(ex => {
         if (ex.id !== exerciseId) return ex;
-        const sets = ex.sets.map((st) =>
-          st.id === setId
-            ? { ...st, ...data, isCompleted: true, completedAt: new Date().toISOString() }
-            : st,
+        const sets = ex.sets.map(st =>
+          st.id === setId ? { ...st, ...data, isCompleted: true, completedAt: new Date().toISOString() } : st
         );
-        const isCompleted = sets.every((st) => st.isCompleted);
-        return { ...ex, sets, isCompleted };
+        return { ...ex, sets, isCompleted: sets.every(st => st.isCompleted) };
       });
       const updated = { ...s.activeSession, exercises };
-      AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(() => {}); });
       return { activeSession: updated };
     });
   },
 
   addSetNote: (exerciseId, setId, note) => {
-    set((s) => {
+    set(s => {
       if (!s.activeSession) return s;
-      const exercises = s.activeSession.exercises.map((ex) =>
+      const exercises = s.activeSession.exercises.map(ex =>
         ex.id === exerciseId
-          ? { ...ex, sets: ex.sets.map((st) => (st.id === setId ? { ...st, notes: note } : st)) }
-          : ex,
+          ? { ...ex, sets: ex.sets.map(st => st.id === setId ? { ...st, notes: note } : st) }
+          : ex
       );
       const updated = { ...s.activeSession, exercises };
-      AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
       return { activeSession: updated };
     });
   },
 
   finishSession: async (sessionNote) => {
     get().stopTimer();
-    const session = get().activeSession!;
-    const elapsed = get().sessionTimer;
-    const totalVolume = sessionTotalVolume(session.exercises);
+    const session  = get().activeSession!;
     const finished: WorkoutSession = {
-      ...session,
-      status: 'completed',
-      finishedAt: new Date().toISOString(),
-      duration: Math.round(elapsed / 60),
+      ...session, status: 'completed', finishedAt: new Date().toISOString(),
+      duration: Math.round(get().sessionTimer / 60),
       sessionNote: sessionNote ?? null,
-      totalVolume,
+      totalVolume: sessionTotalVolume(session.exercises),
     };
     const sessions = [...get().sessions, finished];
     set({ activeSession: null, sessions, sessionTimer: 0 });
     await Promise.all([
-      AsyncStorage.removeItem(SESSION_KEY),
+      AsyncStorage.removeItem(ACTIVE_KEY),
       AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions)),
     ]);
+    const uid = await getUid();
+    if (uid) {
+      await Promise.all([
+        fsActiveSession.clear(uid).catch(() => {}),
+        fsSessions.set(uid, finished).catch(() => {}),
+      ]);
+    }
     return finished;
   },
 
   skipDay: async (planId, dayPosition, dayLabel, reason) => {
     const session: WorkoutSession = {
-      id: generateId(),
-      planId,
-      dayPosition,
-      dayLabel,
-      status: 'missed',
-      startedAt: null,
-      finishedAt: new Date().toISOString(),
-      duration: 0,
-      skipReason: reason ?? null,
-      sessionNote: null,
-      totalVolume: 0,
-      prsBreached: [],
-      exercises: [],
+      id: generateId(), planId, dayPosition, dayLabel, status: 'missed',
+      startedAt: null, finishedAt: new Date().toISOString(), duration: 0,
+      skipReason: reason ?? null, sessionNote: null, totalVolume: 0,
+      prsBreached: [], exercises: [],
     };
     const sessions = [...get().sessions, session];
     set({ sessions });
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+    const uid = await getUid();
+    if (uid) fsSessions.set(uid, session).catch(() => {});
     return session;
   },
 
-  acknowledgeRestDay: async (planId, dayPosition, dayLabel) => {
-    // Just record that a rest day was acknowledged (optional)
-  },
+  acknowledgeRestDay: async () => {},
 
-  getSessionsForExercise: (exerciseName) => {
-    return get().sessions.filter((s) =>
-      s.exercises.some((e) => e.exerciseName === exerciseName),
-    );
-  },
+  getSessionsForExercise: (exerciseName) =>
+    get().sessions.filter(s => s.exercises.some(e => e.exerciseName === exerciseName)),
 
-  getLastSession: (dayPosition) => {
-    const matching = get().sessions
-      .filter((s) => s.dayPosition === dayPosition && s.status === 'completed')
-      .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime());
-    return matching[0];
-  },
+  getLastSession: (dayPosition) =>
+    get().sessions
+      .filter(s => s.dayPosition === dayPosition && s.status === 'completed')
+      .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())[0],
 
   startTimer: () => {
-    const interval = setInterval(() => {
-      set((s) => ({ sessionTimer: s.sessionTimer + 1 }));
-    }, 1000);
+    if (get().timerInterval) return;
+    const interval = setInterval(() => set(s => ({ sessionTimer: s.sessionTimer + 1 })), 1000);
     set({ timerInterval: interval });
   },
 
   stopTimer: () => {
-    const interval = get().timerInterval;
-    if (interval) clearInterval(interval);
+    const i = get().timerInterval;
+    if (i) clearInterval(i);
     set({ timerInterval: null });
   },
 
   clearActiveSession: () => {
     get().stopTimer();
     set({ activeSession: null, sessionTimer: 0 });
-    AsyncStorage.removeItem(SESSION_KEY);
+    AsyncStorage.removeItem(ACTIVE_KEY);
+    getUid().then(uid => { if (uid) fsActiveSession.clear(uid).catch(() => {}); });
   },
 }));

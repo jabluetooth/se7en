@@ -9,9 +9,14 @@ import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, SPACING, BORDER_RADIUS } from '../../constants';
 
-interface Props { onOpenExerciseBuilder?: () => void; }
+interface Props {
+  onOpenExerciseBuilder?: () => void;
+  onSignOut?:             () => void;
+  userEmail?:             string;
+  userName?:              string;
+}
 
-export function SettingsScreen({ onOpenExerciseBuilder }: Props) {
+export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, userName }: Props) {
   const { activePlan } = usePlanStore();
   const { settings } = useSettingsStore();
   const [weightUnit, setWeightUnit] = useState<'kg'|'lb'>('kg');
@@ -113,7 +118,25 @@ export function SettingsScreen({ onOpenExerciseBuilder }: Props) {
             <Row label="Delete All Data" danger right={<Text style={{ color: COLORS.danger }}>{'>'}</Text>} onPress={() => {}} last />
           </Section>
 
-          <Text style={s.version}>Se7en v1.0.0  MVP</Text>
+          {/* Account */}
+          <Section title="Account">
+            {(userName || userEmail) && (
+              <Row
+                label={userName ?? 'Your account'}
+                sub={userEmail}
+              />
+            )}
+            {onSignOut && (
+              <Row
+                label="Sign Out"
+                danger
+                onPress={onSignOut}
+                last
+              />
+            )}
+          </Section>
+
+          <Text style={s.version}>Se7en v1.0.0 · MVP</Text>
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
