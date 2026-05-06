@@ -15,17 +15,22 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// `getReactNativePersistence` exists in firebase@10 at runtime but is not in the TS
-// declaration files for this version — use require() to bypass the type gap.
+// metro.config.js sets resolver.unstable_conditionNames = ['react-native', ...] so Metro
+// resolves firebase/auth → @firebase/auth (react-native build) which exports
+// getReactNativePersistence and calls registerAuth("ReactNative") at module load.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { getReactNativePersistence } = require('firebase/auth') as {
-  getReactNativePersistence: (storage: typeof AsyncStorage) => any;
+  getReactNativePersistence: (storage: typeof AsyncStorage) => unknown;
 };
 
-// Auth with React Native AsyncStorage persistence — sessions survive app restarts
-export const auth = getApps().length === 1
-  ? initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })
-  : getAuth(app);
+// try/catch handles `auth/already-initialized` on Expo Fast Refresh
+export const auth = (() => {
+  try {
+    return initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) as any });
+  } catch {
+    return getAuth(app);
+  }
+})();
 
 export const db      = getFirestore(app);
 export const storage = getStorage(app);
