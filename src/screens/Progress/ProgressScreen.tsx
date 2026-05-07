@@ -10,6 +10,7 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { usePRStore } from '../../stores/prStore';
 import { usePlanStore } from '../../stores/planStore';
 import { GRAD, COLORS, SPACING } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 
 export function ProgressScreen() {
   const { sessions } = useSessionStore();
@@ -33,11 +34,7 @@ export function ProgressScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -80, right: -70, width: 280, height: 280, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 120, left: -80, width: 240, height: 240, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
-      </View>
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={s.header}>
           <Text style={s.title}>Progress</Text>
@@ -142,29 +139,29 @@ export function ProgressScreen() {
 }
 
 const s = StyleSheet.create({
-  orb:           { position: 'absolute', borderRadius: 999 },
+
   header:        { paddingHorizontal: 20, paddingBottom: 16 },
   title:         { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   sub:           { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   scroll:        { paddingHorizontal: 16 },
   statsRow:      { flexDirection: 'row', gap: 8, marginBottom: 8 },
   statCard:      { flex: 1, padding: 12 },
-  statLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
+  statLabel:     { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1.0, textTransform: 'uppercase', marginBottom: 4 },
   statValue:     { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
   statAccent:    { color: COLORS.accent },
   chartCard:     { padding: 16, marginBottom: 8 },
   chartHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  chartLabel:    { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 },
+  chartLabel:    { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 3 },
   chartValue:    { fontSize: 20, fontWeight: '900', color: COLORS.accent, letterSpacing: -0.4 },
-  chartUnit:     { fontSize: 13, fontWeight: '400', color: COLORS.textSecondary },
+  chartUnit:     { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
   periodRow:     { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 2, gap: 2 },
   periodBtn:     { borderRadius: 6, overflow: 'hidden' },
   periodBtnActive: {},
   periodGrad:    { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6 },
-  periodText:    { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, paddingHorizontal: 9, paddingVertical: 4 },
+  periodText:    { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, paddingHorizontal: 9, paddingVertical: 4 },
   periodTextActive: { fontSize: 12, fontWeight: '700', color: '#000' },
   noData:        { height: 60, alignItems: 'center', justifyContent: 'center' },
-  noDataText:    { fontSize: 12, color: COLORS.textMuted },
+  noDataText:    { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary },
   prCard:        { padding: 16, marginBottom: 8 },
   prRow:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   prRowBorder:   { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
@@ -172,13 +169,13 @@ const s = StyleSheet.create({
   prIcon:        { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   prIconText:    { fontSize: 10, fontWeight: '900', color: '#000' },
   prName:        { fontSize: 14, fontWeight: '700', color: '#fff' },
-  prMeta:        { fontSize: 11, color: COLORS.textMuted },
+  prMeta:        { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
   prRight:       { alignItems: 'flex-end' },
   prVal:         { fontSize: 15, fontWeight: '900', color: COLORS.accent },
-  prReps:        { fontSize: 11, color: COLORS.textSecondary },
+  prReps:        { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
   histCard:      { padding: 16, marginBottom: 8 },
   heatRow:       { flexDirection: 'row', gap: 6 },
   heatCol:       { flex: 1, alignItems: 'center', gap: 6 },
   heatBox:       { width: '100%', aspectRatio: 1, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)' },
-  heatDay:       { fontSize: 10, fontWeight: '600', color: COLORS.textMuted },
+  heatDay:       { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
 });

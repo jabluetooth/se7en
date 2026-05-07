@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { GRAD, COLORS, MUSCLE_TAG_COLOR } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 import { Exercise, WorkoutDay } from '../../types';
 import { ExerciseFormSheet } from './ExerciseFormSheet';
 
@@ -321,11 +322,7 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
   return (
     <>
       <View style={{ flex: 1 }}>
-        <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <View style={[s.orb, { top: -40, right: -40, width: 180, height: 180, backgroundColor: 'rgba(10,132,255,0.07)' }]} />
-        </View>
-
+        <AppBackground />
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <View style={s.header}>
             <TouchableOpacity onPress={onBack} style={s.backBtn} activeOpacity={0.7}>
@@ -421,7 +418,7 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
 }
 
 const s = StyleSheet.create({
-  orb:        { position: 'absolute', borderRadius: 999 },
+
   header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 },
   backBtn:    { flexDirection: 'row', alignItems: 'center', gap: 2 },
   backTxt:    { fontSize: 16, fontWeight: '600', color: COLORS.accent },

@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { usePRStore } from '../../stores/prStore';
-import { GRAD, COLORS } from '../../constants';
+import { COLORS } from '../../constants';
 import { WorkoutSession, PersonalRecord } from '../../types';
+import { AppBackground } from '../../components/ui/AppBackground';
 import { CycleOrbitWidget } from './CycleOrbitWidget';
 import { DaySlider } from './DaySlider';
 import { MissionCard } from './MissionCard';
@@ -65,13 +65,7 @@ export function HomeScreen() {
   if (!activePlan) {
     return (
       <View style={s.emptyWrap}>
-        <LinearGradient
-          colors={GRAD.bg}
-          locations={GRAD.bgLocations}
-          start={GRAD.bgStart}
-          end={GRAD.bgEnd}
-          style={StyleSheet.absoluteFill}
-        />
+        <AppBackground />
         <Text style={s.emptyTitle}>No plan active</Text>
         <Text style={s.emptySub}>Head to Settings to set up your plan.</Text>
       </View>
@@ -80,20 +74,7 @@ export function HomeScreen() {
 
   return (
     <View style={s.root}>
-      <LinearGradient
-        colors={GRAD.bg}
-        locations={GRAD.bgLocations}
-        start={GRAD.bgStart}
-        end={GRAD.bgEnd}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Ambient orbs — subtle iOS-blue, barely perceptible */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -80,  right: -60,  width: 300, height: 300, backgroundColor: 'rgba(10,132,255,0.09)' }]} />
-        <View style={[s.orb, { bottom: 180, left: -70, width: 240, height: 240, backgroundColor: 'rgba(10,132,255,0.06)' }]} />
-        <View style={[s.orb, { top: 320,  right: -40,  width: 180, height: 180, backgroundColor: 'rgba(64,156,255,0.05)' }]} />
-      </View>
+      <AppBackground />
 
       <SafeAreaView style={s.safe} edges={['top']}>
         {/* Header */}
@@ -162,7 +143,6 @@ const s = StyleSheet.create({
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
   emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
-  orb:        { position: 'absolute', borderRadius: 999 },
   header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   planLabel:  { fontSize: 11, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
   dateText:   { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },

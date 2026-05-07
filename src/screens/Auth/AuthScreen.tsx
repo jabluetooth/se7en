@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { useAuthStore } from '../../stores/authStore';
 import { GRAD, COLORS } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 
 type Tab = 'login' | 'signup';
 
@@ -64,20 +65,7 @@ export function AuthScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={GRAD.bg}
-        locations={GRAD.bgLocations}
-        start={GRAD.bgStart}
-        end={GRAD.bgEnd}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Ambient orbs */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -80, right: -60, width: 280, height: 280, backgroundColor: 'rgba(10,132,255,0.09)' }]} />
-        <View style={[s.orb, { bottom: 60, left: -70, width: 240, height: 240, backgroundColor: 'rgba(10,132,255,0.06)' }]} />
-      </View>
-
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
@@ -269,7 +257,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor="rgba(255,255,255,0.30)"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -285,7 +273,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
 
 const fi = StyleSheet.create({
   wrap:  { marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 6 },
   row:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   icon:  {},
   input: { flex: 1, fontSize: 15, fontWeight: '500', color: '#fff', padding: 0 },
@@ -294,19 +282,19 @@ const fi = StyleSheet.create({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  orb:          { position: 'absolute', borderRadius: 999 },
+
   scroll:       { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
   logoWrap:     { alignItems: 'center', marginBottom: 36 },
   logoBadge:    { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   logoNum:      { fontSize: 36, fontWeight: '900', color: '#fff' },
   logoWordmark: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 6 },
-  logoTagline:  { fontSize: 14, color: COLORS.textSecondary },
+  logoTagline:  { fontSize: 14, fontWeight: '500', color: COLORS.textSecondary, lineHeight: 20 },
 
   tabs:         { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: 3, marginBottom: 20 },
   tab:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   tabActive:    { backgroundColor: 'rgba(255,255,255,0.12)' },
-  tabTxt:       { fontSize: 14, fontWeight: '600', color: COLORS.textMuted },
+  tabTxt:       { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
   tabTxtActive: { color: '#fff', fontWeight: '700' },
 
   card:         { padding: 20, marginBottom: 24 },
@@ -321,5 +309,5 @@ const s = StyleSheet.create({
   ctaGrad:      { height: 52, alignItems: 'center', justifyContent: 'center' },
   ctaTxt:       { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
 
-  footer:       { textAlign: 'center', fontSize: 12, color: COLORS.textLabel, lineHeight: 18 },
+  footer:       { textAlign: 'center', fontSize: 12, fontWeight: '500', color: COLORS.textMuted, lineHeight: 20 },
 });

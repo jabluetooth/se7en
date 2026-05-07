@@ -7,6 +7,7 @@ import { Badge } from '../../components/common/Badge';
 import { SetTypeBadge } from '../../components/common/SetTypeBadge';
 import { Button } from '../../components/common/Button';
 import { GRAD, COLORS, SPACING, SET_TYPE_LABELS, BORDER_RADIUS } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 import { SetType, BarType, WeightUnit } from '../../types';
 
 interface Props { onClose: () => void; onSave?: (data: any) => void; }
@@ -82,11 +83,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -60, left: -60, width: 240, height: 240, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 100, right: -60, width: 200, height: 200, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
-      </View>
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={s.header}>
           <TouchableOpacity onPress={onClose} style={s.backBtn}>
@@ -252,7 +249,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
 }
 
 const s = StyleSheet.create({
-  orb:              { position: 'absolute', borderRadius: 999 },
+
   header:           { paddingHorizontal: 20, paddingBottom: 14 },
   backBtn:          { marginBottom: 6 },
   backText:         { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },

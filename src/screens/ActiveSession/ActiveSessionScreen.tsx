@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
+import { AppBackground } from '../../components/ui/AppBackground';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
@@ -43,19 +44,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 
   return (
     <View style={s.root}>
-      <LinearGradient
-        colors={GRAD.bg}
-        locations={GRAD.bgLocations}
-        start={GRAD.bgStart}
-        end={GRAD.bgEnd}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Ambient orbs */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -60, right: -50, width: 240, height: 240, backgroundColor: 'rgba(10,132,255,0.08)' }]} />
-        <View style={[s.orb, { bottom: 100, left: -60, width: 220, height: 220, backgroundColor: 'rgba(64,156,255,0.05)' }]} />
-      </View>
+      <AppBackground />
 
       <SafeAreaView style={s.safe} edges={['top']}>
         {/* ── Header ─────────────────────────────────────── */}
@@ -141,7 +130,6 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 const s = StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
-  orb:           { position: 'absolute', borderRadius: 999 },
 
   header:        {
     flexDirection: 'row',
@@ -162,7 +150,7 @@ const s = StyleSheet.create({
   progressWrap:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 10, marginBottom: 12 },
   progressTrack: { flex: 1, height: 4, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
   progressFill:  { height: '100%', borderRadius: 99 },
-  progressLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, minWidth: 56, textAlign: 'right' },
+  progressLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, minWidth: 56, textAlign: 'right' },
 
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 4 },

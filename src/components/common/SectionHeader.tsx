@@ -15,6 +15,6 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
 
 const s = StyleSheet.create({
   row:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  title: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.7, textTransform: 'uppercase' },
+  title: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1.0, textTransform: 'uppercase' },
   action:{ fontSize: 13, fontWeight: '600', color: COLORS.accent },
 });

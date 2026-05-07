@@ -13,6 +13,7 @@ import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, MUSCLE_TAG_COLOR } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutDay, WorkoutSession } from '../../types';
 import { DayEditScreen } from './DayEditScreen';
 import { PlanEditSheet } from './PlanEditSheet';
@@ -231,13 +232,7 @@ export function CycleScreen() {
   if (!activePlan) {
     return (
       <View style={s.emptyWrap}>
-        <LinearGradient
-          colors={GRAD.bg}
-          locations={GRAD.bgLocations}
-          start={GRAD.bgStart}
-          end={GRAD.bgEnd}
-          style={StyleSheet.absoluteFill}
-        />
+        <AppBackground />
         <Text style={s.emptyTitle}>No active plan</Text>
         <Text style={s.emptySub}>Set up a plan in Settings.</Text>
       </View>
@@ -270,18 +265,7 @@ export function CycleScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={GRAD.bg}
-        locations={GRAD.bgLocations}
-        start={GRAD.bgStart}
-        end={GRAD.bgEnd}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -70, left: -50, width: 260, height: 260, backgroundColor: 'rgba(10,132,255,0.08)' }]} />
-        <View style={[s.orb, { bottom: 80, right: -70, width: 220, height: 220, backgroundColor: 'rgba(64,156,255,0.05)' }]} />
-      </View>
-
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
@@ -364,7 +348,7 @@ const s = StyleSheet.create({
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
   emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
-  orb:        { position: 'absolute', borderRadius: 999 },
+
 
   header:     { paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   settingsBtn:{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },

@@ -11,6 +11,7 @@ import { StatCard } from '../../components/common/StatCard';
 import { TrophyIcon } from '../../components/common/TrophyIcon';
 import { GRAD, COLORS, SPACING } from '../../constants';
 import { WorkoutSession, WorkoutDay } from '../../types';
+import { AppBackground } from '../../components/ui/AppBackground';
 
 interface Props {
   session: WorkoutSession;
@@ -25,11 +26,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -80, right: -60, width: 280, height: 280, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 80, left: -80, width: 240, height: 240, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
-      </View>
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
@@ -142,7 +139,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 }
 
 const s = StyleSheet.create({
-  orb:           { position: 'absolute', borderRadius: 999 },
+
   header:        { paddingHorizontal: 20, paddingBottom: 16 },
   headerRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
   trophyBadge:   { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

@@ -6,6 +6,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS, SPACING } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 
 const PRESETS = [45, 60, 90, 120, 180, 300];
 
@@ -61,11 +62,7 @@ export function RestTimerScreen({ exerciseName = 'Bench Press', setNumber = 2, o
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -60, left: -60, width: 260, height: 260, backgroundColor: urgent ? 'rgba(240,80,80,0.15)' : 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 80, right: -70, width: 240, height: 240, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
-      </View>
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
@@ -154,7 +151,7 @@ export function RestTimerScreen({ exerciseName = 'Bench Press', setNumber = 2, o
 }
 
 const s = StyleSheet.create({
-  orb:             { position: 'absolute', borderRadius: 999 },
+
   header:          { paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerSub:       { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
   headerTitle:     { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },

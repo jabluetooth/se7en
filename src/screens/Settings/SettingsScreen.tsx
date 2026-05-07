@@ -8,6 +8,7 @@ import { Button } from '../../components/common/Button';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, SPACING, BORDER_RADIUS } from '../../constants';
+import { AppBackground } from '../../components/ui/AppBackground';
 
 interface Props {
   onOpenExerciseBuilder?: () => void;
@@ -68,11 +69,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
 
   return (
     <View style={{ flex: 1 }}>
-      <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <View style={[s.orb, { top: -60, right: -60, width: 240, height: 240, backgroundColor: 'rgba(144,53,240,0.12)' }]} />
-        <View style={[s.orb, { bottom: 100, left: -60, width: 200, height: 200, backgroundColor: 'rgba(76,170,240,0.08)' }]} />
-      </View>
+      <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={s.header}>
           <Text style={s.title}>Settings</Text>
@@ -145,7 +142,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
 }
 
 const s = StyleSheet.create({
-  orb:            { position: 'absolute', borderRadius: 999 },
+
   header:         { paddingHorizontal: 20, paddingBottom: 16 },
   title:          { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
   scroll:         { paddingHorizontal: 16 },
@@ -155,17 +152,17 @@ const s = StyleSheet.create({
   planName:       { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   planSub:        { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   section:        { marginBottom: 24 },
-  sectionTitle:   { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 },
+  sectionTitle:   { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1.0, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 },
   row:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  rowBorder:      { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
-  rowLabel:       { fontSize: 15, fontWeight: '500', color: '#fff' },
-  rowSub:         { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  chevron:        { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
+  rowBorder:      { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.09)' },
+  rowLabel:       { fontSize: 15, fontWeight: '600', color: '#fff' },
+  rowSub:         { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary, marginTop: 2 },
+  chevron:        { fontSize: 14, color: COLORS.textSecondary, fontWeight: '600' },
   seg:            { flexDirection: 'row', padding: 2, gap: 2 },
   segBtn:         { borderRadius: 6, overflow: 'hidden' },
   segBtnActive:   {},
   segGrad:        { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 6 },
-  segText:        { paddingHorizontal: 11, paddingVertical: 5, fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
+  segText:        { paddingHorizontal: 11, paddingVertical: 5, fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
   segTextActive:  { fontSize: 13, fontWeight: '700', color: '#000' },
   toggle:         { width: 48, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', position: 'relative' },
   toggleOn:       { borderColor: 'transparent' },

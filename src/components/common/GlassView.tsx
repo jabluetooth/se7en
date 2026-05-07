@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 interface Props {
   children?:    React.ReactNode;
@@ -11,41 +12,60 @@ interface Props {
 }
 
 export function GlassView({ children, style, opacity = 'low', radius = 16, borderColor, glow }: Props) {
-  // iOS-style glass: subtly opaque dark surface with clean white border
-  const bg = opacity === 'high'
-    ? 'rgba(255,255,255,0.10)'
-    : opacity === 'mid'
-    ? 'rgba(255,255,255,0.08)'
-    : 'rgba(255,255,255,0.06)';
+  // Apple-style: real blur via UIVisualEffectView on iOS, tinted fallback on Android
+  const blurIntensity = opacity === 'high' ? 72 : opacity === 'mid' ? 55 : 38;
+
+  // Very subtle white tint on top of the blur — the frosted glass feel
+  const tintAlpha = opacity === 'high' ? 0.10 : opacity === 'mid' ? 0.07 : 0.05;
 
   const bc = borderColor ?? (
-    opacity === 'high' ? 'rgba(255,255,255,0.17)' : 'rgba(255,255,255,0.11)'
+    opacity === 'high' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.13)'
   );
 
-  // Glow uses iOS System Blue instead of purple
-  const glowStyle = glow
+  const glowShadow = glow
     ? Platform.select({
         ios: {
-          shadowColor:   'rgba(10,132,255,0.6)',
-          shadowOpacity: 0.55,
-          shadowRadius:  18,
+          shadowColor:   '#0A84FF',
+          shadowOpacity: 0.40,
+          shadowRadius:  16,
           shadowOffset:  { width: 0, height: 4 },
         },
         android: {},
       })
     : {};
 
+  const outerStyle: any[] = [
+    ss.outer,
+    {
+      borderRadius: radius,
+      borderColor:  bc,
+      ...glowShadow,
+    },
+    ...(Array.isArray(style) ? style : [style]),
+  ];
+
+  if (Platform.OS === 'ios') {
+    return (
+      <View style={outerStyle}>
+        {/* Native blur layer */}
+        <BlurView
+          intensity={blurIntensity}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+        {/* Specular white tint — the frosted sheen */}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,255,255,${tintAlpha})` }]} />
+        {children}
+      </View>
+    );
+  }
+
+  // Android: solid semi-transparent dark surface
   return (
     <View
       style={[
-        ss.glass,
-        {
-          backgroundColor: bg,
-          borderColor:     bc,
-          borderRadius:    radius,
-          ...glowStyle,
-        },
-        ...(Array.isArray(style) ? style : [style]),
+        outerStyle,
+        { backgroundColor: `rgba(28,28,36,0.82)` },
       ]}
     >
       {children}
@@ -54,16 +74,17 @@ export function GlassView({ children, style, opacity = 'low', radius = 16, borde
 }
 
 const ss = StyleSheet.create({
-  glass: {
-    borderWidth: 1,
+  outer: {
+    borderWidth:  1,
+    overflow:     'hidden',
     ...Platform.select({
       ios: {
-        shadowColor:  '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius:  10,
+        shadowColor:   '#000',
+        shadowOffset:  { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius:  14,
       },
-      android: { elevation: 4 },
+      android: { elevation: 6 },
     }),
   },
 });

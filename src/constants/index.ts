@@ -27,11 +27,11 @@ export const COLORS = {
   border:               '#38383A',       // iOS separator (dark)
   borderFaint:          '#2C2C2E',
 
-  // ── Text — Apple's exact gray scale ───────────────────────
+  // ── Text — tuned for #020617 dark background ─────────────
   text:                 '#FFFFFF',
-  textSecondary:        '#AEAEB2',       // iOS Label/Secondary
-  textMuted:            '#636366',       // iOS Label/Tertiary
-  textLabel:            '#48484A',       // iOS Label/Quaternary
+  textSecondary:        '#DADADF',       // bright secondary — readable on very dark bg
+  textMuted:            '#AEAEB2',       // iOS secondary label — visible at small sizes
+  textLabel:            '#8E8E93',       // iOS tertiary label — captions/version text
 
   // ── Accent — iOS System Blue (dark mode) ──────────────────
   accent:               '#0A84FF',
@@ -53,11 +53,11 @@ export const COLORS = {
   white:                '#FFFFFF',
   black:                '#000000',
 
-  // ── Glass surfaces ────────────────────────────────────────
-  glass06:              'rgba(255,255,255,0.06)',
-  glass09:              'rgba(255,255,255,0.09)',
-  glassBorder:          'rgba(255,255,255,0.11)',
-  glassBorderHi:        'rgba(255,255,255,0.17)',
+  // ── Glass surfaces — tuned for #020617 dark background ───
+  glass06:              'rgba(255,255,255,0.09)',
+  glass09:              'rgba(255,255,255,0.13)',
+  glassBorder:          'rgba(255,255,255,0.18)',
+  glassBorderHi:        'rgba(255,255,255,0.28)',
   // Subtle blue glow (replaces purple glow)
   accentGlow:           'rgba(10,132,255,0.30)',
 
