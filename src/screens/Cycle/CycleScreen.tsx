@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Alert,
+  StyleSheet, Alert, Animated, TextInput, Switch,
+  PanResponder, LayoutAnimation, UIManager, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,9 +15,15 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, MUSCLE_TAG_COLOR } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { WorkoutDay, WorkoutSession } from '../../types';
+import { WorkoutDay, WorkoutSession, Exercise } from '../../types';
+import { EXERCISE_LIBRARY, ExerciseLibraryItem } from '../../data/exercises';
 import { DayEditScreen } from './DayEditScreen';
-import { PlanEditSheet } from './PlanEditSheet';
+import { SplitTypeSheet } from './SplitTypeSheet';
+import { ExerciseFormSheet } from './ExerciseFormSheet';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +54,6 @@ const STATUS_BADGE: Record<DayStatus, { label: string; variant: BadgeVariant }> 
   rest:      { label: 'Rest',     variant: 'rest'      },
 };
 
-// Top-3 muscle tags for a day
 function topTags(day: WorkoutDay): string[] {
   const counts: Record<string, number> = {};
   day.exercises.forEach(ex =>
@@ -59,14 +65,54 @@ function topTags(day: WorkoutDay): string[] {
     .map(([t]) => t);
 }
 
-// ─── Swipe action buttons ─────────────────────────────────────────────────────
+// ─── Smart exercise recommendations ──────────────────────────────────────────
+
+const KEYWORD_TO_GROUP: Record<string, string[]> = {
+  push: ['Chest', 'Shoulders', 'Triceps'],
+  pull: ['Back', 'Biceps'],
+  leg: ['Legs'], legs: ['Legs'],
+  chest: ['Chest'], back: ['Back'],
+  shoulder: ['Shoulders'], shoulders: ['Shoulders'],
+  arm: ['Biceps', 'Triceps'], arms: ['Biceps', 'Triceps'],
+  bicep: ['Biceps'], biceps: ['Biceps'],
+  tricep: ['Triceps'], triceps: ['Triceps'],
+  core: ['Core'], abs: ['Core'], ab: ['Core'],
+  upper: ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
+  lower: ['Legs'], squat: ['Legs'], deadlift: ['Back', 'Legs'],
+  glute: ['Legs'], quad: ['Legs'], hamstring: ['Legs'],
+  calf: ['Legs'], calves: ['Legs'],
+};
+
+const LIB_GROUP_TO_TAGS: Record<string, string[]> = {
+  Chest: ['Chest'], Back: ['Back'], Shoulders: ['Shoulders'],
+  Biceps: ['Biceps'], Triceps: ['Triceps'], Core: ['Core'],
+  Legs: ['Quads', 'Hamstrings', 'Glutes'],
+};
+
+function getRecommended(dayLabel: string, existingNames: Set<string>): ExerciseLibraryItem[] {
+  const words = dayLabel.toLowerCase().split(/\W+/);
+  const groups = new Set<string>();
+  words.forEach(w => (KEYWORD_TO_GROUP[w] ?? []).forEach(g => groups.add(g)));
+
+  const pool = groups.size === 0
+    ? EXERCISE_LIBRARY
+    : EXERCISE_LIBRARY.filter(ex => groups.has(ex.muscleGroup));
+
+  return pool.filter(ex => !existingNames.has(ex.name.toLowerCase())).slice(0, 4);
+}
+
+// ─── Swipe actions (day-level: Edit / Clear) ─────────────────────────────────
+
+const DAY_ACTIONS_WIDTH = 200;
 
 function SwipeActions({
-  onEdit,
-  onClear,
-}: { onEdit: () => void; onClear: () => void }) {
+  dragX, onEdit, onClear,
+}: { dragX: Animated.AnimatedInterpolation<number>; onEdit: () => void; onClear: () => void }) {
+  const translateX = dragX.interpolate({
+    inputRange: [-DAY_ACTIONS_WIDTH, 0], outputRange: [0, DAY_ACTIONS_WIDTH], extrapolate: 'clamp',
+  });
   return (
-    <View style={sw.row}>
+    <Animated.View style={[sw.row, { transform: [{ translateX }] }]}>
       <TouchableOpacity style={sw.editBtn} onPress={onEdit} activeOpacity={0.8}>
         <Ionicons name="pencil" size={16} color="#fff" />
         <Text style={sw.editTxt}>Edit</Text>
@@ -75,7 +121,7 @@ function SwipeActions({
         <Ionicons name="trash-outline" size={16} color="#fff" />
         <Text style={sw.clearTxt}>Clear</Text>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -87,138 +133,734 @@ const sw = StyleSheet.create({
   clearTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
 
+// ─── Exercise row inside cabinet ──────────────────────────────────────────────
+
+function ExerciseRow({
+  exercise,
+  onEdit,
+  onDelete,
+}: { exercise: Exercise; onEdit: () => void; onDelete: () => void }) {
+  const setInfo = exercise.setType === 'toFailure'
+    ? `${exercise.targetSets}× failure`
+    : [
+        `${exercise.targetSets}×`,
+        exercise.targetRepsMin === exercise.targetRepsMax || !exercise.targetRepsMax
+          ? String(exercise.targetRepsMin ?? '–')
+          : `${exercise.targetRepsMin}–${exercise.targetRepsMax}`,
+        exercise.targetWeight ? `@ ${exercise.targetWeight}${exercise.weightUnit}` : '',
+      ].filter(Boolean).join(' ');
+
+  const tags = exercise.muscleTags ?? [];
+
+  return (
+    <View style={er.row}>
+      <View style={er.info}>
+        <Text style={er.name} numberOfLines={1}>{exercise.name}</Text>
+        <View style={er.metaRow}>
+          <Text style={er.setInfo}>{setInfo}</Text>
+          {tags.slice(0, 2).map(t => (
+            <View key={t} style={[er.tag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
+              <Text style={[er.tagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+      <TouchableOpacity onPress={onEdit} style={er.iconBtn} activeOpacity={0.7}>
+        <Ionicons name="pencil-outline" size={16} color={COLORS.textSecondary} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onDelete} style={er.iconBtn} activeOpacity={0.7}>
+        <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const er = StyleSheet.create({
+  row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  info:    { flex: 1, minWidth: 0 },
+  name:    { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  setInfo: { fontSize: 12, color: COLORS.textSecondary },
+  tag:     { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
+  tagTxt:  { fontSize: 10, fontWeight: '700' },
+  iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+});
+
+// ─── Exercise drag-sort ───────────────────────────────────────────────────────
+
+const EX_H = 56;
+
+interface ExerciseDragProps {
+  exercises: Exercise[];
+  planId:    string;
+  dayId:     string;
+  onEdit:    (ex: Exercise) => void;
+  onDelete:  (ex: Exercise) => void;
+}
+
+function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete }: ExerciseDragProps) {
+  const { reorderExercises } = usePlanStore();
+  const containerRef    = useRef<View>(null);
+  const containerTopRef = useRef(0);
+  const dragFromRef     = useRef<number | null>(null);
+  const dropToRef       = useRef<number | null>(null);
+  const floatY          = useRef(new Animated.Value(0)).current;
+  const exRef           = useRef(exercises);
+  exRef.current = exercises;
+
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dropTo,   setDropTo  ] = useState<number | null>(null);
+  const snapshotRef = useRef<Exercise[]>(exercises);
+
+  const panHandlersRef = useRef<any[]>([]);
+  if (panHandlersRef.current.length !== exercises.length) {
+    panHandlersRef.current = exercises.map((_, idx) =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+
+        onPanResponderGrant: (evt) => {
+          // Synchronous derivation: handle icon is inline, row height = EX_H
+          // icon center ≈ idx * EX_H + EX_H / 2; locationY is within the icon
+          containerTopRef.current =
+            evt.nativeEvent.pageY - evt.nativeEvent.locationY - idx * EX_H;
+          snapshotRef.current = exRef.current;
+          dragFromRef.current = idx;
+          dropToRef.current   = idx;
+          floatY.setValue(idx * EX_H);
+          setDragFrom(idx);
+          setDropTo(idx);
+        },
+
+        onPanResponderMove: (evt) => {
+          const relY  = evt.nativeEvent.pageY - containerTopRef.current;
+          floatY.setValue(relY - EX_H / 2);
+          const newTo = Math.max(0, Math.min(exRef.current.length - 1, Math.round(relY / EX_H)));
+          if (newTo !== dropToRef.current) { dropToRef.current = newTo; setDropTo(newTo); }
+        },
+
+        onPanResponderRelease: () => {
+          const from = dragFromRef.current ?? 0;
+          const to   = dropToRef.current   ?? from;
+          if (from !== to) {
+            LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
+            const reordered = [...snapshotRef.current];
+            const [moved] = reordered.splice(from, 1);
+            reordered.splice(to, 0, moved);
+            reorderExercises(planId, dayId, reordered.map(e => e.id));
+          }
+          dragFromRef.current = null; dropToRef.current = null;
+          setDragFrom(null); setDropTo(null);
+        },
+
+        onPanResponderTerminate: () => {
+          dragFromRef.current = null; dropToRef.current = null;
+          setDragFrom(null); setDropTo(null);
+        },
+      }).panHandlers,
+    );
+  }
+
+  return (
+    <View ref={containerRef}>
+      {exercises.map((ex, idx) => {
+        const isActive  = dragFrom === idx;
+        const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
+        const showBelow = dropTo === idx && dragFrom !== null && dragFrom < idx;
+        const setInfo = ex.setType === 'toFailure'
+          ? `${ex.targetSets}× failure`
+          : [
+              `${ex.targetSets}×`,
+              ex.targetRepsMin === ex.targetRepsMax || !ex.targetRepsMax
+                ? String(ex.targetRepsMin ?? '–')
+                : `${ex.targetRepsMin}–${ex.targetRepsMax}`,
+              ex.targetWeight ? `@ ${ex.targetWeight}${ex.weightUnit}` : '',
+            ].filter(Boolean).join(' ');
+        return (
+          <View key={ex.id}>
+            {showAbove && <View style={ed.line} />}
+            <View style={[er.row, isActive && { opacity: 0.5 }]}>
+              <View {...panHandlersRef.current[idx]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={er.iconBtn}>
+                <Ionicons name="reorder-three-outline" size={18} color={COLORS.textMuted} />
+              </View>
+              <View style={er.info}>
+                <Text style={er.name} numberOfLines={1}>{ex.name}</Text>
+                <View style={er.metaRow}>
+                  <Text style={er.setInfo}>{setInfo}</Text>
+                  {(ex.muscleTags ?? []).slice(0, 2).map(t => (
+                    <View key={t} style={[er.tag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
+                      <Text style={[er.tagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => onEdit(ex)} style={er.iconBtn} activeOpacity={0.7}>
+                <Ionicons name="pencil-outline" size={16} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => onDelete(ex)} style={er.iconBtn} activeOpacity={0.7}>
+                <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+              </TouchableOpacity>
+            </View>
+            {showBelow && <View style={ed.line} />}
+          </View>
+        );
+      })}
+
+      {dragFrom !== null && (
+        <Animated.View style={[ed.float, { transform: [{ translateY: floatY }] }]} pointerEvents="none">
+          <View style={[er.row, ed.rowLifted]}>
+            <View style={er.iconBtn}>
+              <Ionicons name="reorder-three-outline" size={18} color={COLORS.textMuted} />
+            </View>
+            <View style={er.info}>
+              <Text style={er.name} numberOfLines={1}>{snapshotRef.current[dragFrom]?.name}</Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+const ed = StyleSheet.create({
+  line:      { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 1 },
+  rowLifted: { backgroundColor: 'rgba(10,132,255,0.08)', borderRadius: 10 },
+  float: {
+    position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
+    ...Platform.select({
+      ios:     { shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 8 },
+    }),
+  },
+});
+
 // ─── Day card ─────────────────────────────────────────────────────────────────
 
 function DayCard({
   day,
+  planId,
   status,
   onEdit,
   onClear,
 }: {
   day: WorkoutDay;
+  planId: string;
   status: DayStatus;
   onEdit: () => void;
   onClear: () => void;
 }) {
-  const swipeRef = useRef<Swipeable>(null);
-  const isCurrent = status === 'current';
-  const isDone    = status === 'completed';
-  const tags      = topTags(day);
+  const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
+  const swipeRef   = useRef<Swipeable>(null);
+  const isCurrent  = status === 'current';
+  const isDone     = status === 'completed';
+  const tags       = topTags(day);
 
-  const handleEdit = () => { swipeRef.current?.close(); onEdit(); };
+  // showList  = tap → read-only exercise list
+  // showEditor = Edit button → full cabinet with add/edit/delete
+  const [showList,    setShowList   ] = useState(false);
+  const [showEditor,  setShowEditor ] = useState(false);
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingEx,   setEditingEx  ] = useState<Exercise | null>(null);
+
+  const handleEdit = () => {
+    swipeRef.current?.close();
+    setShowList(false);
+    setShowEditor(e => !e);   // toggle editor from Edit button
+  };
   const handleClear = () => { swipeRef.current?.close(); onClear(); };
 
+  const existingNames = new Set(day.exercises.map(e => e.name.toLowerCase()));
+  const recommended   = day.isRestDay ? [] : getRecommended(day.label, existingNames);
+
+  const openAdd  = () => { setEditingEx(null); setFormVisible(true); };
+  const openEdit = (ex: Exercise) => { setEditingEx(ex); setFormVisible(true); };
+
+  const handleSave = (data: Omit<Exercise, 'id' | 'createdAt'>) => {
+    if (editingEx) updateExercise(planId, day.id, editingEx.id, data);
+    else           addExercise(planId, day.id, data);
+    setFormVisible(false);
+    setEditingEx(null);
+  };
+
+  const handleDelete = (ex: Exercise) => {
+    Alert.alert(`Remove "${ex.name}"?`, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => deleteExercise(planId, day.id, ex.id) },
+    ]);
+  };
+
+  const quickAdd = (item: ExerciseLibraryItem) => {
+    addExercise(planId, day.id, {
+      name:          item.name,
+      order:         day.exercises.length + 1,
+      setType:       (item.setType as any) ?? 'repRange',
+      targetSets:    item.defaultSets ?? 3,
+      targetRepsMin: item.defaultRepsMin ?? 8,
+      targetRepsMax: item.defaultRepsMax ?? 12,
+      barType:       (item.barType as any) ?? 'barbell',
+      targetWeight:  item.defaultWeight ?? 0,
+      weightUnit:    (item.defaultUnit as any) ?? 'kg',
+      muscleTags:    LIB_GROUP_TO_TAGS[item.muscleGroup] ?? [],
+      notes:         '',
+    });
+  };
+
+  const exercises = [...day.exercises].sort((a, b) => a.order - b.order);
+
   return (
-    <Swipeable
-      ref={swipeRef}
-      renderRightActions={() => (
-        <SwipeActions onEdit={handleEdit} onClear={handleClear} />
-      )}
-      overshootRight={false}
-      friction={2}
-    >
-      <GlassView
-        radius={16}
-        style={[dc.card, isCurrent && dc.cardCurrent]}
-        borderColor={
-          isCurrent ? 'rgba(10,132,255,0.45)' :
-          isDone    ? 'rgba(10,132,255,0.20)' :
-          'rgba(255,255,255,0.08)'
-        }
-        glow={isCurrent}
-      >
-        {/* Day number badge */}
-        {isCurrent ? (
-          <LinearGradient
-            colors={GRAD.accent}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={dc.numBadge}
-          >
-            <Text style={dc.numActive}>{day.dayPosition}</Text>
-          </LinearGradient>
-        ) : (
-          <View style={[dc.numBadge, dc.numBadgeMuted]}>
-            <Text style={[dc.num, isDone && { color: COLORS.accent }]}>
-              {isDone ? '✓' : day.dayPosition}
-            </Text>
-          </View>
+    <View style={dc.wrap}>
+      {/* Swipeable wraps the card + cabinet so both move together */}
+      <Swipeable
+        ref={swipeRef}
+        renderRightActions={(_p, dragX) => (
+          <SwipeActions dragX={dragX} onEdit={handleEdit} onClear={handleClear} />
         )}
+        overshootRight={false}
+        friction={2}
+        enabled={!showEditor}
+      >
+        <View>
+          {/* ── Card header ── */}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => { setShowList(l => !l); setShowEditor(false); }}
+          >
+            <GlassView
+              radius={(showList || showEditor) ? 0 : 16}
+              style={[dc.card, isCurrent && dc.cardCurrent]}
+              borderColor={
+                isCurrent ? 'rgba(10,132,255,0.45)' :
+                isDone    ? 'rgba(10,132,255,0.20)' :
+                'rgba(255,255,255,0.08)'
+              }
+              glow={isCurrent}
+            >
+              {/* Drag handle icon — touch target is the overlay rendered in DayListDragSort */}
+              <View style={dc.dragHandle} pointerEvents="none">
+                <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
+              </View>
 
-        {/* Content */}
-        <View style={dc.content}>
-          <View style={dc.nameRow}>
-            <Text style={[dc.label, isCurrent && { color: COLORS.accent }]} numberOfLines={1}>
-              {day.label}
-            </Text>
-            {isCurrent && (
-              <View style={dc.todayDot} />
-            )}
-          </View>
-
-          <Text style={dc.sub}>
-            {day.isRestDay ? 'Recovery day' : `${day.exercises.length} exercise${day.exercises.length !== 1 ? 's' : ''}`}
-          </Text>
-
-          {/* Muscle tags */}
-          {tags.length > 0 && (
-            <View style={dc.tagsRow}>
-              {tags.map(tag => (
-                <View
-                  key={tag}
-                  style={[
-                    dc.tag,
-                    {
-                      backgroundColor: (MUSCLE_TAG_COLOR[tag] ?? '#fff') + '1A',
-                      borderColor:     (MUSCLE_TAG_COLOR[tag] ?? '#fff') + '44',
-                    },
-                  ]}
-                >
-                  <Text style={[dc.tagTxt, { color: MUSCLE_TAG_COLOR[tag] ?? COLORS.textSecondary }]}>
-                    {tag}
+              {/* Day number badge */}
+              {isCurrent ? (
+                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.numBadge}>
+                  <Text style={dc.numActive}>{day.dayPosition}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={[dc.numBadge, dc.numBadgeMuted]}>
+                  <Text style={[dc.num, isDone && { color: COLORS.accent }]}>
+                    {isDone ? '✓' : day.dayPosition}
                   </Text>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
+              )}
 
-        {/* Status badge */}
-        <Badge label={STATUS_BADGE[status].label} variant={STATUS_BADGE[status].variant} size="xs" />
-      </GlassView>
-    </Swipeable>
+              <View style={dc.content}>
+                <View style={dc.nameRow}>
+                  <Text style={[dc.label, isCurrent && { color: COLORS.accent }]} numberOfLines={1}>
+                    {day.label}
+                  </Text>
+                  {isCurrent && <View style={dc.todayDot} />}
+                </View>
+                <Text style={dc.sub}>
+                  {day.isRestDay ? 'Recovery day' : `${day.exercises.length} exercise${day.exercises.length !== 1 ? 's' : ''}`}
+                </Text>
+                {tags.length > 0 && (
+                  <View style={dc.tagsRow}>
+                    {tags.map(tag => (
+                      <View key={tag} style={[dc.tag, { backgroundColor: (MUSCLE_TAG_COLOR[tag] ?? '#fff') + '1A', borderColor: (MUSCLE_TAG_COLOR[tag] ?? '#fff') + '44' }]}>
+                        <Text style={[dc.tagTxt, { color: MUSCLE_TAG_COLOR[tag] ?? COLORS.textSecondary }]}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={dc.right}>
+                <Badge label={STATUS_BADGE[status].label} variant={STATUS_BADGE[status].variant} size="xs" />
+                <Ionicons
+                  name={(showList || showEditor) ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={showEditor ? COLORS.accent : COLORS.textMuted}
+                  style={{ marginTop: 6 }}
+                />
+              </View>
+            </GlassView>
+          </TouchableOpacity>
+
+          {/* ── Read-only list (tap) ── */}
+          {showList && !showEditor && (
+            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,255,255,0.08)">
+              {day.isRestDay ? (
+                <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
+              ) : exercises.length > 0 ? (
+                <View style={dc.exList}>
+                  {exercises.map(ex => (
+                    <View key={ex.id} style={dc.readRow}>
+                      <View style={dc.readInfo}>
+                        <Text style={dc.readName} numberOfLines={1}>{ex.name}</Text>
+                        <Text style={dc.readMeta}>
+                          {ex.targetSets}× {ex.targetRepsMin ?? '–'}{ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin ? `–${ex.targetRepsMax}` : ''} reps
+                          {ex.targetWeight ? ` · ${ex.targetWeight}${ex.weightUnit}` : ''}
+                        </Text>
+                      </View>
+                      {(ex.muscleTags ?? []).slice(0, 1).map(t => (
+                        <View key={t} style={[dc.readTag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
+                          <Text style={[dc.readTagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={dc.emptyTxt}>No exercises yet. Swipe left → Edit to add.</Text>
+              )}
+            </GlassView>
+          )}
+
+          {/* ── Editor cabinet (Edit button) ── */}
+          {showEditor && (
+            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(10,132,255,0.20)">
+
+              {/* Rest day toggle */}
+              <View style={dc.restToggleRow}>
+                <Text style={dc.restToggleLbl}>Rest Day</Text>
+                <Switch
+                  value={day.isRestDay}
+                  onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
+                  trackColor={{ false: 'rgba(255,255,255,0.12)', true: COLORS.accent }}
+                  thumbColor="#fff"
+                  ios_backgroundColor="rgba(255,255,255,0.12)"
+                />
+              </View>
+
+              {day.isRestDay ? (
+                <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
+              ) : (
+                <>
+                  {/* Smart recommendations */}
+                  {recommended.length > 0 && (
+                    <View style={dc.recSection}>
+                      <Text style={dc.recLabel}>Suggested for {day.label}</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={dc.recRow}>
+                        {recommended.map(item => (
+                          <TouchableOpacity key={item.id} style={dc.recChip} onPress={() => quickAdd(item)} activeOpacity={0.75}>
+                            <Ionicons name="add" size={13} color={COLORS.accent} />
+                            <Text style={dc.recChipTxt} numberOfLines={1}>{item.name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+
+                  {/* Exercise list with drag-to-reorder */}
+                  {exercises.length > 0 && (
+                    <View style={dc.exList}>
+                      <ExerciseDragSort
+                        exercises={exercises}
+                        planId={planId}
+                        dayId={day.id}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                      />
+                    </View>
+                  )}
+
+                  {exercises.length === 0 && recommended.length === 0 && (
+                    <Text style={dc.emptyTxt}>No exercises yet. Tap Add Exercise to get started.</Text>
+                  )}
+
+                  <TouchableOpacity style={dc.addBtn} onPress={openAdd} activeOpacity={0.8}>
+                    <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.addGrad}>
+                      <Ionicons name="add" size={16} color="#fff" />
+                      <Text style={dc.addTxt}>Add Exercise</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </>
+              )}
+            </GlassView>
+          )}
+
+          {(showList || showEditor) && <View style={dc.capBottom} />}
+        </View>
+      </Swipeable>
+
+      {/* Exercise form sheet */}
+      <ExerciseFormSheet
+        visible={formVisible}
+        initial={editingEx}
+        dayLabel={day.label}
+        nextOrder={exercises.length + 1}
+        onSave={handleSave}
+        onClose={() => { setFormVisible(false); setEditingEx(null); }}
+      />
+    </View>
   );
 }
 
 const dc = StyleSheet.create({
-  card:        { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 8, gap: 12 },
-  cardCurrent: {},
-  numBadge:    { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  numBadgeMuted: { backgroundColor: 'rgba(255,255,255,0.07)' },
-  num:         { fontSize: 17, fontWeight: '700', color: COLORS.textSecondary },
-  numActive:   { fontSize: 17, fontWeight: '700', color: '#fff' },
-  content:     { flex: 1, minWidth: 0 },
-  nameRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  label:       { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3, flexShrink: 1 },
-  todayDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
-  sub:         { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
-  tagsRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  tag:         { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:      { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  wrap:         { marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
+  card:         { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
+  dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },
+  cardCurrent:  {},
+  numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  numBadgeMuted:{ backgroundColor: 'rgba(255,255,255,0.07)' },
+  num:          { fontSize: 17, fontWeight: '700', color: COLORS.textSecondary },
+  numActive:    { fontSize: 17, fontWeight: '700', color: '#fff' },
+  content:      { flex: 1, minWidth: 0 },
+  nameRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  label:        { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3, flexShrink: 1 },
+  todayDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
+  sub:          { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
+  tagsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  tag:          { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
+  tagTxt:       { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  right:        { alignItems: 'flex-end', justifyContent: 'center', gap: 0 },
+
+  // Cabinet
+  cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
+  recSection:   { marginBottom: 12 },
+  recLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  recRow:       { gap: 8, flexDirection: 'row' },
+  recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(10,132,255,0.35)', backgroundColor: 'rgba(10,132,255,0.10)' },
+  recChipTxt:   { fontSize: 12, fontWeight: '600', color: COLORS.accent, maxWidth: 120 },
+  exList:       { marginBottom: 8 },
+  // Read-only row
+  readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  readInfo:     { flex: 1 },
+  readName:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
+  readMeta:     { fontSize: 12, color: COLORS.textMuted },
+  readTag:      { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, marginLeft: 8 },
+  readTagTxt:   { fontSize: 10, fontWeight: '700' },
+  emptyTxt:     { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
+  addBtn:       { borderRadius: 12, overflow: 'hidden', marginBottom: 12, marginTop: 4 },
+  addGrad:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
+  addTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
+  restTxt:       { fontSize: 13, color: COLORS.textSecondary },
+  capBottom:     { height: 0 },
+  restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  restToggleLbl: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+});
+
+// ─── Day list drag-sort ───────────────────────────────────────────────────────
+
+function DayListDragSort({
+  days, planId, sessions, currentPos, onEdit, onClear, onScrollEnabledChange,
+}: {
+  days:                   WorkoutDay[];
+  planId:                 string;
+  sessions:               WorkoutSession[];
+  currentPos:             number;
+  onEdit:                 (day: WorkoutDay) => void;
+  onClear:                (day: WorkoutDay) => void;
+  onScrollEnabledChange?: (enabled: boolean) => void;
+}) {
+  const { updatePlan } = usePlanStore();
+  const containerRef    = useRef<View>(null);
+  const containerTopRef = useRef(0);
+  const layoutsRef      = useRef<{ y: number; height: number }[]>([]);
+
+  const dragFromRef = useRef<number | null>(null);
+  const dropToRef   = useRef<number | null>(null);
+  const floatY      = useRef(new Animated.Value(0)).current;
+  const daysRef     = useRef(days);
+  daysRef.current = days;
+
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dropTo,   setDropTo  ] = useState<number | null>(null);
+  const snapshotRef = useRef(days);
+
+  const findTarget = (pageY: number) => {
+    const relY    = pageY - containerTopRef.current;
+    const layouts = layoutsRef.current;
+    for (let i = 0; i < layouts.length; i++) {
+      const { y, height } = layouts[i] ?? { y: i * 80, height: 80 };
+      if (relY <= y + height * 0.5) return i;
+    }
+    return Math.max(0, layouts.length - 1);
+  };
+
+  const panHandlersRef = useRef<any[]>([]);
+  if (panHandlersRef.current.length !== days.length) {
+    panHandlersRef.current = days.map((_, idx) =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+
+        onPanResponderGrant: (evt) => {
+          // Derive container top synchronously — measureInWindow is async and arrives
+          // too late for the first onPanResponderMove calls.
+          // overlay is position:absolute top:0 inside the wrapper, so:
+          //   pageY - locationY  = absolute Y of wrapper top = absolute Y of item top
+          //   item top relative to container = layoutsRef.current[idx].y
+          //   → container top = pageY - locationY - itemY
+          const itemY = layoutsRef.current[idx]?.y ?? idx * 80;
+          containerTopRef.current = evt.nativeEvent.pageY - evt.nativeEvent.locationY - itemY;
+          onScrollEnabledChange?.(false);
+          snapshotRef.current = daysRef.current;
+          dragFromRef.current = idx;
+          dropToRef.current   = idx;
+          floatY.setValue(itemY);
+          setDragFrom(idx);
+          setDropTo(idx);
+        },
+
+        onPanResponderMove: (evt) => {
+          const pageY = evt.nativeEvent.pageY;
+          const h     = layoutsRef.current[dragFromRef.current ?? 0]?.height ?? 72;
+          floatY.setValue(Math.max(0, pageY - containerTopRef.current - h / 2));
+          const newTo = findTarget(pageY);
+          if (newTo !== dropToRef.current) { dropToRef.current = newTo; setDropTo(newTo); }
+        },
+
+        onPanResponderRelease: () => {
+          const from = dragFromRef.current ?? 0;
+          const to   = dropToRef.current   ?? from;
+          if (from !== to) {
+            LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
+            const contents = [...snapshotRef.current].map(d => ({
+              label: d.label, isRestDay: d.isRestDay, exercises: d.exercises,
+            }));
+            const [removed] = contents.splice(from, 1);
+            contents.splice(to, 0, removed);
+            const newDays = snapshotRef.current.map((d, i) => ({
+              ...d,
+              label:     contents[i].label,
+              isRestDay: contents[i].isRestDay,
+              exercises: contents[i].exercises,
+            }));
+            updatePlan(planId, { days: newDays });
+          }
+          onScrollEnabledChange?.(true);
+          dragFromRef.current = null; dropToRef.current = null;
+          setDragFrom(null); setDropTo(null);
+        },
+
+        onPanResponderTerminate: () => {
+          onScrollEnabledChange?.(true);
+          dragFromRef.current = null; dropToRef.current = null;
+          setDragFrom(null); setDropTo(null);
+        },
+      }).panHandlers,
+    );
+  }
+
+  return (
+    <View ref={containerRef}>
+      {days.map((day, idx) => {
+        const isActive  = dragFrom === idx;
+        const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
+        const showBelow = dropTo === idx && dragFrom !== null && dragFrom < idx;
+        return (
+          <View
+            key={day.id}
+            onLayout={e => {
+              layoutsRef.current[idx] = {
+                y:      e.nativeEvent.layout.y,
+                height: e.nativeEvent.layout.height,
+              };
+            }}
+            style={isActive ? { opacity: 0.55 } : undefined}
+          >
+            {showAbove && <View style={dl.line} />}
+            <DayCard
+              day={day}
+              planId={planId}
+              status={getStatus(day, currentPos, sessions)}
+              onEdit={() => onEdit(day)}
+              onClear={() => onClear(day)}
+            />
+            {showBelow && <View style={dl.line} />}
+            {/* Pan handle overlay — sibling to DayCard, outside Swipeable/RNGH */}
+            <View
+              {...panHandlersRef.current[idx]}
+              hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+              style={dl.handleOverlay}
+            />
+          </View>
+        );
+      })}
+
+      {dragFrom !== null && (
+        <Animated.View style={[dl.float, { transform: [{ translateY: floatY }] }]} pointerEvents="none">
+          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(10,132,255,0.45)" glow>
+            <View style={[dc.numBadge, dc.numBadgeMuted]}>
+              <Text style={dc.num}>{snapshotRef.current[dragFrom]?.dayPosition}</Text>
+            </View>
+            <Text style={dl.floatLabel} numberOfLines={1}>
+              {snapshotRef.current[dragFrom]?.label}
+            </Text>
+          </GlassView>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+const dl = StyleSheet.create({
+  line:          { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 2, marginHorizontal: 16 },
+  handleOverlay: { position: 'absolute', left: 14, top: 0, height: 72, width: 36, zIndex: 50 },
+  floatCard:     { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  floatLabel:    { flex: 1, fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  float: {
+    position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
+    ...Platform.select({
+      ios:     { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 10 },
+    }),
+  },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function CycleScreen() {
-  const { activePlan, updateDay } = usePlanStore();
-  const { sessions }             = useSessionStore();
-  const { settings }             = useSettingsStore();
-  const [editingDay,   setEditingDay  ] = useState<WorkoutDay | null>(null);
-  const [planSheetOpen, setPlanSheetOpen] = useState(false);
+  const { activePlan, updateDay, updatePlan } = usePlanStore();
+  const { sessions }                          = useSessionStore();
+  const { settings }                          = useSettingsStore();
 
-  // Show DayEditScreen when a day is selected for editing
+  const [editingDay,    setEditingDay   ] = useState<WorkoutDay | null>(null);
+  const [planExpanded,  setPlanExpanded ] = useState(false);
+  const [splitSheetOpen,setSplitSheetOpen] = useState(false);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [editName,      setEditName     ] = useState('');
+  const [editSplit,     setEditSplit    ] = useState('');
+
+  const openPlanEdit = () => {
+    if (!activePlan) return;
+    setEditName(activePlan.name);
+    setEditSplit(activePlan.splitType);
+    setPlanExpanded(e => !e);
+  };
+
+  const savePlan = () => {
+    if (!activePlan || !editName.trim()) return;
+    updatePlan(activePlan.id, { name: editName.trim(), splitType: editSplit });
+    setPlanExpanded(false);
+  };
+
+  const handleSplitSelect = (sp: string) => {
+    if (sp === 'Custom') {
+      Alert.alert(
+        'Use Custom Split?',
+        'This will clear all exercises from every day.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear & Use Custom',
+            style: 'destructive',
+            onPress: () => {
+              setEditSplit('Custom');
+              activePlan?.days.forEach(d =>
+                updateDay(activePlan.id, d.id, { exercises: [], isRestDay: false }),
+              );
+            },
+          },
+        ],
+      );
+    } else {
+      setEditSplit(sp);
+    }
+  };
+
   if (editingDay && activePlan) {
-    // Always pass the latest version of the day from the store
     const freshDay = activePlan.days.find(d => d.id === editingDay.id) ?? editingDay;
     return (
       <DayEditScreen
@@ -239,13 +881,11 @@ export function CycleScreen() {
     );
   }
 
-  const days = [...activePlan.days].sort((a, b) => a.dayPosition - b.dayPosition);
-
-  // Completion rate from last 14 sessions
-  const recent     = sessions.slice(-14);
-  const done       = recent.filter(s => s.status === 'completed').length;
-  const rate       = recent.length === 0 ? 0 : Math.round((done / recent.length) * 100);
-  const bars       = recent.map(s => s.status === 'completed' ? 1 : 0);
+  const days   = [...activePlan.days].sort((a, b) => a.dayPosition - b.dayPosition);
+  const recent = sessions.slice(-14);
+  const done   = recent.filter(ss => ss.status === 'completed').length;
+  const rate   = recent.length === 0 ? 0 : Math.round((done / recent.length) * 100);
+  const bars   = recent.map(ss => ss.status === 'completed' ? 1 : 0);
 
   const handleClear = (day: WorkoutDay) => {
     Alert.alert(
@@ -253,12 +893,7 @@ export function CycleScreen() {
       'This will remove all exercises and mark it as a rest day.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: () =>
-            updateDay(activePlan.id, day.id, { isRestDay: true, exercises: [] }),
-        },
+        { text: 'Clear', style: 'destructive', onPress: () => updateDay(activePlan.id, day.id, { isRestDay: true, exercises: [] }) },
       ],
     );
   };
@@ -267,25 +902,66 @@ export function CycleScreen() {
     <View style={{ flex: 1 }}>
       <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        {/* Header */}
+
+        {/* ── Header ── */}
         <View style={s.header}>
           <View style={{ flex: 1 }}>
             <Text style={s.planLabel}>{activePlan.splitType}</Text>
             <Text style={s.title}>{activePlan.name}</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => setPlanSheetOpen(true)}
-            style={s.settingsBtn}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="settings-outline" size={20} color={COLORS.textSecondary} />
+          <TouchableOpacity onPress={openPlanEdit} style={[s.editBtn, planExpanded && s.editBtnActive]} activeOpacity={0.7}>
+            <Ionicons
+              name={planExpanded ? 'chevron-up' : 'pencil-outline'}
+              size={17}
+              color={planExpanded ? COLORS.accent : COLORS.textSecondary}
+            />
           </TouchableOpacity>
-          <GlassView radius={12} style={s.logoBadge} glow>
-            <Text style={s.logoNum}>7</Text>
-          </GlassView>
         </View>
 
-        {/* Completion card */}
+        {/* ── Plan edit cabinet (inline, same pattern as day card) ── */}
+        {planExpanded && (
+          <GlassView radius={16} style={s.planCabinet} borderColor="rgba(10,132,255,0.22)">
+
+            {/* Plan name */}
+            <Text style={s.cabinetLabel}>PLAN NAME</Text>
+            <GlassView opacity="low" radius={10} style={s.nameField}>
+              <TextInput
+                style={s.nameInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Plan name"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                returnKeyType="done"
+                autoCorrect={false}
+              />
+            </GlassView>
+
+            {/* Split type */}
+            <Text style={[s.cabinetLabel, { marginTop: 14 }]}>SPLIT TYPE</Text>
+            <TouchableOpacity
+              style={s.splitBtn}
+              onPress={() => setSplitSheetOpen(true)}
+              activeOpacity={0.8}
+            >
+              <View style={s.splitBtnLeft}>
+                <View style={s.splitDot} />
+                <Text style={s.splitBtnTxt}>{editSplit || 'Select split…'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            {/* Actions row */}
+            <View style={s.cabinetActions}>
+              <TouchableOpacity onPress={savePlan} style={s.saveBtn} activeOpacity={0.85} disabled={!editName.trim()}>
+                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveGrad}>
+                  <Text style={s.saveTxt}>Save</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </GlassView>
+        )}
+
+        {/* ── Completion card ── */}
         <GlassView radius={16} style={s.rateCard}>
           <View style={s.rateRow}>
             <View>
@@ -312,33 +988,35 @@ export function CycleScreen() {
           </View>
         </GlassView>
 
-        {/* Hint */}
-        <Text style={s.hint}>Swipe left to edit or clear a day</Text>
+        <Text style={s.hint}>Tap to view · Drag ≡ to reorder · Swipe left to edit or clear</Text>
 
-        {/* Day list */}
+        {/* ── Day list ── */}
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          scrollEnabled={scrollEnabled}
         >
-          {days.map(day => (
-            <DayCard
-              key={day.id}
-              day={day}
-              status={getStatus(day, settings.currentDayPosition, sessions)}
-              onEdit={() => setEditingDay(day)}
-              onClear={() => handleClear(day)}
-            />
-          ))}
+          <DayListDragSort
+            days={days}
+            planId={activePlan.id}
+            sessions={sessions}
+            currentPos={settings.currentDayPosition}
+            onEdit={setEditingDay}
+            onClear={handleClear}
+            onScrollEnabledChange={setScrollEnabled}
+          />
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
 
-      {/* Plan-level settings sheet */}
-      <PlanEditSheet
-        visible={planSheetOpen}
-        plan={activePlan}
-        onClose={() => setPlanSheetOpen(false)}
+      {/* Split type picker */}
+      <SplitTypeSheet
+        visible={splitSheetOpen}
+        current={editSplit}
+        onSelect={sp => handleSplitSelect(sp)}
+        onClose={() => setSplitSheetOpen(false)}
       />
     </View>
   );
@@ -349,14 +1027,28 @@ const s = StyleSheet.create({
   emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
   emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
 
+  // Header
+  header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  planLabel:      { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
+  title:          { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  editBtnActive:  { borderColor: 'rgba(10,132,255,0.50)', backgroundColor: 'rgba(10,132,255,0.12)' },
 
-  header:     { paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  settingsBtn:{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  planLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
-  title:      { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  logoBadge:  { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  logoNum:    { fontSize: 20, fontWeight: '900', color: COLORS.accent },
+  // Plan edit cabinet
+  planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
+  cabinetLabel:   { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
+  nameField:      { paddingHorizontal: 12, paddingVertical: 11 },
+  nameInput:      { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
+  splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.07)' },
+  splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  splitDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
+  splitBtnTxt:    { fontSize: 15, fontWeight: '600', color: '#fff' },
+  cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14 },
+  saveBtn:        { borderRadius: 10, overflow: 'hidden' },
+  saveGrad:       { paddingHorizontal: 22, paddingVertical: 9 },
+  saveTxt:        { fontSize: 14, fontWeight: '700', color: '#fff' },
 
+  // Completion card
   rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },
   rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   rateLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },

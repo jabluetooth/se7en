@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
+import { AppBackground } from '../../components/ui/AppBackground';
 import {
   GRAD, COLORS, MUSCLE_TAGS, MUSCLE_TAG_COLOR,
   SET_TYPE_LABELS, BAR_WEIGHTS,
@@ -15,114 +16,104 @@ import { Exercise, SetType, WeightUnit } from '../../types';
 import { EXERCISE_LIBRARY } from '../../data/exercises';
 import { ExerciseLibraryItem } from '../../types';
 
-// ─── Smart keyword → muscle-group mapping ────────────────────────────────────
-// Maps day-label keywords to exercise library muscleGroup values
+// ─── Keyword → muscle group mapping ──────────────────────────────────────────
 
 const KEYWORD_TO_GROUPS: Record<string, string[]> = {
-  push:       ['Chest', 'Shoulders', 'Triceps'],
-  pull:       ['Back', 'Biceps'],
-  leg:        ['Legs'],
-  legs:       ['Legs'],
-  quad:       ['Legs'],
-  hamstring:  ['Legs'],
-  glute:      ['Legs'],
-  chest:      ['Chest'],
-  back:       ['Back'],
-  shoulder:   ['Shoulders'],
-  shoulders:  ['Shoulders'],
-  arm:        ['Biceps', 'Triceps'],
-  arms:       ['Biceps', 'Triceps'],
-  bicep:      ['Biceps'],
-  biceps:     ['Biceps'],
-  tricep:     ['Triceps'],
-  triceps:    ['Triceps'],
-  core:       ['Core'],
-  abs:        ['Core'],
-  ab:         ['Core'],
-  upper:      ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
-  lower:      ['Legs'],
-  cardio:     [],      // show all
-  full:       [],      // show all
+  push: ['Chest', 'Shoulders', 'Triceps'], pull: ['Back', 'Biceps'],
+  leg: ['Legs'], legs: ['Legs'], quad: ['Legs'], hamstring: ['Legs'], glute: ['Legs'],
+  chest: ['Chest'], back: ['Back'],
+  shoulder: ['Shoulders'], shoulders: ['Shoulders'],
+  arm: ['Biceps', 'Triceps'], arms: ['Biceps', 'Triceps'],
+  bicep: ['Biceps'], biceps: ['Biceps'], tricep: ['Triceps'], triceps: ['Triceps'],
+  core: ['Core'], abs: ['Core'], ab: ['Core'],
+  upper: ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
+  lower: ['Legs'], cardio: [], full: [],
 };
 
-// Library muscleGroup → muscleTags used on Exercise
 const LIB_GROUP_TO_TAGS: Record<string, string[]> = {
-  Chest:     ['Chest'],
-  Back:      ['Back'],
-  Shoulders: ['Shoulders'],
-  Biceps:    ['Biceps'],
-  Triceps:   ['Triceps'],
-  Core:      ['Core'],
-  Legs:      ['Quads', 'Hamstrings', 'Glutes'],
+  Chest: ['Chest'], Back: ['Back'], Shoulders: ['Shoulders'],
+  Biceps: ['Biceps'], Triceps: ['Triceps'], Core: ['Core'],
+  Legs: ['Quads', 'Hamstrings', 'Glutes'],
 };
 
 function getGroupsFromLabel(label: string): string[] {
-  if (!label) return [];
-  const words = label.toLowerCase().split(/\s+/);
   const groups = new Set<string>();
-  words.forEach(w => {
-    const matches = KEYWORD_TO_GROUPS[w];
-    if (matches) matches.forEach(g => groups.add(g));
+  label.toLowerCase().split(/\s+/).forEach(w => {
+    (KEYWORD_TO_GROUPS[w] ?? []).forEach(g => groups.add(g));
   });
   return [...groups];
 }
 
-// ─── Suggestion panel ─────────────────────────────────────────────────────────
+// ─── Stepper ──────────────────────────────────────────────────────────────────
 
-interface SuggestionPanelProps {
-  nameQuery:   string;
-  dayLabel:    string;
-  onSelect:    (item: ExerciseLibraryItem) => void;
+function Stepper({
+  value, min, max, onChange,
+}: { value: number; min: number; max: number; onChange: (n: number) => void }) {
+  return (
+    <View style={st.row}>
+      <TouchableOpacity
+        onPress={() => onChange(Math.max(min, value - 1))}
+        style={st.btn}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="remove" size={20} color={value <= min ? COLORS.textLabel : COLORS.textSecondary} />
+      </TouchableOpacity>
+      <View style={st.val}>
+        <Text style={st.num}>{value}</Text>
+      </View>
+      <TouchableOpacity
+        onPress={() => onChange(Math.min(max, value + 1))}
+        style={st.btn}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="add" size={20} color={value >= max ? COLORS.textLabel : COLORS.textSecondary} />
+      </TouchableOpacity>
+    </View>
+  );
 }
 
-function SuggestionPanel({ nameQuery, dayLabel, onSelect }: SuggestionPanelProps) {
-  const suggestions = useMemo(() => {
-    const q = nameQuery.trim().toLowerCase();
+const st = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 0 },
+  btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  val: { minWidth: 56, alignItems: 'center', paddingHorizontal: 12 },
+  num: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+});
 
+// ─── Search suggestions ───────────────────────────────────────────────────────
+
+function Suggestions({
+  query, dayLabel, onSelect,
+}: { query: string; dayLabel: string; onSelect: (item: ExerciseLibraryItem) => void }) {
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
     if (q.length >= 2) {
-      // Name-based search
-      return EXERCISE_LIBRARY
-        .filter(ex => ex.name.toLowerCase().includes(q))
-        .slice(0, 6);
+      return EXERCISE_LIBRARY.filter(e => e.name.toLowerCase().includes(q)).slice(0, 5);
     }
-
-    // Day-label based suggestions
     const groups = getGroupsFromLabel(dayLabel);
-    if (groups.length === 0) return EXERCISE_LIBRARY.slice(0, 6);
-    return EXERCISE_LIBRARY
-      .filter(ex => groups.includes(ex.muscleGroup))
-      .slice(0, 8);
-  }, [nameQuery, dayLabel]);
+    const pool   = groups.length === 0
+      ? EXERCISE_LIBRARY
+      : EXERCISE_LIBRARY.filter(e => groups.includes(e.muscleGroup));
+    return pool.slice(0, 5);
+  }, [query, dayLabel]);
 
-  if (suggestions.length === 0) return null;
-
-  const label = nameQuery.trim().length >= 2
-    ? 'Matching exercises'
-    : `Suggested for "${dayLabel}"`;
+  if (items.length === 0) return null;
 
   return (
-    <View style={sp.container}>
-      <Text style={sp.label}>{label}</Text>
-      {suggestions.map(item => (
-        <TouchableOpacity
-          key={item.id}
-          onPress={() => onSelect(item)}
-          style={sp.row}
-          activeOpacity={0.75}
-        >
-          <View style={sp.rowLeft}>
-            <Text style={sp.exName}>{item.name}</Text>
-            <Text style={sp.exMeta}>
-              {item.defaultSets} × {item.defaultRepsMin}–{item.defaultRepsMax}
-              {item.defaultWeight > 0 ? ` @ ${item.defaultWeight} ${item.defaultUnit}` : ''}
+    <View style={sg.wrap}>
+      <Text style={sg.label}>
+        {query.trim().length >= 2 ? 'Matching' : `Suggested for "${dayLabel}"`}
+      </Text>
+      {items.map(item => (
+        <TouchableOpacity key={item.id} style={sg.row} onPress={() => onSelect(item)} activeOpacity={0.75}>
+          <View style={sg.left}>
+            <Text style={sg.name}>{item.name}</Text>
+            <Text style={sg.meta}>
+              {item.defaultSets}×{item.defaultRepsMin}–{item.defaultRepsMax}
+              {item.defaultWeight > 0 ? ` · ${item.defaultWeight}${item.defaultUnit}` : ''}
             </Text>
           </View>
-          <View style={[
-            sp.groupBadge,
-            { backgroundColor: (MUSCLE_TAG_COLOR[item.muscleGroup] ?? '#fff') + '1A',
-              borderColor:      (MUSCLE_TAG_COLOR[item.muscleGroup] ?? '#fff') + '40' },
-          ]}>
-            <Text style={[sp.groupTxt, { color: MUSCLE_TAG_COLOR[item.muscleGroup] ?? COLORS.textSecondary }]}>
+          <View style={[sg.badge, { backgroundColor: (MUSCLE_TAG_COLOR[item.muscleGroup] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[item.muscleGroup] ?? '#fff') + '44' }]}>
+            <Text style={[sg.badgeTxt, { color: MUSCLE_TAG_COLOR[item.muscleGroup] ?? COLORS.textSecondary }]}>
               {item.muscleGroup}
             </Text>
           </View>
@@ -132,18 +123,18 @@ function SuggestionPanel({ nameQuery, dayLabel, onSelect }: SuggestionPanelProps
   );
 }
 
-const sp = StyleSheet.create({
-  container:  { marginTop: 12, marginBottom: 4 },
-  label:      { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8 },
-  row:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', marginBottom: 6 },
-  rowLeft:    { flex: 1 },
-  exName:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  exMeta:     { fontSize: 11, color: COLORS.textMuted },
-  groupBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  groupTxt:   { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+const sg = StyleSheet.create({
+  wrap:     { marginTop: 10, marginBottom: 6 },
+  label:    { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', marginBottom: 6 },
+  left:     { flex: 1 },
+  name:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
+  meta:     { fontSize: 11, color: COLORS.textMuted },
+  badge:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  badgeTxt: { fontSize: 10, fontWeight: '700' },
 });
 
-// ─── Form sheet ───────────────────────────────────────────────────────────────
+// ─── Form ──────────────────────────────────────────────────────────────────────
 
 interface Props {
   visible:   boolean;
@@ -161,59 +152,50 @@ const WEIGHT_UNITS: WeightUnit[] = ['kg', 'lb', 'bodyweight', 'plates'];
 
 export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSave, onClose }: Props) {
   const [name,       setName      ] = useState('');
-  const [tags,       setTags      ] = useState<string[]>([]);
-  const [setType,    setSetType   ] = useState<SetType>('standard');
-  const [sets,       setSets      ] = useState('4');
-  const [repsMin,    setRepsMin   ] = useState('8');
-  const [repsMax,    setRepsMax   ] = useState('12');
+  const [sets,       setSets      ] = useState(4);
+  const [repsMin,    setRepsMin   ] = useState(8);
+  const [repsMax,    setRepsMax   ] = useState(12);
+  const [advanced,   setAdvanced  ] = useState(false);
+
+  // Advanced fields
+  const [setType,    setSetType   ] = useState<SetType>('repRange');
   const [weight,     setWeight    ] = useState('');
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
+  const [tags,       setTags      ] = useState<string[]>([]);
   const [notes,      setNotes     ] = useState('');
-  const [page,       setPage      ] = useState<'basics' | 'volume' | 'tags'>('basics');
 
   useEffect(() => {
-    if (visible) {
-      if (initial) {
-        setName(initial.name);
-        setTags(initial.muscleTags ?? []);
-        setSetType(initial.setType);
-        setSets(String(initial.targetSets));
-        setRepsMin(String(initial.targetRepsMin ?? 8));
-        setRepsMax(String(initial.targetRepsMax ?? 12));
-        setWeight(String(initial.targetWeight ?? ''));
-        setWeightUnit(initial.weightUnit);
-        setNotes(initial.notes ?? '');
-      } else {
-        setName(''); setTags([]); setSetType('standard');
-        setSets('4'); setRepsMin('8'); setRepsMax('12');
-        setWeight(''); setWeightUnit('kg'); setNotes('');
-      }
-      setPage('basics');
-    }
-  }, [visible, initial]);
-
-  // Auto-suggest tags when day label changes (new exercise only)
-  useEffect(() => {
-    if (!initial && visible && tags.length === 0) {
+    if (!visible) return;
+    if (initial) {
+      setName(initial.name);
+      setSets(initial.targetSets);
+      setRepsMin(initial.targetRepsMin ?? 8);
+      setRepsMax(initial.targetRepsMax ?? 12);
+      setSetType(initial.setType);
+      setWeight(initial.targetWeight ? String(initial.targetWeight) : '');
+      setWeightUnit(initial.weightUnit);
+      setTags(initial.muscleTags ?? []);
+      setNotes(initial.notes ?? '');
+      setAdvanced(false);
+    } else {
+      // Defaults + auto-suggest tags from day label
+      setName(''); setSets(3); setRepsMin(8); setRepsMax(12);
+      setSetType('repRange'); setWeight(''); setWeightUnit('kg'); setNotes('');
+      setAdvanced(false);
       const groups = getGroupsFromLabel(dayLabel);
-      if (groups.length > 0) {
-        const suggestedTags = [...new Set(
-          groups.flatMap(g => LIB_GROUP_TO_TAGS[g] ?? [])
-        )];
-        setTags(suggestedTags);
-      }
+      setTags(groups.length > 0 ? [...new Set(groups.flatMap(g => LIB_GROUP_TO_TAGS[g] ?? []))] : []);
     }
-  }, [visible, dayLabel, initial]);
+  }, [visible, initial, dayLabel]);
 
   const fillFromLibrary = (item: ExerciseLibraryItem) => {
     setName(item.name);
-    setSets(String(item.defaultSets));
-    setRepsMin(String(item.defaultRepsMin));
-    setRepsMax(String(item.defaultRepsMax));
+    setSets(item.defaultSets);
+    setRepsMin(item.defaultRepsMin);
+    setRepsMax(item.defaultRepsMax);
     setWeight(item.defaultWeight > 0 ? String(item.defaultWeight) : '');
     setWeightUnit(item.defaultUnit as WeightUnit);
     setTags(LIB_GROUP_TO_TAGS[item.muscleGroup] ?? []);
-    setPage('volume');
+    setSetType('repRange');
   };
 
   const toggleTag = (tag: string) =>
@@ -226,9 +208,9 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
       order:         initial?.order ?? nextOrder,
       setType,
       supersetGroup: initial?.supersetGroup ?? null,
-      targetSets:    parseInt(sets, 10) || 3,
-      targetRepsMin: setType === 'toFailure' ? null : parseInt(repsMin, 10) || null,
-      targetRepsMax: setType === 'toFailure' ? null : parseInt(repsMax, 10) || null,
+      targetSets:    sets,
+      targetRepsMin: setType === 'toFailure' ? null : repsMin,
+      targetRepsMax: setType === 'toFailure' ? null : repsMax,
       toFailure:     setType === 'toFailure',
       targetWeight:  weight ? parseFloat(weight) : null,
       weightUnit,
@@ -242,6 +224,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 
   const isEdit  = initial !== null;
   const canSave = name.trim().length > 0;
+  const showSuggestions = !isEdit || name.trim().length >= 2;
 
   return (
     <Modal
@@ -250,201 +233,138 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: '#08090F' }}>
-        <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
-
+      <View style={{ flex: 1 }}>
+        <AppBackground />
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-          {/* Handle */}
           <View style={f.handle} />
 
           {/* Header */}
           <View style={f.header}>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={f.headerSide}>
               <Text style={f.cancel}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={f.sheetTitle}>{isEdit ? 'Edit Exercise' : 'Add Exercise'}</Text>
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={!canSave}
-              activeOpacity={0.8}
-              style={!canSave ? { opacity: 0.35 } : undefined}
-            >
+            <TextInput
+              style={f.titleInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Exercise name…"
+              placeholderTextColor="rgba(255,255,255,0.30)"
+              returnKeyType="done"
+              autoCorrect={false}
+              autoFocus={!isEdit}
+              textAlign="center"
+            />
+            <TouchableOpacity onPress={handleSave} disabled={!canSave} activeOpacity={0.8} style={[f.headerSide, f.headerRight, !canSave && { opacity: 0.35 }]}>
               <Text style={f.save}>Save</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Page tabs */}
-          <View style={f.tabs}>
-            {(['basics', 'volume', 'tags'] as const).map(p => (
-              <TouchableOpacity
-                key={p}
-                onPress={() => setPage(p)}
-                style={[f.tab, page === p && f.tabActive]}
-                activeOpacity={0.8}
-              >
-                <Text style={[f.tabTxt, page === p && f.tabTxtActive]}>
-                  {p === 'basics' ? 'Basics' : p === 'volume' ? 'Volume' : 'Muscles'}
-                </Text>
-                {/* Dot indicator: tags already selected */}
-                {p === 'tags' && tags.length > 0 && (
-                  <View style={f.tabDot} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView
               contentContainerStyle={f.scroll}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* ── Basics ── */}
-              {page === 'basics' && (
+
+              {showSuggestions && (
+                <Suggestions query={name} dayLabel={dayLabel} onSelect={fillFromLibrary} />
+              )}
+
+              {/* ── Sets ── */}
+              <View style={f.stackSection}>
+                <Text style={f.fieldLabel}>Sets</Text>
+                <View style={f.stepperWrap}>
+                  <Stepper value={sets} min={1} max={20} onChange={setSets} />
+                </View>
+              </View>
+
+              {/* ── Min Reps ── */}
+              <View style={f.stackSection}>
+                <Text style={f.fieldLabel}>Min Reps</Text>
+                <View style={f.stepperWrap}>
+                  <Stepper value={repsMin} min={1} max={100} onChange={v => { setRepsMin(v); if (v > repsMax) setRepsMax(v); }} />
+                </View>
+              </View>
+
+              {/* ── Max Reps ── */}
+              <View style={f.stackSection}>
+                <Text style={f.fieldLabel}>Max Reps</Text>
+                <View style={f.stepperWrap}>
+                  <Stepper value={repsMax} min={1} max={100} onChange={v => { setRepsMax(v); if (v < repsMin) setRepsMin(v); }} />
+                </View>
+              </View>
+
+              {/* ── Advanced toggle ── */}
+              <TouchableOpacity
+                onPress={() => setAdvanced(a => !a)}
+                style={f.advancedToggle}
+                activeOpacity={0.75}
+              >
+                <Text style={f.advancedLabel}>Advanced</Text>
+                <View style={f.advancedRight}>
+                  {tags.length > 0 && (
+                    <View style={f.tagDot} />
+                  )}
+                  <Ionicons name={advanced ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textMuted} />
+                </View>
+              </TouchableOpacity>
+
+              {advanced && (
                 <>
-                  <FieldLabel>Exercise Name</FieldLabel>
-                  <GlassView opacity="mid" radius={12} style={f.inputWrap}>
-                    <TextInput
-                      style={f.nameInput}
-                      value={name}
-                      onChangeText={setName}
-                      placeholder="e.g. Bench Press"
-                      placeholderTextColor={COLORS.textMuted}
-                      autoFocus={!isEdit}
-                      returnKeyType="done"
-                    />
-                  </GlassView>
-
-                  {/* Smart suggestions */}
-                  <SuggestionPanel
-                    nameQuery={name}
-                    dayLabel={dayLabel}
-                    onSelect={fillFromLibrary}
-                  />
-
-                  <FieldLabel style={{ marginTop: 20 }}>Set Type</FieldLabel>
-                  <View style={f.setTypeGrid}>
+                  {/* Set type */}
+                  <Text style={f.fieldLabel}>Set Type</Text>
+                  <View style={f.chipGrid}>
                     {SET_TYPES.map(st => (
                       <TouchableOpacity
                         key={st}
                         onPress={() => setSetType(st)}
-                        style={[f.setTypeBtn, setType === st && f.setTypeBtnActive]}
+                        style={[f.chip, setType === st && f.chipActive]}
                         activeOpacity={0.8}
                       >
-                        <Text style={[f.setTypeTxt, setType === st && f.setTypeTxtActive]}>
+                        <Text style={[f.chipTxt, setType === st && f.chipTxtActive]}>
                           {SET_TYPE_LABELS[st]}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
-                  <FieldLabel style={{ marginTop: 20 }}>Notes</FieldLabel>
-                  <GlassView opacity="mid" radius={12} style={f.inputWrap}>
-                    <TextInput
-                      style={[f.nameInput, { minHeight: 60 }]}
-                      value={notes}
-                      onChangeText={setNotes}
-                      placeholder="Cues or reminders…"
-                      placeholderTextColor={COLORS.textMuted}
-                      multiline
-                    />
-                  </GlassView>
-                </>
-              )}
-
-              {/* ── Volume ── */}
-              {page === 'volume' && (
-                <>
-                  <FieldLabel>Sets</FieldLabel>
-                  <View style={f.stepperRow}>
-                    <StepBtn onPress={() => setSets(s => String(Math.max(1, (parseInt(s)||1) - 1)))} icon="remove" />
-                    <GlassView opacity="high" radius={12} style={f.stepperVal}>
-                      <Text style={f.stepperNum}>{sets}</Text>
-                    </GlassView>
-                    <StepBtn onPress={() => setSets(s => String(Math.min(20, (parseInt(s)||1) + 1)))} icon="add" />
-                  </View>
-
-                  {setType !== 'toFailure' && (
-                    <>
-                      <FieldLabel style={{ marginTop: 24 }}>Reps</FieldLabel>
-                      <View style={f.repsRow}>
-                        {(
-                          [
-                            ['Min', repsMin, setRepsMin] as const,
-                            ['Max', repsMax, setRepsMax] as const,
-                          ] as [string, string, React.Dispatch<React.SetStateAction<string>>][]
-                        ).map(([lbl, val, set], i) => (
-                          <React.Fragment key={lbl}>
-                            <View style={f.repsField}>
-                              <Text style={f.repsLbl}>{lbl}</Text>
-                              <GlassView opacity="mid" radius={12} style={f.repsInput}>
-                                <TextInput
-                                  style={f.repsNum}
-                                  value={val}
-                                  onChangeText={set}
-                                  keyboardType="numeric"
-                                  selectTextOnFocus
-                                />
-                              </GlassView>
-                            </View>
-                            {i === 0 && <Text style={f.repsDash}>–</Text>}
-                          </React.Fragment>
+                  {/* Weight */}
+                  <View style={[f.quickRow, { marginTop: 20 }]}>
+                    <View style={f.quickField}>
+                      <Text style={f.fieldLabel}>Weight</Text>
+                      <GlassView opacity="low" radius={12} style={f.weightWrap}>
+                        <TextInput
+                          style={f.weightInput}
+                          value={weight}
+                          onChangeText={setWeight}
+                          placeholder="0"
+                          placeholderTextColor="rgba(255,255,255,0.25)"
+                          keyboardType="decimal-pad"
+                          selectTextOnFocus
+                        />
+                      </GlassView>
+                    </View>
+                    <View style={f.quickDivider} />
+                    <View style={f.quickField}>
+                      <Text style={f.fieldLabel}>Unit</Text>
+                      <View style={f.unitCol}>
+                        {WEIGHT_UNITS.map(u => (
+                          <TouchableOpacity
+                            key={u}
+                            onPress={() => setWeightUnit(u)}
+                            style={[f.unitBtn, weightUnit === u && f.unitBtnActive]}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={[f.unitTxt, weightUnit === u && f.unitTxtActive]}>{u}</Text>
+                          </TouchableOpacity>
                         ))}
                       </View>
-                    </>
-                  )}
-                  {setType === 'toFailure' && (
-                    <Text style={f.failureNote}>No rep target for "To Failure" sets.</Text>
-                  )}
-
-                  <FieldLabel style={{ marginTop: 24 }}>Target Weight</FieldLabel>
-                  <GlassView opacity="mid" radius={12} style={f.inputWrap}>
-                    <TextInput
-                      style={f.nameInput}
-                      value={weight}
-                      onChangeText={setWeight}
-                      placeholder="0"
-                      placeholderTextColor={COLORS.textMuted}
-                      keyboardType="decimal-pad"
-                      selectTextOnFocus
-                    />
-                  </GlassView>
-
-                  <FieldLabel style={{ marginTop: 16 }}>Weight Unit</FieldLabel>
-                  <View style={f.unitRow}>
-                    {WEIGHT_UNITS.map(u => (
-                      <TouchableOpacity
-                        key={u}
-                        onPress={() => setWeightUnit(u)}
-                        style={[f.unitBtn, weightUnit === u && f.unitBtnActive]}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[f.unitTxt, weightUnit === u && f.unitTxtActive]}>{u}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              )}
-
-              {/* ── Muscles ── */}
-              {page === 'tags' && (
-                <>
-                  {/* Context hint when day label implies muscles */}
-                  {getGroupsFromLabel(dayLabel).length > 0 && (
-                    <View style={f.contextBanner}>
-                      <Ionicons name="sparkles-outline" size={13} color={COLORS.accent} />
-                      <Text style={f.contextTxt}>
-                        Suggested for <Text style={{ color: COLORS.accent }}>{dayLabel}</Text>
-                      </Text>
                     </View>
-                  )}
-                  <Text style={f.tagHint}>
-                    Select all muscle groups this exercise works.
-                  </Text>
-                  <View style={f.tagGrid}>
+                  </View>
+
+                  {/* Muscle tags */}
+                  <Text style={[f.fieldLabel, { marginTop: 20 }]}>Muscles</Text>
+                  <View style={f.chipGrid}>
                     {MUSCLE_TAGS.map(tag => {
                       const active = tags.includes(tag);
                       const color  = MUSCLE_TAG_COLOR[tag] ?? COLORS.accent;
@@ -454,26 +374,47 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                           onPress={() => toggleTag(tag)}
                           activeOpacity={0.8}
                           style={[
-                            f.tagChip,
+                            f.chip,
                             active
-                              ? { backgroundColor: color + '22', borderColor: color + '66' }
-                              : { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)' },
+                              ? { backgroundColor: color + '22', borderColor: color + '55' }
+                              : undefined,
                           ]}
                         >
-                          {active && (
-                            <Ionicons name="checkmark-circle" size={13} color={color} style={{ marginRight: 4 }} />
-                          )}
-                          <Text style={[f.tagChipTxt, { color: active ? color : COLORS.textSecondary }]}>
-                            {tag}
-                          </Text>
+                          {active && <Ionicons name="checkmark-circle" size={12} color={color} style={{ marginRight: 3 }} />}
+                          <Text style={[f.chipTxt, active && { color }]}>{tag}</Text>
                         </TouchableOpacity>
                       );
                     })}
                   </View>
+
+                  {/* Notes */}
+                  <Text style={[f.fieldLabel, { marginTop: 20 }]}>Notes</Text>
+                  <GlassView opacity="low" radius={12} style={f.notesWrap}>
+                    <TextInput
+                      style={f.notesInput}
+                      value={notes}
+                      onChangeText={setNotes}
+                      placeholder="Cues, reminders…"
+                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      multiline
+                    />
+                  </GlassView>
                 </>
               )}
 
-              <View style={{ height: 60 }} />
+              {/* Save button */}
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={!canSave}
+                style={[f.saveBtn, { opacity: canSave ? 1 : 0.35 }]}
+                activeOpacity={0.85}
+              >
+                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={f.saveGrad}>
+                  <Text style={f.saveTxt}>{isEdit ? 'Save Changes' : 'Add Exercise'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={{ height: 40 }} />
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -482,71 +423,59 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function FieldLabel({ children, style }: { children: React.ReactNode; style?: any }) {
-  return <Text style={[f.fieldLabel, style]}>{children}</Text>;
-}
-
-function StepBtn({ onPress, icon }: { onPress: () => void; icon: string }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
-      <GlassView opacity="mid" radius={12} style={f.stepBtnInner}>
-        <Ionicons name={icon as any} size={20} color={COLORS.textSecondary} />
-      </GlassView>
-    </TouchableOpacity>
-  );
-}
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const f = StyleSheet.create({
-  handle:         { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 6 },
-  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
-  cancel:         { fontSize: 16, color: COLORS.accent },
-  sheetTitle:     { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
-  save:           { fontSize: 16, fontWeight: '700', color: COLORS.accent },
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
+  headerSide:  { width: 60 },
+  headerRight: { alignItems: 'flex-end' },
+  cancel:      { fontSize: 16, color: COLORS.accent },
+  titleInput:  { flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, textAlign: 'center', padding: 0 },
+  save:        { fontSize: 16, fontWeight: '700', color: COLORS.accent },
 
-  tabs:           { flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3 },
-  tab:            { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, flexDirection: 'row', justifyContent: 'center', gap: 4 },
-  tabActive:      { backgroundColor: 'rgba(255,255,255,0.12)' },
-  tabTxt:         { fontSize: 13, fontWeight: '600', color: COLORS.textMuted },
-  tabTxtActive:   { color: '#fff', fontWeight: '700' },
-  tabDot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: COLORS.accent },
+  scroll:     { paddingHorizontal: 20, paddingTop: 4 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
 
-  scroll:         { paddingHorizontal: 16 },
-  fieldLabel:     { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 8 },
+  // Vertically stacked sections (sets, min reps, max reps)
+  stackSection: { marginTop: 24 },
+  stepperWrap:  { marginTop: 10 },
 
-  inputWrap:      { padding: 14 },
-  nameInput:      { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
+  // Side-by-side row (used in advanced weight/unit section)
+  quickRow:    { flexDirection: 'row', gap: 0, marginTop: 20 },
+  quickField:  { flex: 1 },
+  quickDivider:{ width: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 16, marginTop: 24 },
 
-  setTypeGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  setTypeBtn:     { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)' },
-  setTypeBtnActive:{ borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.12)' },
-  setTypeTxt:     { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-  setTypeTxtActive:{ color: COLORS.accent },
+  // Advanced toggle
+  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)' },
+  advancedLabel:  { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  advancedRight:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tagDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
 
-  stepperRow:     { flexDirection: 'row', alignItems: 'center', gap: 20, justifyContent: 'center', marginBottom: 4 },
-  stepBtnInner:   { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  stepperVal:     { paddingHorizontal: 28, paddingVertical: 12, alignItems: 'center', minWidth: 80 },
-  stepperNum:     { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  // Chips
+  chipGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  chipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.14)' },
+  chipTxt:    { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  chipTxtActive: { color: COLORS.accent },
 
-  repsRow:        { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
-  repsField:      { flex: 1 },
-  repsLbl:        { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
-  repsInput:      { padding: 0 },
-  repsNum:        { fontSize: 22, fontWeight: '800', color: '#fff', textAlign: 'center', height: 52, padding: 12 },
-  repsDash:       { fontSize: 22, color: COLORS.textMuted, paddingBottom: 12 },
-  failureNote:    { fontSize: 13, color: COLORS.textMuted, fontStyle: 'italic', marginTop: 8 },
+  // Weight
+  weightWrap:  { paddingHorizontal: 14, paddingVertical: 14 },
+  weightInput: { fontSize: 22, fontWeight: '700', color: '#fff', padding: 0, textAlign: 'center' },
 
-  unitRow:        { flexDirection: 'row', gap: 6 },
-  unitBtn:        { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' },
-  unitBtnActive:  { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.12)' },
-  unitTxt:        { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, textTransform: 'capitalize' },
-  unitTxtActive:  { color: COLORS.accent },
+  // Unit
+  unitCol:    { gap: 6 },
+  unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' },
+  unitBtnActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.12)' },
+  unitTxt:    { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  unitTxtActive: { color: COLORS.accent },
 
-  contextBanner:  { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(10,132,255,0.08)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.20)', marginBottom: 12 },
-  contextTxt:     { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
-  tagHint:        { fontSize: 13, color: COLORS.textSecondary, marginBottom: 14, lineHeight: 18 },
-  tagGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tagChip:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
-  tagChipTxt:     { fontSize: 13, fontWeight: '600' },
+  // Notes
+  notesWrap:  { paddingHorizontal: 14, paddingVertical: 12 },
+  notesInput: { fontSize: 15, color: '#fff', padding: 0, minHeight: 60 },
+
+  // Save
+  saveBtn:    { marginTop: 28, borderRadius: 14, overflow: 'hidden' },
+  saveGrad:   { paddingVertical: 16, alignItems: 'center' },
+  saveTxt:    { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 });

@@ -36,73 +36,86 @@ function DayDragSort({ days, onReorder }: DayDragProps) {
   const containerRef    = useRef<View>(null);
   const containerTopRef = useRef(0);
   const dragFromRef     = useRef<number | null>(null);
+  const dropToRef       = useRef<number | null>(null);
   const floatY          = useRef(new Animated.Value(0)).current;
+  const daysRef         = useRef(days);
 
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropTo,   setDropTo  ] = useState<number | null>(null);
-
   const snapshotRef = useRef<WorkoutDay[]>(days);
 
-  function makeHandlers(idx: number) {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  (_, gs) =>
-        Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+  // Keep daysRef current without triggering handler recreation
+  daysRef.current = days;
 
-      onPanResponderGrant: (evt) => {
-        containerRef.current?.measureInWindow((_x, y) => {
-          containerTopRef.current = y;
-        });
-        snapshotRef.current = days;
-        dragFromRef.current = idx;
-        floatY.setValue(idx * DAY_H);
-        setDragFrom(idx);
-        setDropTo(idx);
-      },
+  // ── Stable handler refs — built once per item, not on every render ──────────
+  // Re-created only when the number of days changes.
+  const panHandlersRef = useRef<any[]>([]);
 
-      onPanResponderMove: (evt) => {
-        const relY = evt.nativeEvent.pageY - containerTopRef.current;
-        floatY.setValue(relY - DAY_H / 2);
-        const to = Math.max(0, Math.min(days.length - 1, Math.round(relY / DAY_H)));
-        if (to !== dropTo) setDropTo(to);
-      },
+  if (panHandlersRef.current.length !== days.length) {
+    panHandlersRef.current = days.map((_, idx) =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder:  (_, gs) =>
+          Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
 
-      onPanResponderRelease: () => {
-        const from = dragFromRef.current ?? 0;
-        const to   = dropTo ?? from;
-        if (from !== to) {
-          LayoutAnimation.configureNext({
-            duration: 220,
-            update: { type: LayoutAnimation.Types.easeInEaseOut },
+        onPanResponderGrant: () => {
+          containerRef.current?.measureInWindow((_x, y) => {
+            containerTopRef.current = y;
           });
-          // Swap DAY CONTENT while keeping dayPosition numbers fixed
-          const contents = [...snapshotRef.current].map(d => ({
-            label:     d.label,
-            isRestDay: d.isRestDay,
-            exercises: d.exercises,
-          }));
-          const [removed] = contents.splice(from, 1);
-          contents.splice(to, 0, removed);
+          snapshotRef.current = daysRef.current;
+          dragFromRef.current = idx;
+          dropToRef.current   = idx;
+          floatY.setValue(idx * DAY_H);
+          setDragFrom(idx);
+          setDropTo(idx);
+        },
 
-          const newDays = snapshotRef.current.map((d, i) => ({
-            ...d,
-            label:     contents[i].label,
-            isRestDay: contents[i].isRestDay,
-            exercises: contents[i].exercises,
-          }));
-          onReorder(newDays);
-        }
-        dragFromRef.current = null;
-        setDragFrom(null);
-        setDropTo(null);
-      },
+        onPanResponderMove: (evt) => {
+          const relY  = evt.nativeEvent.pageY - containerTopRef.current;
+          floatY.setValue(relY - DAY_H / 2);
+          const newTo = Math.max(0, Math.min(daysRef.current.length - 1, Math.round(relY / DAY_H)));
+          // Only re-render when the target slot actually changes
+          if (newTo !== dropToRef.current) {
+            dropToRef.current = newTo;
+            setDropTo(newTo);
+          }
+        },
 
-      onPanResponderTerminate: () => {
-        dragFromRef.current = null;
-        setDragFrom(null);
-        setDropTo(null);
-      },
-    }).panHandlers;
+        onPanResponderRelease: () => {
+          const from = dragFromRef.current ?? 0;
+          const to   = dropToRef.current   ?? from;
+          if (from !== to) {
+            LayoutAnimation.configureNext({
+              duration: 220,
+              update: { type: LayoutAnimation.Types.easeInEaseOut },
+            });
+            const contents = [...snapshotRef.current].map(d => ({
+              label: d.label, isRestDay: d.isRestDay, exercises: d.exercises,
+            }));
+            const [removed] = contents.splice(from, 1);
+            contents.splice(to, 0, removed);
+            const newDays = snapshotRef.current.map((d, i) => ({
+              ...d,
+              label:     contents[i].label,
+              isRestDay: contents[i].isRestDay,
+              exercises: contents[i].exercises,
+            }));
+            onReorder(newDays);
+          }
+          dragFromRef.current = null;
+          dropToRef.current   = null;
+          setDragFrom(null);
+          setDropTo(null);
+        },
+
+        onPanResponderTerminate: () => {
+          dragFromRef.current = null;
+          dropToRef.current   = null;
+          setDragFrom(null);
+          setDropTo(null);
+        },
+      }).panHandlers,
+    );
   }
 
   return (
@@ -117,8 +130,8 @@ function DayDragSort({ days, onReorder }: DayDragProps) {
             {showAbove && <View style={dd.line} />}
 
             <View style={[dd.dayRow, isActive && { opacity: 0.15 }]}>
-              {/* Drag handle */}
-              <View {...makeHandlers(idx)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              {/* Stable drag handle — uses pre-built handler ref */}
+              <View {...panHandlersRef.current[idx]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 
@@ -225,10 +238,37 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
     onClose();
   };
 
+  // Only update local state during drag — persist happens in handleSave
   const handleReorderDays = (newDays: WorkoutDay[]) => {
     setLocalDays(newDays);
-    // Persist immediately
-    updatePlan(plan.id, { days: newDays });
+  };
+
+  const handleSplitPreset = (sp: string) => {
+    if (sp === 'Custom') {
+      setSplitPreset('Custom');
+      return;
+    }
+    if (splitPreset !== sp) {
+      setSplitPreset(sp);
+    }
+  };
+
+  const handleCustomSplitSelect = () => {
+    Alert.alert(
+      'Use Custom Split?',
+      'This will clear all exercises from every day. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear & Use Custom',
+          style: 'destructive',
+          onPress: () => {
+            setSplitPreset('Custom');
+            setLocalDays(prev => prev.map(d => ({ ...d, exercises: [], isRestDay: false })));
+          },
+        },
+      ],
+    );
   };
 
   const handleDelete = () => {
@@ -307,13 +347,14 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
                 return (
                   <TouchableOpacity
                     key={sp}
-                    onPress={() => setSplitPreset(sp)}
+                    onPress={() => sp === 'Custom' ? handleCustomSplitSelect() : handleSplitPreset(sp)}
                     activeOpacity={0.8}
                     style={[f.chip, active && f.chipActive]}
                   >
-                    {active && (
-                      <Ionicons name="checkmark-circle" size={13} color={COLORS.accent} style={{ marginRight: 4 }} />
-                    )}
+                    {active
+                      ? <Ionicons name="checkmark-circle" size={13} color={COLORS.accent} style={{ marginRight: 4 }} />
+                      : null
+                    }
                     <Text style={[f.chipTxt, active && f.chipTxtActive]}>{sp}</Text>
                   </TouchableOpacity>
                 );
@@ -382,21 +423,21 @@ const f = StyleSheet.create({
   save:         { fontSize: 16, fontWeight: '700', color: COLORS.accent },
 
   scroll:       { paddingHorizontal: 20, paddingTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10, marginTop: 24 },
-  subLabel:     { fontSize: 11, color: COLORS.textMuted, marginTop: 10, marginBottom: 0 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 10, marginTop: 20 },
+  subLabel:     { fontSize: 11, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
 
   inputCard:    { paddingHorizontal: 14, paddingVertical: 13 },
   textInput:    { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
 
   chipGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.05)' },
-  chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.12)' },
+  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.07)' },
+  chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.15)' },
   chipTxt:      { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   chipTxtActive:{ color: COLORS.accent, fontWeight: '700' },
 
-  daysHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, marginTop: 24 },
+  daysHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, marginTop: 20 },
   daysHint:     { fontSize: 11, color: COLORS.textLabel },
-  daysCard:     { paddingVertical: 6, overflow: 'hidden' },
+  daysCard:     { paddingVertical: 4, overflow: 'hidden' },
 
   dangerSection:{ marginTop: 32, alignItems: 'center' },
   deleteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', backgroundColor: 'rgba(255,69,58,0.08)' },
