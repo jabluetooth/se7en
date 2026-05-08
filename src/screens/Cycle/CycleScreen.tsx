@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Alert, Animated, TextInput, Switch,
@@ -13,10 +13,11 @@ import { Badge, BadgeVariant } from '../../components/common/Badge';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { GRAD, COLORS, MUSCLE_TAG_COLOR } from '../../constants';
+import { GRAD, COLORS, MUSCLE_TAG_COLOR, BAR_WEIGHTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutDay, WorkoutSession, Exercise } from '../../types';
-import { EXERCISE_LIBRARY, ExerciseLibraryItem } from '../../data/exercises';
+import { EXERCISE_LIBRARY } from '../../data/exercises';
+import { ExerciseLibraryItem } from '../../types';
 import { DayEditScreen } from './DayEditScreen';
 import { SplitTypeSheet } from './SplitTypeSheet';
 import { ExerciseFormSheet } from './ExerciseFormSheet';
@@ -133,47 +134,7 @@ const sw = StyleSheet.create({
   clearTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
 
-// ─── Exercise row inside cabinet ──────────────────────────────────────────────
-
-function ExerciseRow({
-  exercise,
-  onEdit,
-  onDelete,
-}: { exercise: Exercise; onEdit: () => void; onDelete: () => void }) {
-  const setInfo = exercise.setType === 'toFailure'
-    ? `${exercise.targetSets}× failure`
-    : [
-        `${exercise.targetSets}×`,
-        exercise.targetRepsMin === exercise.targetRepsMax || !exercise.targetRepsMax
-          ? String(exercise.targetRepsMin ?? '–')
-          : `${exercise.targetRepsMin}–${exercise.targetRepsMax}`,
-        exercise.targetWeight ? `@ ${exercise.targetWeight}${exercise.weightUnit}` : '',
-      ].filter(Boolean).join(' ');
-
-  const tags = exercise.muscleTags ?? [];
-
-  return (
-    <View style={er.row}>
-      <View style={er.info}>
-        <Text style={er.name} numberOfLines={1}>{exercise.name}</Text>
-        <View style={er.metaRow}>
-          <Text style={er.setInfo}>{setInfo}</Text>
-          {tags.slice(0, 2).map(t => (
-            <View key={t} style={[er.tag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
-              <Text style={[er.tagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      <TouchableOpacity onPress={onEdit} style={er.iconBtn} activeOpacity={0.7}>
-        <Ionicons name="pencil-outline" size={16} color={COLORS.textSecondary} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} style={er.iconBtn} activeOpacity={0.7}>
-        <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-      </TouchableOpacity>
-    </View>
-  );
-}
+// ─── Exercise row styles (shared by ExerciseDragSort) ────────────────────────
 
 const er = StyleSheet.create({
   row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
@@ -390,16 +351,21 @@ function DayCard({
   };
 
   const quickAdd = (item: ExerciseLibraryItem) => {
+    const barType = (item.barType as any) ?? 'barbell';
     addExercise(planId, day.id, {
       name:          item.name,
       order:         day.exercises.length + 1,
       setType:       (item.setType as any) ?? 'repRange',
+      supersetGroup: null,
       targetSets:    item.defaultSets ?? 3,
       targetRepsMin: item.defaultRepsMin ?? 8,
       targetRepsMax: item.defaultRepsMax ?? 12,
-      barType:       (item.barType as any) ?? 'barbell',
+      toFailure:     false,
+      barType,
+      barWeight:     BAR_WEIGHTS[barType] ?? 0,
       targetWeight:  item.defaultWeight ?? 0,
       weightUnit:    (item.defaultUnit as any) ?? 'kg',
+      perSetTargets: null,
       muscleTags:    LIB_GROUP_TO_TAGS[item.muscleGroup] ?? [],
       notes:         '',
     });
@@ -653,31 +619,49 @@ function DayListDragSort({
   onClear:                (day: WorkoutDay) => void;
   onScrollEnabledChange?: (enabled: boolean) => void;
 }) {
-  const { updatePlan } = usePlanStore();
+  const { updatePlan }  = usePlanStore();
   const containerRef    = useRef<View>(null);
   const containerTopRef = useRef(0);
-  const layoutsRef      = useRef<{ y: number; height: number }[]>([]);
-
-  const dragFromRef = useRef<number | null>(null);
-  const dropToRef   = useRef<number | null>(null);
-  const floatY      = useRef(new Animated.Value(0)).current;
-  const daysRef     = useRef(days);
-  daysRef.current = days;
+  const CARD_EST_H      = 88;
+  // Pre-populated with estimates; onLayout overwrites with real values.
+  const layoutsRef = useRef<{ y: number; height: number }[]>(
+    days.map((_, i) => ({ y: i * CARD_EST_H, height: CARD_EST_H })),
+  );
+  const dragFromRef   = useRef<number | null>(null);
+  const dropToRef     = useRef<number | null>(null);
+  const floatY        = useRef(new Animated.Value(0)).current;
+  const daysRef       = useRef(days);
+  const snapshotRef   = useRef(days);
+  const onScrollRef   = useRef(onScrollEnabledChange);
+  const updatePlanRef = useRef(updatePlan);
+  const planIdRef     = useRef(planId);
+  daysRef.current       = days;
+  onScrollRef.current   = onScrollEnabledChange;
+  updatePlanRef.current = updatePlan;
+  planIdRef.current     = planId;
 
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropTo,   setDropTo  ] = useState<number | null>(null);
-  const snapshotRef = useRef(days);
 
-  const findTarget = (pageY: number) => {
-    const relY    = pageY - containerTopRef.current;
-    const layouts = layoutsRef.current;
-    for (let i = 0; i < layouts.length; i++) {
-      const { y, height } = layouts[i] ?? { y: i * 80, height: 80 };
+  // Measure once after mount; re-measured on each grant.
+  // locationY in PanResponder is relative to the touch target (deepest view),
+  // NOT the container — we use pageY - containerTopRef for correct relY.
+  useEffect(() => {
+    containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+  }, []);
+
+  const findAt = (relY: number) => {
+    const ls = layoutsRef.current;
+    for (let i = 0; i < ls.length; i++) {
+      const { y, height } = ls[i] ?? { y: i * CARD_EST_H, height: CARD_EST_H };
       if (relY <= y + height * 0.5) return i;
     }
-    return Math.max(0, layouts.length - 1);
+    return Math.max(0, ls.length - 1);
   };
 
+  // Per-card overlays — each handler captures its own idx via closure.
+  // Overlays sit at top:0, height:72 (header only), so exercise handles in the
+  // cabinet (below that) are never intercepted.
   const panHandlersRef = useRef<any[]>([]);
   if (panHandlersRef.current.length !== days.length) {
     panHandlersRef.current = days.map((_, idx) =>
@@ -685,29 +669,22 @@ function DayListDragSort({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
 
-        onPanResponderGrant: (evt) => {
-          // Derive container top synchronously — measureInWindow is async and arrives
-          // too late for the first onPanResponderMove calls.
-          // overlay is position:absolute top:0 inside the wrapper, so:
-          //   pageY - locationY  = absolute Y of wrapper top = absolute Y of item top
-          //   item top relative to container = layoutsRef.current[idx].y
-          //   → container top = pageY - locationY - itemY
-          const itemY = layoutsRef.current[idx]?.y ?? idx * 80;
-          containerTopRef.current = evt.nativeEvent.pageY - evt.nativeEvent.locationY - itemY;
-          onScrollEnabledChange?.(false);
+        onPanResponderGrant: () => {
+          containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+          onScrollRef.current?.(false);
           snapshotRef.current = daysRef.current;
           dragFromRef.current = idx;
           dropToRef.current   = idx;
-          floatY.setValue(itemY);
+          floatY.setValue(layoutsRef.current[idx]?.y ?? idx * CARD_EST_H);
           setDragFrom(idx);
           setDropTo(idx);
         },
 
         onPanResponderMove: (evt) => {
-          const pageY = evt.nativeEvent.pageY;
-          const h     = layoutsRef.current[dragFromRef.current ?? 0]?.height ?? 72;
-          floatY.setValue(Math.max(0, pageY - containerTopRef.current - h / 2));
-          const newTo = findTarget(pageY);
+          const relY = evt.nativeEvent.pageY - containerTopRef.current;
+          const h    = layoutsRef.current[dragFromRef.current ?? 0]?.height ?? CARD_EST_H;
+          floatY.setValue(Math.max(0, relY - h / 2));
+          const newTo = findAt(relY);
           if (newTo !== dropToRef.current) { dropToRef.current = newTo; setDropTo(newTo); }
         },
 
@@ -722,20 +699,17 @@ function DayListDragSort({
             const [removed] = contents.splice(from, 1);
             contents.splice(to, 0, removed);
             const newDays = snapshotRef.current.map((d, i) => ({
-              ...d,
-              label:     contents[i].label,
-              isRestDay: contents[i].isRestDay,
-              exercises: contents[i].exercises,
+              ...d, label: contents[i].label, isRestDay: contents[i].isRestDay, exercises: contents[i].exercises,
             }));
-            updatePlan(planId, { days: newDays });
+            updatePlanRef.current(planIdRef.current, { days: newDays });
           }
-          onScrollEnabledChange?.(true);
+          onScrollRef.current?.(true);
           dragFromRef.current = null; dropToRef.current = null;
           setDragFrom(null); setDropTo(null);
         },
 
         onPanResponderTerminate: () => {
-          onScrollEnabledChange?.(true);
+          onScrollRef.current?.(true);
           dragFromRef.current = null; dropToRef.current = null;
           setDragFrom(null); setDropTo(null);
         },
@@ -758,7 +732,7 @@ function DayListDragSort({
                 height: e.nativeEvent.layout.height,
               };
             }}
-            style={isActive ? { opacity: 0.55 } : undefined}
+            style={isActive ? { opacity: 0.4 } : undefined}
           >
             {showAbove && <View style={dl.line} />}
             <DayCard
@@ -769,7 +743,8 @@ function DayListDragSort({
               onClear={() => onClear(day)}
             />
             {showBelow && <View style={dl.line} />}
-            {/* Pan handle overlay — sibling to DayCard, outside Swipeable/RNGH */}
+            {/* Overlay covers only the card header (height:72). Cabinet exercises sit below
+                this boundary so their own drag handles are never intercepted here. */}
             <View
               {...panHandlersRef.current[idx]}
               hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
@@ -780,8 +755,8 @@ function DayListDragSort({
       })}
 
       {dragFrom !== null && (
-        <Animated.View style={[dl.float, { transform: [{ translateY: floatY }] }]} pointerEvents="none">
-          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(10,132,255,0.45)" glow>
+        <Animated.View style={[dl.float, { transform: [{ translateY: floatY }], opacity: 0.92 }]} pointerEvents="none">
+          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,255,255,0.18)">
             <View style={[dc.numBadge, dc.numBadgeMuted]}>
               <Text style={dc.num}>{snapshotRef.current[dragFrom]?.dayPosition}</Text>
             </View>
@@ -797,7 +772,9 @@ function DayListDragSort({
 
 const dl = StyleSheet.create({
   line:          { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 2, marginHorizontal: 16 },
-  handleOverlay: { position: 'absolute', left: 14, top: 0, height: 72, width: 36, zIndex: 50 },
+  // Covers only the card header (72 px tall). Cabinet exercises live below this
+  // boundary, so their own PanResponder handles are never stolen.
+  handleOverlay: { position: 'absolute', left: 14, top: 0, height: 72, width: 40, zIndex: 50 },
   floatCard:     { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   floatLabel:    { flex: 1, fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
   float: {
