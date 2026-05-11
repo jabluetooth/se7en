@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
@@ -9,6 +9,8 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { GRAD, COLORS } from '../../constants';
 import { WorkoutSession } from '../../types';
+import { sessionTotalVolume } from '../../utils/volume';
+import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
 
 interface Props {
   onFinish: (session: WorkoutSession) => void;
@@ -17,6 +19,14 @@ interface Props {
 export function ActiveSessionScreen({ onFinish }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
+  const [restCtx, setRestCtx] = useState<{
+    exerciseName:     string;
+    setNumber:        number;
+    actualReps:       number;
+    actualWeight:     number | null;
+    weightUnit:       string;
+    nextExerciseName: string | null;
+  } | null>(null);
 
   if (!activeSession) return null;
 
@@ -26,6 +36,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
   const totalSets = activeSession.exercises.reduce((a, e) => a + e.sets.length, 0);
   const doneSets  = activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0);
   const pct       = totalSets > 0 ? doneSets / totalSets : 0;
+  const volume    = Math.round(sessionTotalVolume(activeSession.exercises));
 
   const handleFinish = async () => {
     const session = await finishSession();
@@ -46,26 +57,61 @@ export function ActiveSessionScreen({ onFinish }: Props) {
     <View style={s.root}>
       <AppBackground />
 
+      <Modal
+        visible={!!restCtx}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setRestCtx(null)}
+      >
+        {restCtx && (
+          <RestTimerScreen
+            exerciseName={restCtx.exerciseName}
+            setNumber={restCtx.setNumber}
+            actualReps={restCtx.actualReps}
+            actualWeight={restCtx.actualWeight}
+            weightUnit={restCtx.weightUnit}
+            nextExerciseName={restCtx.nextExerciseName}
+            onClose={() => setRestCtx(null)}
+          />
+        )}
+      </Modal>
+
       <SafeAreaView style={s.safe} edges={['top']}>
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
-          <View style={s.headerLeft}>
-            <Text style={s.headerSup}>
-              Day {activeSession.dayPosition} · {activePlan?.name ?? ''}
-            </Text>
-            <Text style={s.headerTitle}>{activeSession.dayLabel}</Text>
-          </View>
-
-          <View style={s.headerRight}>
-            {/* Live elapsed timer */}
-            <GlassView radius={12} style={s.timerBadge}>
-              <Text style={s.timerText}>{timeStr}</Text>
-            </GlassView>
-          </View>
+          <Text style={s.headerSup}>
+            Day {activeSession.dayPosition} · {activePlan?.name ?? ''}
+          </Text>
+          <Text style={s.headerTitle}>{activeSession.dayLabel}</Text>
         </View>
 
-        {/* Progress bar */}
-        <View style={s.progressWrap}>
+        {/* ── Stats row ──────────────────────────────────── */}
+        <View style={s.statsRow}>
+          <GlassView radius={12} style={s.statChip}>
+            <Text style={s.statValue}>{doneSets}/{totalSets}</Text>
+            <Text style={s.statLabel}>Sets Done</Text>
+          </GlassView>
+
+          <GlassView radius={12} style={s.statChip}>
+            <View style={s.timerInner}>
+              <View style={s.glowDot} />
+              <Text style={s.statValueAccent}>{timeStr}</Text>
+            </View>
+            <Text style={s.statLabel}>in progress</Text>
+          </GlassView>
+
+          <GlassView radius={12} style={s.statChip}>
+            <Text style={s.statValue}>{volume}</Text>
+            <Text style={s.statLabel}>Volume (kg)</Text>
+          </GlassView>
+        </View>
+
+        {/* ── Session progress card ───────────────────────── */}
+        <GlassView radius={16} style={s.progressCard}>
+          <View style={s.progressHeader}>
+            <Text style={s.progressSetsLabel}>{doneSets} / {totalSets} sets</Text>
+            <Text style={s.progressPct}>{Math.round(pct * 100)}%</Text>
+          </View>
           <View style={s.progressTrack}>
             <LinearGradient
               colors={GRAD.progress}
@@ -74,8 +120,26 @@ export function ActiveSessionScreen({ onFinish }: Props) {
               style={[s.progressFill, { width: `${Math.round(pct * 100)}%` as any }]}
             />
           </View>
-          <Text style={s.progressLabel}>{doneSets}/{totalSets} sets</Text>
-        </View>
+
+          <View style={s.divider} />
+
+          {activeSession.exercises.map(ex => {
+            const exDone = ex.sets.filter(st => st.isCompleted).length;
+            return (
+              <View key={ex.id} style={s.exRow}>
+                <Text style={s.exName} numberOfLines={1}>{ex.exerciseName}</Text>
+                <View style={s.dotRow}>
+                  {ex.sets.map(st => (
+                    <View key={st.id} style={[s.dot, st.isCompleted && s.dotDone]} />
+                  ))}
+                </View>
+                <Text style={[s.exCount, exDone === ex.sets.length && s.exCountDone]}>
+                  {exDone}/{ex.sets.length}
+                </Text>
+              </View>
+            );
+          })}
+        </GlassView>
 
         {/* ── Exercise list ──────────────────────────────── */}
         <ScrollView
@@ -89,6 +153,20 @@ export function ActiveSessionScreen({ onFinish }: Props) {
               key={ex.id}
               exercise={ex}
               defaultExpanded={idx === 0}
+              onSetComplete={(name, num, reps, weight, unit) => {
+                const curIdx = activeSession.exercises.findIndex(e => e.exerciseName === name);
+                const curEx  = activeSession.exercises[curIdx];
+                const isLast = curEx ? num >= curEx.sets.length : false;
+                const nextEx = isLast ? activeSession.exercises[curIdx + 1] : null;
+                setRestCtx({
+                  exerciseName:     name,
+                  setNumber:        num,
+                  actualReps:       reps,
+                  actualWeight:     weight,
+                  weightUnit:       unit,
+                  nextExerciseName: nextEx?.exerciseName ?? null,
+                });
+              }}
             />
           ))}
 
@@ -131,26 +209,32 @@ const s = StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
 
-  header:        {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
-  },
-  headerLeft:    { flex: 1, marginRight: 12 },
-  headerSup:     { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle:   { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  headerRight:   { alignItems: 'flex-end' },
+  header:        { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
+  headerSup:     { fontSize: 12, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 },
+  headerTitle:   { fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -0.9, lineHeight: 33 },
 
-  timerBadge:    { paddingHorizontal: 14, paddingVertical: 8 },
-  timerText:     { fontSize: 22, fontWeight: '900', color: COLORS.accent, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  statsRow:      { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 10 },
+  statChip:      { flex: 1, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
+  statValue:     { fontSize: 17, fontWeight: '800', color: COLORS.text, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+  statValueAccent: { fontSize: 17, fontWeight: '800', color: COLORS.accent, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+  statLabel:     { fontSize: 10, fontWeight: '600', color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.4 },
+  timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  glowDot:       { width: 7, height: 7, borderRadius: 99, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 4 },
 
-  progressWrap:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 10, marginBottom: 12 },
-  progressTrack: { flex: 1, height: 4, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
-  progressFill:  { height: '100%', borderRadius: 99 },
-  progressLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, minWidth: 56, textAlign: 'right' },
+  progressCard:      { marginHorizontal: 20, marginBottom: 12, padding: 14 },
+  progressHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  progressSetsLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
+  progressPct:       { fontSize: 12, fontWeight: '700', color: COLORS.accent, fontVariant: ['tabular-nums'] },
+  progressTrack:     { height: 3, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
+  progressFill:      { height: '100%', borderRadius: 99 },
+  divider:           { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: 12, marginBottom: 8 },
+  exRow:             { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 8 },
+  exName:            { flex: 1, fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  dotRow:            { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+  dot:               { width: 7, height: 7, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.15)' },
+  dotDone:           { backgroundColor: COLORS.accent },
+  exCount:           { fontSize: 11, fontWeight: '700', color: COLORS.textLabel, fontVariant: ['tabular-nums'], minWidth: 28, textAlign: 'right' },
+  exCountDone:       { color: COLORS.accent },
 
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 4 },

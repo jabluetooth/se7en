@@ -9,11 +9,12 @@ import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 
 interface Props {
-  exercise:        SessionExercise;
-  defaultExpanded?: boolean; // override initial open/closed state
+  exercise:         SessionExercise;
+  defaultExpanded?: boolean;
+  onSetComplete?:   (exerciseName: string, setNumber: number, actualReps: number, actualWeight: number | null, weightUnit: string) => void;
 }
 
-export function ExerciseCard({ exercise, defaultExpanded }: Props) {
+export function ExerciseCard({ exercise, defaultExpanded, onSetComplete }: Props) {
   const { completeSet } = useSessionStore();
   const [expanded, setExpanded] = useState(
     defaultExpanded !== undefined ? defaultExpanded : !exercise.isCompleted,
@@ -25,13 +26,13 @@ export function ExerciseCard({ exercise, defaultExpanded }: Props) {
   return (
     <GlassView
       radius={16}
-      style={[
-        s.card,
-        allDone && s.cardDone,
-        expanded && !allDone && s.cardExpanded,
-      ]}
+      style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
       glow={allDone}
-      borderColor={allDone ? 'rgba(123,94,250,0.40)' : expanded ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.08)'}
+      borderColor={
+        allDone    ? 'rgba(10,132,255,0.30)' :
+        expanded   ? 'rgba(255,255,255,0.18)' :
+                     'rgba(255,255,255,0.08)'
+      }
     >
       <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
         <ProgressRing value={done} max={total} size={44} strokeWidth={3} label={done + '/' + total} />
@@ -67,6 +68,7 @@ export function ExerciseCard({ exercise, defaultExpanded }: Props) {
               setIndex={idx}
               exercise={exercise}
               onComplete={(data) => completeSet(exercise.id, set.id, data)}
+              onSetComplete={onSetComplete}
             />
           ))}
         </View>

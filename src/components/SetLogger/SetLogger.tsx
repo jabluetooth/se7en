@@ -7,10 +7,11 @@ import { GRAD, COLORS } from '../../constants';
 import { SetLog, SessionExercise } from '../../types';
 
 interface Props {
-  set:        SetLog;
-  setIndex:   number;
-  exercise:   SessionExercise;
-  onComplete: (data: Partial<SetLog>) => void;
+  set:             SetLog;
+  setIndex:        number;
+  exercise:        SessionExercise;
+  onComplete:      (data: Partial<SetLog>) => void;
+  onSetComplete?:  (exerciseName: string, setNumber: number, actualReps: number, actualWeight: number | null, weightUnit: string) => void;
 }
 
 // ─── Inline rest timer ────────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ function InlineRestTimer({ onDismiss }: { onDismiss: () => void }) {
 
 // ─── SetLogger ────────────────────────────────────────────────────────────────
 
-export function SetLogger({ set, setIndex, exercise, onComplete }: Props) {
+export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }: Props) {
   const isFailure    = exercise.setType === 'toFailure';
   const isBodyweight = exercise.weightUnit === 'bodyweight';
 
@@ -118,13 +119,19 @@ export function SetLogger({ set, setIndex, exercise, onComplete }: Props) {
   const [showRest, setShowRest] = useState(false);
 
   const handleComplete = () => {
+    const actualRepsNum   = parseInt(reps, 10) || 0;
+    const actualWeightNum = isBodyweight ? null : parseFloat(weight) || 0;
     onComplete({
-      actualReps:          isFailure ? 0 : parseInt(reps, 10) || 0,
-      actualRepsToFailure: isFailure ? parseInt(reps, 10) || 0 : null,
-      actualWeight:        isBodyweight ? null : parseFloat(weight) || 0,
+      actualReps:          isFailure ? 0 : actualRepsNum,
+      actualRepsToFailure: isFailure ? actualRepsNum : null,
+      actualWeight:        actualWeightNum,
       notes: note,
     });
-    setShowRest(true); // auto-show rest timer on completion
+    if (onSetComplete) {
+      onSetComplete(exercise.exerciseName, set.setNumber, actualRepsNum, actualWeightNum, exercise.weightUnit);
+    } else {
+      setShowRest(true);
+    }
   };
 
   if (set.isCompleted) {

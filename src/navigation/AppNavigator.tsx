@@ -11,6 +11,7 @@ import { ActiveSessionScreen }      from '../screens/ActiveSession/ActiveSession
 import { RestTimerScreen }          from '../screens/RestTimer/RestTimerScreen';
 import { ExerciseBuilderScreen }    from '../screens/ExerciseBuilder/ExerciseBuilderScreen';
 import { useSessionStore }          from '../stores/sessionStore';
+import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
 import { SPACING }                  from '../constants';
 import { WorkoutSession }           from '../types';
@@ -23,7 +24,12 @@ export function AppNavigator() {
   const [finishedSession, setFinishedSession ] = useState<WorkoutSession | null>(null);
 
   const { activeSession }            = useSessionStore();
+  const { activePlan }               = usePlanStore();
   const { signOut, user }            = useAuthStore();
+
+  const nextDay = finishedSession && activePlan
+    ? activePlan.days.find(d => d.dayPosition === finishedSession.dayPosition + 1)
+    : undefined;
   const showActiveSession            = activeSession !== null;
 
   const handleSessionFinish = (session: WorkoutSession) => {
@@ -61,6 +67,7 @@ export function AppNavigator() {
           {finishedSession && (
             <PostWorkoutSummary
               session={finishedSession}
+              nextDay={nextDay}
               onDone={() => { setShowPostWorkout(false); setFinishedSession(null); setActiveTab('Home'); }}
             />
           )}
