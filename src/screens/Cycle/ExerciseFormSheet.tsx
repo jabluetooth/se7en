@@ -145,6 +145,8 @@ interface Props {
   onClose:   () => void;
 }
 
+const REST_PRESETS = [0, 45, 60, 90, 120, 180] as const;
+
 const SET_TYPES: SetType[] = [
   'standard', 'repRange', 'toFailure', 'superset', 'dropSet', 'pyramid', 'progressive',
 ];
@@ -155,7 +157,8 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
   const [sets,       setSets      ] = useState(4);
   const [repsMin,    setRepsMin   ] = useState(8);
   const [repsMax,    setRepsMax   ] = useState(12);
-  const [advanced,   setAdvanced  ] = useState(false);
+  const [restTimerSecs, setRestTimerSecs] = useState(90);
+  const [advanced,      setAdvanced     ] = useState(false);
 
   // Advanced fields
   const [setType,    setSetType   ] = useState<SetType>('repRange');
@@ -176,11 +179,13 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
       setWeightUnit(initial.weightUnit);
       setTags(initial.muscleTags ?? []);
       setNotes(initial.notes ?? '');
+      setRestTimerSecs(initial.restTimerSecs ?? 90);
       setAdvanced(false);
     } else {
       // Defaults + auto-suggest tags from day label
       setName(''); setSets(3); setRepsMin(8); setRepsMax(12);
       setSetType('repRange'); setWeight(''); setWeightUnit('kg'); setNotes('');
+      setRestTimerSecs(90);
       setAdvanced(false);
       const groups = getGroupsFromLabel(dayLabel);
       setTags(groups.length > 0 ? [...new Set(groups.flatMap(g => LIB_GROUP_TO_TAGS[g] ?? []))] : []);
@@ -219,6 +224,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
       perSetTargets: initial?.perSetTargets ?? null,
       notes:         notes.trim(),
       muscleTags:    tags,
+      restTimerSecs: restTimerSecs,
     });
   };
 
@@ -291,6 +297,33 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                 <Text style={f.fieldLabel}>Max Reps</Text>
                 <View style={f.stepperWrap}>
                   <Stepper value={repsMax} min={1} max={100} onChange={v => { setRepsMax(v); if (v < repsMin) setRepsMin(v); }} />
+                </View>
+              </View>
+
+              {/* ── Rest Timer ── */}
+              <View style={f.stackSection}>
+                <View style={f.restHeader}>
+                  <Text style={f.fieldLabel}>Rest Timer</Text>
+                  <Text style={f.restCurrent}>
+                    {restTimerSecs === 0 ? 'Off' : restTimerSecs < 60 ? `${restTimerSecs}s` : `${restTimerSecs / 60}min`}
+                  </Text>
+                </View>
+                <View style={f.restRow}>
+                  {REST_PRESETS.map(p => {
+                    const active = restTimerSecs === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setRestTimerSecs(p)}
+                        style={[f.restChip, active && f.restChipActive]}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[f.restChipTxt, active && f.restChipTxtActive]}>
+                          {p === 0 ? 'Off' : p < 60 ? `${p}s` : `${p / 60}min`}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -445,6 +478,15 @@ const f = StyleSheet.create({
   quickRow:    { flexDirection: 'row', gap: 0, marginTop: 20 },
   quickField:  { flex: 1 },
   quickDivider:{ width: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginHorizontal: 16, marginTop: 24 },
+
+  // Rest timer
+  restHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  restCurrent:    { fontSize: 13, fontWeight: '700', color: COLORS.accent },
+  restRow:        { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  restChip:       { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
+  restChipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.15)' },
+  restChipTxt:    { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
+  restChipTxtActive: { color: COLORS.accent },
 
   // Advanced toggle
   advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.09)' },

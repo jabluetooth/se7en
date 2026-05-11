@@ -8,7 +8,7 @@ import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 
-const PRESETS = [45, 60, 90, 120, 180, 300];
+const PRESETS = [45, 60, 90, 120, 180];
 
 interface Props {
   exerciseName?:     string;
@@ -17,6 +17,7 @@ interface Props {
   actualWeight?:     number | null;
   weightUnit?:       string;
   nextExerciseName?: string | null;
+  initialSecs?:      number;
   onClose: () => void;
 }
 
@@ -27,10 +28,11 @@ export function RestTimerScreen({
   actualWeight,
   weightUnit       = 'kg',
   nextExerciseName = null,
+  initialSecs      = 90,
   onClose,
 }: Props) {
-  const [total,   setTotal  ] = useState(90);
-  const [seconds, setSeconds] = useState(90);
+  const [total,   setTotal  ] = useState(initialSecs);
+  const [seconds, setSeconds] = useState(initialSecs);
   const [running, setRunning] = useState(true);
   const [done,    setDone   ] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

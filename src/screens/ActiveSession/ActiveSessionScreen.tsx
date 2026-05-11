@@ -26,6 +26,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
     actualWeight:     number | null;
     weightUnit:       string;
     nextExerciseName: string | null;
+    initialSecs:      number;
   } | null>(null);
 
   if (!activeSession) return null;
@@ -72,6 +73,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
             actualWeight={restCtx.actualWeight}
             weightUnit={restCtx.weightUnit}
             nextExerciseName={restCtx.nextExerciseName}
+            initialSecs={restCtx.initialSecs}
             onClose={() => setRestCtx(null)}
           />
         )}
@@ -156,10 +158,13 @@ export function ActiveSessionScreen({ onFinish }: Props) {
               defaultExpanded={idx === activeExIdx}
               isActive={idx === activeExIdx}
               onSetComplete={(name, num, reps, weight, unit) => {
-                const curIdx = activeSession.exercises.findIndex(e => e.exerciseName === name);
-                const curEx  = activeSession.exercises[curIdx];
-                const isLast = curEx ? num >= curEx.sets.length : false;
-                const nextEx = isLast ? activeSession.exercises[curIdx + 1] : null;
+                const curIdx  = activeSession.exercises.findIndex(e => e.exerciseName === name);
+                const curEx   = activeSession.exercises[curIdx];
+                const isLast  = curEx ? num >= curEx.sets.length : false;
+                const nextEx  = isLast ? activeSession.exercises[curIdx + 1] : null;
+                // Resolve per-exercise rest timer from plan (falls back to 90s app default)
+                const planEx  = activePlan?.days.flatMap(d => d.exercises).find(e => e.id === curEx?.exerciseId);
+                const initSecs = planEx?.restTimerSecs ?? 90;
                 setRestCtx({
                   exerciseName:     name,
                   setNumber:        num,
@@ -167,6 +172,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
                   actualWeight:     weight,
                   weightUnit:       unit,
                   nextExerciseName: nextEx?.exerciseName ?? null,
+                  initialSecs:      initSecs,
                 });
               }}
             />

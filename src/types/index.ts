@@ -113,7 +113,8 @@ export interface Exercise {
   perSetTargets: PerSetTarget[] | null;
   notes: string;
   createdAt: string;
-  muscleTags?: string[]; // body-part labels e.g. ['Chest','Triceps']
+  muscleTags?:    string[]; // body-part labels e.g. ['Chest','Triceps']
+  restTimerSecs?: number;  // undefined = app default (90s), 0 = disabled
 }
 
 export interface WorkoutDay {
