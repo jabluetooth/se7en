@@ -115,29 +115,63 @@ export const SPLIT_TYPES  = ['PPL', 'Arnold', 'Upper/Lower', 'Bro Split', 'Full 
 
 // ─── Muscle-group tags ────────────────────────────────────────
 export const MUSCLE_TAGS = [
-  'Chest', 'Back', 'Shoulders',
-  'Biceps', 'Triceps', 'Forearms',
-  'Core', 'Quads', 'Hamstrings',
-  'Glutes', 'Calves', 'Cardio', 'Full Body',
+  // General groups
+  'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Forearms',
+  'Core', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Cardio', 'Full Body',
+  // Chest specifics
+  'Upper Chest', 'Mid Chest', 'Lower Chest', 'Inner Chest',
+  // Back specifics
+  'Lats', 'Upper Back', 'Lower Back', 'Rhomboids',
+  // Shoulder specifics
+  'Front Delt', 'Side Delt', 'Rear Delt',
+  // Arm specifics
+  'Long Head', 'Short Head', 'Lateral Head', 'Medial Head', 'Brachialis',
+  // Core specifics
+  'Abs', 'Obliques', 'Hip Flexors',
 ] as const;
 
 export type MuscleTag = typeof MUSCLE_TAGS[number];
 
 // Foreground color for each tag (badge text + border tint)
 export const MUSCLE_TAG_COLOR: Record<string, string> = {
-  'Chest':      '#FF6B6B',
-  'Back':       '#4ECDC4',
-  'Shoulders':  '#FFD93D',
-  'Biceps':     '#6BCB77',
-  'Triceps':    '#409CFF',
-  'Forearms':   '#C084FC',
-  'Core':       '#FF9F43',
-  'Quads':      '#48CAE4',
-  'Hamstrings': '#2EC4B6',
-  'Glutes':     '#F472B6',
-  'Calves':     '#94A3B8',
-  'Cardio':     '#FB7185',
-  'Full Body':  '#A78BFA',
+  // General
+  'Chest':       '#FF6B6B',
+  'Back':        '#4ECDC4',
+  'Shoulders':   '#FFD93D',
+  'Biceps':      '#6BCB77',
+  'Triceps':     '#409CFF',
+  'Forearms':    '#C084FC',
+  'Core':        '#FF9F43',
+  'Quads':       '#48CAE4',
+  'Hamstrings':  '#2EC4B6',
+  'Glutes':      '#F472B6',
+  'Calves':      '#94A3B8',
+  'Cardio':      '#FB7185',
+  'Full Body':   '#A78BFA',
+  // Chest specifics (red family)
+  'Upper Chest': '#FF8E8E',
+  'Mid Chest':   '#FF5C5C',
+  'Lower Chest': '#E03C3C',
+  'Inner Chest': '#FFB3B3',
+  // Back specifics (teal family)
+  'Lats':        '#4ECDC4',
+  'Upper Back':  '#38BDB5',
+  'Lower Back':  '#26A69A',
+  'Rhomboids':   '#6DDDD6',
+  // Shoulder specifics (yellow family)
+  'Front Delt':  '#FFB347',
+  'Side Delt':   '#FFD93D',
+  'Rear Delt':   '#FFA000',
+  // Arm specifics
+  'Long Head':   '#9B72F5',
+  'Short Head':  '#6BCB77',
+  'Lateral Head':'#409CFF',
+  'Medial Head': '#1E88E5',
+  'Brachialis':  '#7CB9A8',
+  // Core specifics (orange family)
+  'Abs':         '#FF9F43',
+  'Obliques':    '#FF7043',
+  'Hip Flexors': '#FFCC02',
 };
 
 export const SPACING = {

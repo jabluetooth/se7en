@@ -31,6 +31,7 @@ export interface ExerciseLibraryItem {
   id: string;
   name: string;
   muscleGroup: string;
+  muscleTags?: string[];
   equipment: EquipmentType | 'any';
   defaultSets: number;
   defaultRepsMin: number;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Switch, Animated, PanResponder,
@@ -38,60 +38,87 @@ function DragList({ exercises, onReorder }: DragListProps) {
   const dropToRef       = useRef<number | null>(null);
   const floatY          = useRef(new Animated.Value(0)).current;
 
+  // Always-current reference to exercises — prevents stale closures in gesture handlers
+  const exercisesRef = useRef(exercises);
+  exercisesRef.current = exercises;
+
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropTo,   setDropTo  ] = useState<number | null>(null);
   const snapshotRef = useRef<Exercise[]>(exercises);
 
-  function makeHandlers(idx: number) {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+  // Measure container on layout so the offset is always fresh when a drag starts
+  const onContainerLayout = () => {
+    containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+  };
 
-      onPanResponderGrant: () => {
-        containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
-        snapshotRef.current = exercises;
-        dragFromRef.current = idx;
-        dropToRef.current   = idx;
-        floatY.setValue(idx * ITEM_H);
-        setDragFrom(idx);
-        setDropTo(idx);
-      },
+  // Cache one PanResponder per exercise ID — never recreated on re-render
+  const panCache = useRef<Record<string, ReturnType<typeof PanResponder.create>>>({});
 
-      onPanResponderMove: (evt) => {
-        const relY = evt.nativeEvent.pageY - containerTopRef.current;
-        floatY.setValue(relY - ITEM_H / 2);
-        const to = Math.max(0, Math.min(exercises.length - 1, Math.round(relY / ITEM_H)));
-        dropToRef.current = to;
-        setDropTo(to);
-      },
+  // Remove stale entries when exercises change (e.g. after deletion)
+  useEffect(() => {
+    const ids = new Set(exercises.map(e => e.id));
+    Object.keys(panCache.current).forEach(id => {
+      if (!ids.has(id)) delete panCache.current[id];
+    });
+  }, [exercises]);
 
-      onPanResponderRelease: () => {
-        const from = dragFromRef.current ?? 0;
-        const to   = dropToRef.current   ?? from;
-        if (from !== to) {
-          LayoutAnimation.configureNext({ duration: 240, update: { type: LayoutAnimation.Types.easeInEaseOut } });
-          const ids = exercises.map(e => e.id);
-          const [item] = ids.splice(from, 1);
-          ids.splice(to, 0, item);
-          onReorder(ids);
-        }
-        dragFromRef.current = null;
-        dropToRef.current   = null;
-        setDragFrom(null);
-        setDropTo(null);
-      },
+  function getHandlers(exerciseId: string) {
+    if (!panCache.current[exerciseId]) {
+      panCache.current[exerciseId] = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
 
-      onPanResponderTerminate: () => {
-        dragFromRef.current = null;
-        dropToRef.current   = null;
-        setDragFrom(null);
-        setDropTo(null);
-      },
-    }).panHandlers;
+        onPanResponderGrant: () => {
+          // Re-measure in case scroll position changed since last layout
+          containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+          const exs = exercisesRef.current;
+          const idx = exs.findIndex(e => e.id === exerciseId);
+          snapshotRef.current = exs;
+          dragFromRef.current = idx;
+          dropToRef.current   = idx;
+          floatY.setValue(idx * ITEM_H);
+          setDragFrom(idx);
+          setDropTo(idx);
+        },
+
+        onPanResponderMove: (evt) => {
+          const relY = evt.nativeEvent.pageY - containerTopRef.current;
+          floatY.setValue(relY - ITEM_H / 2);
+          const len = exercisesRef.current.length;
+          const to  = Math.max(0, Math.min(len - 1, Math.round(relY / ITEM_H)));
+          dropToRef.current = to;
+          setDropTo(to);
+        },
+
+        onPanResponderRelease: () => {
+          const from = dragFromRef.current ?? 0;
+          const to   = dropToRef.current   ?? from;
+          if (from !== to) {
+            LayoutAnimation.configureNext({ duration: 240, update: { type: LayoutAnimation.Types.easeInEaseOut } });
+            const ids = exercisesRef.current.map(e => e.id);
+            const [item] = ids.splice(from, 1);
+            ids.splice(to, 0, item);
+            onReorder(ids);
+          }
+          dragFromRef.current = null;
+          dropToRef.current   = null;
+          setDragFrom(null);
+          setDropTo(null);
+        },
+
+        onPanResponderTerminate: () => {
+          dragFromRef.current = null;
+          dropToRef.current   = null;
+          setDragFrom(null);
+          setDropTo(null);
+        },
+      });
+    }
+    return panCache.current[exerciseId].panHandlers;
   }
 
   return (
-    <View ref={containerRef}>
+    <View ref={containerRef} onLayout={onContainerLayout}>
       {exercises.map((ex, idx) => {
         const isActive  = dragFrom === idx;
         const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
@@ -103,17 +130,15 @@ function DragList({ exercises, onReorder }: DragListProps) {
             {showAbove && <View style={dl.line} />}
 
             <View style={[dl.row, isActive && { opacity: 0.15 }]}>
-              {/* Drag handle */}
-              <View {...makeHandlers(idx)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={dl.handle}>
+              {/* Drag handle — handlers stable across re-renders */}
+              <View {...getHandlers(ex.id)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={dl.handle}>
                 <Ionicons name="reorder-three-outline" size={22} color={COLORS.textMuted} />
               </View>
 
-              {/* Order badge */}
               <View style={dl.badge}>
                 <Text style={dl.badgeNum}>{idx + 1}</Text>
               </View>
 
-              {/* Name + tags */}
               <View style={dl.info}>
                 <Text style={dl.name} numberOfLines={1}>{ex.name}</Text>
                 {tags.length > 0 && (
@@ -127,7 +152,6 @@ function DragList({ exercises, onReorder }: DragListProps) {
                 )}
               </View>
 
-              {/* Set info */}
               <Text style={dl.setInfo}>
                 {ex.targetSets}×{ex.targetRepsMin ?? '–'}{ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin ? `–${ex.targetRepsMax}` : ''}
               </Text>
@@ -138,7 +162,7 @@ function DragList({ exercises, onReorder }: DragListProps) {
         );
       })}
 
-      {/* Floating dragged copy */}
+      {/* Floating ghost of dragged item */}
       {dragFrom !== null && (
         <Animated.View style={[dl.float, { transform: [{ translateY: floatY }] }]} pointerEvents="none">
           <View style={[dl.row, dl.rowLifted]}>

@@ -134,10 +134,14 @@ const sw = StyleSheet.create({
   clearTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });
 
+// ─── Exercise drag-sort ───────────────────────────────────────────────────────
+
+const EX_H = 56;
+
 // ─── Exercise row styles (shared by ExerciseDragSort) ────────────────────────
 
 const er = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   info:    { flex: 1, minWidth: 0 },
   name:    { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -147,56 +151,75 @@ const er = StyleSheet.create({
   iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 });
 
-// ─── Exercise drag-sort ───────────────────────────────────────────────────────
-
-const EX_H = 56;
-
 interface ExerciseDragProps {
-  exercises: Exercise[];
-  planId:    string;
-  dayId:     string;
-  onEdit:    (ex: Exercise) => void;
-  onDelete:  (ex: Exercise) => void;
+  exercises:              Exercise[];
+  planId:                 string;
+  dayId:                  string;
+  onEdit:                 (ex: Exercise) => void;
+  onDelete:               (ex: Exercise) => void;
+  onScrollEnabledChange?: (enabled: boolean) => void;
 }
 
-function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete }: ExerciseDragProps) {
+function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete, onScrollEnabledChange }: ExerciseDragProps) {
   const { reorderExercises } = usePlanStore();
   const containerRef    = useRef<View>(null);
   const containerTopRef = useRef(0);
   const dragFromRef     = useRef<number | null>(null);
   const dropToRef       = useRef<number | null>(null);
   const floatY          = useRef(new Animated.Value(0)).current;
-  const exRef           = useRef(exercises);
+
+  const exRef = useRef(exercises);
   exRef.current = exercises;
 
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropTo,   setDropTo  ] = useState<number | null>(null);
   const snapshotRef = useRef<Exercise[]>(exercises);
 
-  const panHandlersRef = useRef<any[]>([]);
-  if (panHandlersRef.current.length !== exercises.length) {
-    panHandlersRef.current = exercises.map((_, idx) =>
-      PanResponder.create({
+  const onContainerLayout = () => {
+    containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+  };
+
+  // One PanResponder per exercise ID — cached so handlers are never recreated mid-drag
+  const panCache = useRef<Record<string, ReturnType<typeof PanResponder.create>>>({});
+
+  useEffect(() => {
+    const ids = new Set(exercises.map(e => e.id));
+    Object.keys(panCache.current).forEach(id => {
+      if (!ids.has(id)) delete panCache.current[id];
+    });
+  }, [exercises]);
+
+  function getHandlers(exerciseId: string) {
+    if (!panCache.current[exerciseId]) {
+      panCache.current[exerciseId] = PanResponder.create({
+        // Claim the touch immediately — prevents ScrollView from stealing the gesture
         onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+        onMoveShouldSetPanResponder:  () => true,
 
         onPanResponderGrant: (evt) => {
-          // Synchronous derivation: handle icon is inline, row height = EX_H
-          // icon center ≈ idx * EX_H + EX_H / 2; locationY is within the icon
-          containerTopRef.current =
-            evt.nativeEvent.pageY - evt.nativeEvent.locationY - idx * EX_H;
-          snapshotRef.current = exRef.current;
-          dragFromRef.current = idx;
-          dropToRef.current   = idx;
-          floatY.setValue(idx * EX_H);
-          setDragFrom(idx);
-          setDropTo(idx);
+          onScrollEnabledChange?.(false);
+          const cur    = exRef.current;
+          const curIdx = cur.findIndex(e => e.id === exerciseId);
+          // Synchronous calibration: er.iconBtn is 34px centred in a EX_H=56px row.
+          // pageY − locationY = top of the icon button.
+          // Subtract the button's top margin within the row, then curIdx rows above.
+          const iconTop = evt.nativeEvent.pageY - evt.nativeEvent.locationY;
+          containerTopRef.current = iconTop - (EX_H - 34) / 2 - curIdx * EX_H;
+          // Also async-refresh for accuracy if layout changed (e.g. after scroll)
+          containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
+          snapshotRef.current = cur;
+          dragFromRef.current = curIdx;
+          dropToRef.current   = curIdx;
+          floatY.setValue(curIdx * EX_H);
+          setDragFrom(curIdx);
+          setDropTo(curIdx);
         },
 
         onPanResponderMove: (evt) => {
           const relY  = evt.nativeEvent.pageY - containerTopRef.current;
           floatY.setValue(relY - EX_H / 2);
-          const newTo = Math.max(0, Math.min(exRef.current.length - 1, Math.round(relY / EX_H)));
+          const len   = exRef.current.length;
+          const newTo = Math.max(0, Math.min(len - 1, Math.round(relY / EX_H)));
           if (newTo !== dropToRef.current) { dropToRef.current = newTo; setDropTo(newTo); }
         },
 
@@ -212,18 +235,21 @@ function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete }: Exerci
           }
           dragFromRef.current = null; dropToRef.current = null;
           setDragFrom(null); setDropTo(null);
+          onScrollEnabledChange?.(true);
         },
 
         onPanResponderTerminate: () => {
           dragFromRef.current = null; dropToRef.current = null;
           setDragFrom(null); setDropTo(null);
+          onScrollEnabledChange?.(true);
         },
-      }).panHandlers,
-    );
+      });
+    }
+    return panCache.current[exerciseId].panHandlers;
   }
 
   return (
-    <View ref={containerRef}>
+    <View ref={containerRef} onLayout={onContainerLayout}>
       {exercises.map((ex, idx) => {
         const isActive  = dragFrom === idx;
         const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
@@ -241,7 +267,7 @@ function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete }: Exerci
           <View key={ex.id}>
             {showAbove && <View style={ed.line} />}
             <View style={[er.row, isActive && { opacity: 0.5 }]}>
-              <View {...panHandlersRef.current[idx]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={er.iconBtn}>
+              <View {...getHandlers(ex.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={er.iconBtn}>
                 <Ionicons name="reorder-three-outline" size={18} color={COLORS.textMuted} />
               </View>
               <View style={er.info}>
@@ -303,12 +329,14 @@ function DayCard({
   status,
   onEdit,
   onClear,
+  onScrollEnabledChange,
 }: {
   day: WorkoutDay;
   planId: string;
   status: DayStatus;
   onEdit: () => void;
   onClear: () => void;
+  onScrollEnabledChange?: (enabled: boolean) => void;
 }) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
   const swipeRef   = useRef<Swipeable>(null);
@@ -375,7 +403,9 @@ function DayCard({
 
   return (
     <View style={dc.wrap}>
-      {/* Swipeable wraps the card + cabinet so both move together */}
+      {/* Swipeable covers only the card header + read-only list.
+          The editor cabinet lives OUTSIDE so RNGH never intercepts
+          the exercise PanResponder drag handles. */}
       <Swipeable
         ref={swipeRef}
         renderRightActions={(_p, dragX) => (
@@ -401,12 +431,10 @@ function DayCard({
               }
               glow={isCurrent}
             >
-              {/* Drag handle icon — touch target is the overlay rendered in DayListDragSort */}
               <View style={dc.dragHandle} pointerEvents="none">
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 
-              {/* Day number badge */}
               {isCurrent ? (
                 <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.numBadge}>
                   <Text style={dc.numActive}>{day.dayPosition}</Text>
@@ -452,7 +480,7 @@ function DayCard({
             </GlassView>
           </TouchableOpacity>
 
-          {/* ── Read-only list (tap) ── */}
+          {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
             <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,255,255,0.08)">
               {day.isRestDay ? (
@@ -482,72 +510,70 @@ function DayCard({
             </GlassView>
           )}
 
-          {/* ── Editor cabinet (Edit button) ── */}
-          {showEditor && (
-            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(10,132,255,0.20)">
-
-              {/* Rest day toggle */}
-              <View style={dc.restToggleRow}>
-                <Text style={dc.restToggleLbl}>Rest Day</Text>
-                <Switch
-                  value={day.isRestDay}
-                  onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
-                  trackColor={{ false: 'rgba(255,255,255,0.12)', true: COLORS.accent }}
-                  thumbColor="#fff"
-                  ios_backgroundColor="rgba(255,255,255,0.12)"
-                />
-              </View>
-
-              {day.isRestDay ? (
-                <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
-              ) : (
-                <>
-                  {/* Smart recommendations */}
-                  {recommended.length > 0 && (
-                    <View style={dc.recSection}>
-                      <Text style={dc.recLabel}>Suggested for {day.label}</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={dc.recRow}>
-                        {recommended.map(item => (
-                          <TouchableOpacity key={item.id} style={dc.recChip} onPress={() => quickAdd(item)} activeOpacity={0.75}>
-                            <Ionicons name="add" size={13} color={COLORS.accent} />
-                            <Text style={dc.recChipTxt} numberOfLines={1}>{item.name}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-
-                  {/* Exercise list with drag-to-reorder */}
-                  {exercises.length > 0 && (
-                    <View style={dc.exList}>
-                      <ExerciseDragSort
-                        exercises={exercises}
-                        planId={planId}
-                        dayId={day.id}
-                        onEdit={openEdit}
-                        onDelete={handleDelete}
-                      />
-                    </View>
-                  )}
-
-                  {exercises.length === 0 && recommended.length === 0 && (
-                    <Text style={dc.emptyTxt}>No exercises yet. Tap Add Exercise to get started.</Text>
-                  )}
-
-                  <TouchableOpacity style={dc.addBtn} onPress={openAdd} activeOpacity={0.8}>
-                    <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.addGrad}>
-                      <Ionicons name="add" size={16} color="#fff" />
-                      <Text style={dc.addTxt}>Add Exercise</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
-              )}
-            </GlassView>
-          )}
-
-          {(showList || showEditor) && <View style={dc.capBottom} />}
+          {showList && !showEditor && <View style={dc.capBottom} />}
         </View>
       </Swipeable>
+
+      {/* ── Editor cabinet — OUTSIDE Swipeable so RNGH doesn't block PanResponder ── */}
+      {showEditor && (
+        <GlassView radius={0} style={dc.cabinet} borderColor="rgba(10,132,255,0.20)">
+          <View style={dc.restToggleRow}>
+            <Text style={dc.restToggleLbl}>Rest Day</Text>
+            <Switch
+              value={day.isRestDay}
+              onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
+              trackColor={{ false: 'rgba(255,255,255,0.12)', true: COLORS.accent }}
+              thumbColor="#fff"
+              ios_backgroundColor="rgba(255,255,255,0.12)"
+            />
+          </View>
+
+          {day.isRestDay ? (
+            <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
+          ) : (
+            <>
+              {recommended.length > 0 && (
+                <View style={dc.recSection}>
+                  <Text style={dc.recLabel}>Suggested for {day.label}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={dc.recRow}>
+                    {recommended.map(item => (
+                      <TouchableOpacity key={item.id} style={dc.recChip} onPress={() => quickAdd(item)} activeOpacity={0.75}>
+                        <Ionicons name="add" size={13} color={COLORS.accent} />
+                        <Text style={dc.recChipTxt} numberOfLines={1}>{item.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {exercises.length > 0 && (
+                <View style={dc.exList}>
+                  <ExerciseDragSort
+                    exercises={exercises}
+                    planId={planId}
+                    dayId={day.id}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                    onScrollEnabledChange={onScrollEnabledChange}
+                  />
+                </View>
+              )}
+
+              {exercises.length === 0 && recommended.length === 0 && (
+                <Text style={dc.emptyTxt}>No exercises yet. Tap Add Exercise to get started.</Text>
+              )}
+
+              <TouchableOpacity style={dc.addBtn} onPress={openAdd} activeOpacity={0.8}>
+                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.addGrad}>
+                  <Ionicons name="add" size={16} color="#fff" />
+                  <Text style={dc.addTxt}>Add Exercise</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          )}
+        </GlassView>
+      )}
+      {showEditor && <View style={dc.capBottom} />}
 
       {/* Exercise form sheet */}
       <ExerciseFormSheet
@@ -741,6 +767,7 @@ function DayListDragSort({
               status={getStatus(day, currentPos, sessions)}
               onEdit={() => onEdit(day)}
               onClear={() => onClear(day)}
+              onScrollEnabledChange={onScrollEnabledChange}
             />
             {showBelow && <View style={dl.line} />}
             {/* Overlay covers only the card header (height:72). Cabinet exercises sit below
