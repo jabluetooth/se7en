@@ -36,7 +36,8 @@ export function ActiveSessionScreen({ onFinish }: Props) {
   const totalSets = activeSession.exercises.reduce((a, e) => a + e.sets.length, 0);
   const doneSets  = activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0);
   const pct       = totalSets > 0 ? doneSets / totalSets : 0;
-  const volume    = Math.round(sessionTotalVolume(activeSession.exercises));
+  const volume      = Math.round(sessionTotalVolume(activeSession.exercises));
+  const activeExIdx = activeSession.exercises.findIndex(ex => !ex.isCompleted);
 
   const handleFinish = async () => {
     const session = await finishSession();
@@ -152,7 +153,8 @@ export function ActiveSessionScreen({ onFinish }: Props) {
             <ExerciseCard
               key={ex.id}
               exercise={ex}
-              defaultExpanded={idx === 0}
+              defaultExpanded={idx === activeExIdx}
+              isActive={idx === activeExIdx}
               onSetComplete={(name, num, reps, weight, unit) => {
                 const curIdx = activeSession.exercises.findIndex(e => e.exerciseName === name);
                 const curEx  = activeSession.exercises[curIdx];

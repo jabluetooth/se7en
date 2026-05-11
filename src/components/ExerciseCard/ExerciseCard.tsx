@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GlassView } from '../common/GlassView';
 import { ProgressRing } from '../common/ProgressRing';
@@ -13,10 +13,11 @@ import { findExercise } from '../../data/exercises';
 interface Props {
   exercise:         SessionExercise;
   defaultExpanded?: boolean;
+  isActive?:        boolean;
   onSetComplete?:   (exerciseName: string, setNumber: number, actualReps: number, actualWeight: number | null, weightUnit: string) => void;
 }
 
-export function ExerciseCard({ exercise, defaultExpanded, onSetComplete }: Props) {
+export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplete }: Props) {
   const { completeSet } = useSessionStore();
   const { activePlan }  = usePlanStore();
   const [expanded, setExpanded] = useState(
@@ -25,6 +26,11 @@ export function ExerciseCard({ exercise, defaultExpanded, onSetComplete }: Props
   const done  = exercise.sets.filter(s => s.isCompleted).length;
   const total = exercise.sets.length;
   const allDone = done === total;
+
+  // Auto-expand when this exercise becomes the active one
+  useEffect(() => {
+    if (isActive && !allDone) setExpanded(true);
+  }, [isActive]);
 
   // Library tags take precedence (specific); fall back to plan exercise tags for custom exercises
   const libEx      = findExercise(exercise.exerciseId);
@@ -37,9 +43,10 @@ export function ExerciseCard({ exercise, defaultExpanded, onSetComplete }: Props
       style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
       glow={allDone}
       borderColor={
-        allDone    ? 'rgba(255,140,0,0.30)' :
-        expanded   ? 'rgba(255,240,220,0.18)' :
-                     'rgba(255,240,220,0.08)'
+        allDone  ? 'rgba(255,140,0,0.30)' :
+        isActive ? 'rgba(255,140,0,0.50)' :
+        expanded ? 'rgba(255,240,220,0.18)' :
+                   'rgba(255,240,220,0.08)'
       }
     >
       <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
