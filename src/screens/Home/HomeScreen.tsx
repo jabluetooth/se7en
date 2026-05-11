@@ -121,7 +121,7 @@ export function HomeScreen() {
           <View style={s.sectionGap} />
 
           {/* ── Heatmap ── */}
-          <ContributionHeatmap sessions={planSessions} />
+          <ContributionHeatmap sessions={planSessions} activePlan={activePlan} />
 
           {/* ── Bento stats ── */}
           <BentoGrid
