@@ -181,8 +181,8 @@ function DayDragSort({ days, onReorder }: DayDragProps) {
 
 const dd = StyleSheet.create({
   dayRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, height: DAY_H, paddingHorizontal: 14 },
-  dayRowLifted:{ backgroundColor: 'rgba(10,132,255,0.08)', borderRadius: 12 },
-  badge:       { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(10,132,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  dayRowLifted:{ backgroundColor: 'rgba(255,140,0,0.08)', borderRadius: 12 },
+  badge:       { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,140,0,0.18)', alignItems: 'center', justifyContent: 'center' },
   badgeRest:   { backgroundColor: 'rgba(100,210,255,0.12)' },
   badgeNum:    { fontSize: 12, fontWeight: '700', color: COLORS.accent },
   badgeNumRest:{ color: COLORS.rest },
@@ -416,7 +416,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
 }
 
 const f = StyleSheet.create({
-  handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+  handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 },
   cancel:       { fontSize: 16, color: COLORS.accent },
   title:        { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
@@ -430,8 +430,8 @@ const f = StyleSheet.create({
   textInput:    { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
 
   chipGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.07)' },
-  chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.15)' },
+  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.07)' },
+  chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.15)' },
   chipTxt:      { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   chipTxtActive:{ color: COLORS.accent, fontWeight: '700' },
 

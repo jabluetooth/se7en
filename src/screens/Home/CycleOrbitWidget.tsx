@@ -69,8 +69,8 @@ export function CycleOrbitWidget({ currentDay, sessions }: Props) {
             <Path
               key={i}
               d={d}
-              fill="rgba(255,255,255,0.06)"
-              stroke="rgba(255,255,255,0.14)"
+              fill="rgba(255,240,220,0.06)"
+              stroke="rgba(255,240,220,0.14)"
               strokeWidth={0.6}
             />
           );

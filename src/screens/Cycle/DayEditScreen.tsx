@@ -182,9 +182,9 @@ function DragList({ exercises, onReorder }: DragListProps) {
 
 const dl = StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', height: ITEM_H, gap: 10, paddingRight: 4 },
-  rowLifted:{ backgroundColor: 'rgba(10,132,255,0.09)', borderRadius: 12 },
+  rowLifted:{ backgroundColor: 'rgba(255,140,0,0.09)', borderRadius: 12 },
   handle:   { paddingHorizontal: 2 },
-  badge:    { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  badge:    { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,240,220,0.08)', alignItems: 'center', justifyContent: 'center' },
   badgeNum: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary },
   info:     { flex: 1, minWidth: 0 },
   name:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
@@ -265,9 +265,9 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
             <Switch
               value={isRest}
               onValueChange={toggleRest}
-              trackColor={{ false: 'rgba(255,255,255,0.12)', true: COLORS.accent }}
+              trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
               thumbColor="#fff"
-              ios_backgroundColor="rgba(255,255,255,0.12)"
+              ios_backgroundColor="rgba(255,240,220,0.12)"
             />
           </GlassView>
 

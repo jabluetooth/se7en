@@ -74,7 +74,7 @@ function Stepper({
 
 const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 0 },
-  btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
   val: { minWidth: 56, alignItems: 'center', paddingHorizontal: 12 },
   num: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
 });
@@ -126,7 +126,7 @@ function Suggestions({
 const sg = StyleSheet.create({
   wrap:     { marginTop: 10, marginBottom: 6 },
   label:    { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)', marginBottom: 6 },
+  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)', backgroundColor: 'rgba(255,240,220,0.04)', marginBottom: 6 },
   left:     { flex: 1 },
   name:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
   meta:     { fontSize: 11, color: COLORS.textMuted },
@@ -248,7 +248,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               value={name}
               onChangeText={setName}
               placeholder="Exercise name…"
-              placeholderTextColor="rgba(255,255,255,0.30)"
+              placeholderTextColor="rgba(255,240,220,0.30)"
               returnKeyType="done"
               autoCorrect={false}
               autoFocus={!isEdit}
@@ -338,7 +338,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                           value={weight}
                           onChangeText={setWeight}
                           placeholder="0"
-                          placeholderTextColor="rgba(255,255,255,0.25)"
+                          placeholderTextColor="rgba(255,240,220,0.25)"
                           keyboardType="decimal-pad"
                           selectTextOnFocus
                         />
@@ -395,7 +395,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                       value={notes}
                       onChangeText={setNotes}
                       placeholder="Cues, reminders…"
-                      placeholderTextColor="rgba(255,255,255,0.25)"
+                      placeholderTextColor="rgba(255,240,220,0.25)"
                       multiline
                     />
                   </GlassView>
@@ -426,7 +426,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const f = StyleSheet.create({
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
   header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
   headerSide:  { width: 60 },
   headerRight: { alignItems: 'flex-end' },
@@ -444,18 +444,18 @@ const f = StyleSheet.create({
   // Side-by-side row (used in advanced weight/unit section)
   quickRow:    { flexDirection: 'row', gap: 0, marginTop: 20 },
   quickField:  { flex: 1 },
-  quickDivider:{ width: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginHorizontal: 16, marginTop: 24 },
+  quickDivider:{ width: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginHorizontal: 16, marginTop: 24 },
 
   // Advanced toggle
-  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)' },
+  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.09)' },
   advancedLabel:  { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
   advancedRight:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tagDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
 
   // Chips
   chipGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.06)' },
-  chipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.14)' },
+  chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
+  chipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.14)' },
   chipTxt:    { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   chipTxtActive: { color: COLORS.accent },
 
@@ -465,8 +465,8 @@ const f = StyleSheet.create({
 
   // Unit
   unitCol:    { gap: 6 },
-  unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' },
-  unitBtnActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(10,132,255,0.12)' },
+  unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', alignItems: 'center' },
+  unitBtnActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.12)' },
   unitTxt:    { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
   unitTxtActive: { color: COLORS.accent },
 

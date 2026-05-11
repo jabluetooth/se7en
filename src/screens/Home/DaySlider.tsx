@@ -110,7 +110,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   itemPast:   { backgroundColor: 'rgba(123,94,250,0.10)', borderColor: 'rgba(123,94,250,0.22)' },
-  itemFuture: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.08)' },
+  itemFuture: { backgroundColor: 'rgba(255,240,220,0.04)', borderColor: 'rgba(255,240,220,0.08)' },
 
   doneDot:    {
     position: 'absolute', top: 6, right: 7,

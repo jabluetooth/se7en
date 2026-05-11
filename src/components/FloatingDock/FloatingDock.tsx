@@ -100,7 +100,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: 'rgba(255,240,220,0.22)',
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
@@ -108,7 +108,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   tint: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,240,220,0.10)',
     borderRadius: BORDER_RADIUS.full,
   },
   androidDock: {

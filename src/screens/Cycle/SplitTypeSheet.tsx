@@ -25,7 +25,7 @@ interface SplitDef {
   days:        DaySlot[];
 }
 
-const BLUE   = '#0A84FF';
+const BLUE   = '#FF8C00';
 const GREEN  = '#30D158';
 const ORANGE = '#FF9F0A';
 const RED    = '#FF6B6B';
@@ -139,7 +139,7 @@ function SplitCard({
       <GlassView
         radius={18}
         style={[c.card, active && c.cardActive]}
-        borderColor={active ? `${BLUE}60` : 'rgba(255,255,255,0.10)'}
+        borderColor={active ? `${BLUE}60` : 'rgba(255,240,220,0.10)'}
       >
         {/* Header row */}
         <View style={c.cardHeader}>
@@ -234,7 +234,7 @@ export function SplitTypeSheet({ visible, current, onSelect, onClose }: Props) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const c = StyleSheet.create({
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 4 },
   cancel:      { fontSize: 16, color: COLORS.accent, width: 60 },
   title:       { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },

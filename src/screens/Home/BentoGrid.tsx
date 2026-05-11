@@ -160,7 +160,7 @@ const s = StyleSheet.create({
   numGood:      { color: COLORS.gradientEnd },
   numBad:       { color: COLORS.danger },
 
-  noteText:     { fontSize: 13, color: 'rgba(255,255,255,0.78)', fontStyle: 'italic', lineHeight: 19 },
+  noteText:     { fontSize: 13, color: 'rgba(255,240,220,0.78)', fontStyle: 'italic', lineHeight: 19 },
 
   // PR badge (LinearGradient as a standalone block — no absoluteFill)
   prBadge:      { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

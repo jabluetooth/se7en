@@ -49,7 +49,7 @@ function CompletionRing({ pct }: { pct: number }) {
   const off  = circ * (1 - pct);
   return (
     <Svg width={124} height={124} viewBox="0 0 124 124">
-      <Circle cx={62} cy={62} r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} />
+      <Circle cx={62} cy={62} r={R} fill="none" stroke="rgba(255,240,220,0.08)" strokeWidth={sw} />
       <Circle cx={62} cy={62} r={R} fill="none" stroke={COLORS.accent}
         strokeWidth={sw} strokeDasharray={circ} strokeDashoffset={off}
         strokeLinecap="round" rotation={-90} origin="62,62" />
@@ -392,7 +392,7 @@ const hd = StyleSheet.create({
   backBtn:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   title:    { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: -0.3, flex: 1, textAlign: 'center' },
   dots:     { flexDirection: 'row', gap: 5, width: 36, justifyContent: 'flex-end' },
-  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.22)' },
+  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.22)' },
   dotActive:{ backgroundColor: COLORS.accent, width: 16, borderRadius: 3 },
 });
 
@@ -402,7 +402,7 @@ const pg = StyleSheet.create({
 
   // Summary — top
   top:           { gap: 4 },
-  chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(10,132,255,0.16)', borderWidth: 1, borderColor: 'rgba(10,132,255,0.32)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8 },
+  chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,140,0,0.16)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.32)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8 },
   chipText:      { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.5, textTransform: 'uppercase' },
   chipDate:      { fontSize: 11, color: COLORS.textMuted },
   name:          { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, lineHeight: 34 },
@@ -419,7 +419,7 @@ const pg = StyleSheet.create({
   // Stats strip
   statsStrip:    { flexDirection: 'row' },
   statCell:      { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  statCellBorder:{ borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.08)' },
+  statCellBorder:{ borderRightWidth: 1, borderRightColor: 'rgba(255,240,220,0.08)' },
   statVal:       { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
   statLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 3 },
   statUnit:      { fontSize: 10, color: COLORS.textLabel, marginTop: 1 },
@@ -442,11 +442,11 @@ const ex2 = StyleSheet.create({
   meta:     { fontSize: 11, color: COLORS.textMuted },
   chevron:  {},
   chevronOpen: {},
-  table:    { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
+  table:    { borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
   tableHead:{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8 },
   th:       { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
   thRight:  { textAlign: 'right' },
-  tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
   td:       { fontSize: 13, fontWeight: '600', color: '#fff', flex: 1 },
   tdRight:  { textAlign: 'right' },
 });
@@ -461,10 +461,10 @@ const nu = StyleSheet.create({
   daySub:       { fontSize: 12, color: COLORS.textMuted, marginTop: 3 },
   listCard:     { overflow: 'hidden' },
   exRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  exRowBorder:  { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  exRowBorder:  { borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.07)' },
   exName:       { flex: 1, fontSize: 14, fontWeight: '600', color: '#fff' },
   exTarget:     { fontSize: 11, color: COLORS.textMuted },
   exWeight:     { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, minWidth: 52, textAlign: 'right' },
-  showMore:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingVertical: 11 },
+  showMore:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingVertical: 11 },
   showMoreText: { fontSize: 13, fontWeight: '600', color: COLORS.accent },
 });

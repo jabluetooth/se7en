@@ -257,7 +257,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.30)"
+          placeholderTextColor="rgba(255,240,220,0.30)"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -291,9 +291,9 @@ const s = StyleSheet.create({
   logoWordmark: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 6 },
   logoTagline:  { fontSize: 14, fontWeight: '500', color: COLORS.textSecondary, lineHeight: 20 },
 
-  tabs:         { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: 3, marginBottom: 20 },
+  tabs:         { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.07)', borderRadius: 12, padding: 3, marginBottom: 20 },
   tab:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tabActive:    { backgroundColor: 'rgba(255,255,255,0.12)' },
+  tabActive:    { backgroundColor: 'rgba(255,240,220,0.12)' },
   tabTxt:       { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
   tabTxtActive: { color: '#fff', fontWeight: '700' },
 

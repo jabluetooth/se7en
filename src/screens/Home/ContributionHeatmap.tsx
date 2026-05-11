@@ -24,12 +24,12 @@ function getMondayOf(d: Date): Date {
 }
 
 function cellColor(volume: number, maxVol: number): string {
-  if (volume === 0) return 'rgba(255,255,255,0.05)';
+  if (volume === 0) return 'rgba(255,240,220,0.05)';
   const t = Math.min(volume / maxVol, 1);
-  if (t < 0.25) return 'rgba(10,132,255,0.28)';
-  if (t < 0.5)  return 'rgba(10,132,255,0.52)';
-  if (t < 0.75) return 'rgba(10,132,255,0.72)';
-  return 'rgba(10,132,255,0.95)';
+  if (t < 0.25) return 'rgba(255,140,0,0.28)';
+  if (t < 0.5)  return 'rgba(255,140,0,0.52)';
+  if (t < 0.75) return 'rgba(255,140,0,0.72)';
+  return 'rgba(255,140,0,0.95)';
 }
 
 export function ContributionHeatmap({ sessions }: Props) {

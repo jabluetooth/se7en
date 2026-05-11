@@ -106,14 +106,14 @@ export function Button({
   const bg = variant === 'secondary'
     ? COLORS.glass06
     : variant === 'accent_ghost'
-    ? 'rgba(10,132,255,0.10)'
+    ? 'rgba(255,140,0,0.10)'
     : 'transparent';
 
   const bc = variant === 'secondary'
     ? COLORS.glassBorder
     : variant === 'accent_ghost'
-    ? 'rgba(10,132,255,0.28)'
-    : 'rgba(255,255,255,0.14)';
+    ? 'rgba(255,140,0,0.28)'
+    : 'rgba(255,240,220,0.14)';
 
   return (
     <TouchableOpacity

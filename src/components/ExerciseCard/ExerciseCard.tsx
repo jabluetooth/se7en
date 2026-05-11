@@ -37,9 +37,9 @@ export function ExerciseCard({ exercise, defaultExpanded, onSetComplete }: Props
       style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
       glow={allDone}
       borderColor={
-        allDone    ? 'rgba(10,132,255,0.30)' :
-        expanded   ? 'rgba(255,255,255,0.18)' :
-                     'rgba(255,255,255,0.08)'
+        allDone    ? 'rgba(255,140,0,0.30)' :
+        expanded   ? 'rgba(255,240,220,0.18)' :
+                     'rgba(255,240,220,0.08)'
       }
     >
       <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
@@ -111,5 +111,5 @@ const s = StyleSheet.create({
   chevron:      { transform: [{ rotate: '90deg' }] },
   chevronUp:    { transform: [{ rotate: '270deg' }] },
   chevronText:  { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
-  sets:         { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  sets:         { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
 });

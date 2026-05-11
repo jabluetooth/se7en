@@ -1,68 +1,62 @@
-// ─── Se7en · Apple-style Design System ───────────────────────
-// Accent: iOS System Blue · Background: near-black with subtle cool tint
+// ─── Se7en · Obsidian + Ember Design System ──────────────
+// Accent: Amber-Orange · Background: warm near-black obsidian
 
 export const GRAD = {
-  // Primary CTA — iOS blue, short two-stop gradient (not a rainbow)
-  accent:      ['#0A84FF', '#409CFF'] as const,
-  // Soft fill for backgrounds / subtle highlights
-  accentSoft:  ['rgba(10,132,255,0.16)', 'rgba(64,156,255,0.08)'] as const,
-  // Danger
+  accent:      ['#FF8C00', '#FFA940'] as const,
+  accentSoft:  ['rgba(255,140,0,0.16)', 'rgba(255,169,64,0.08)'] as const,
   danger:      ['#FF453A', '#FF3B30'] as const,
-  // Warning
   warn:        ['#FFD60A', '#FF9F0A'] as const,
-  // App background — near-black with barely-perceptible cool-blue depth
-  bg:          ['#08090F', '#070A13', '#060B15', '#070A13'] as const,
+  // Background — near-black with warm obsidian undertone
+  bg:          ['#0C0A08', '#0F0C09', '#0D0B08', '#0F0C09'] as const,
   bgLocations: [0, 0.30, 0.65, 1] as const,
   bgStart:     { x: 0.3, y: 0 } as const,
   bgEnd:       { x: 0.7, y: 1 } as const,
-  // Progress bars / rings — stays in the blue family
-  progress:    ['#0A84FF', '#409CFF'] as const,
+  progress:    ['#FF8C00', '#FFA940'] as const,
 };
 
 export const COLORS = {
   // ── Backgrounds ───────────────────────────────────────────
-  background:           '#000000',       // true black (OLED)
-  surface:              '#1C1C1E',       // iOS secondary background (dark)
-  surfaceElevated:      '#2C2C2E',       // iOS tertiary background (dark)
-  border:               '#38383A',       // iOS separator (dark)
-  borderFaint:          '#2C2C2E',
+  background:           '#0C0A08',
+  surface:              '#1A1510',
+  surfaceElevated:      '#221C15',
+  border:               '#3A3028',
+  borderFaint:          '#2A2218',
 
-  // ── Text — tuned for #020617 dark background ─────────────
-  text:                 '#FFFFFF',
-  textSecondary:        '#DADADF',       // bright secondary — readable on very dark bg
-  textMuted:            '#AEAEB2',       // iOS secondary label — visible at small sizes
-  textLabel:            '#8E8E93',       // iOS tertiary label — captions/version text
+  // ── Text — warm off-white family ─────────────────────────
+  text:                 '#FFF8F0',
+  textSecondary:        '#E8DDD0',
+  textMuted:            '#B8A898',
+  textLabel:            '#8A7A6A',
 
-  // ── Accent — iOS System Blue (dark mode) ──────────────────
-  accent:               '#0A84FF',
-  accentHigh:           '#409CFF',       // lighter blue for gradient end
-  accentDim:            '#0A3F7A',       // dark blue tint for backgrounds
+  // ── Accent — Ember (amber-orange) ─────────────────────────
+  accent:               '#FF8C00',
+  accentHigh:           '#FFA940',
+  accentDim:            '#3D1A00',
 
   // ── Semantic ──────────────────────────────────────────────
-  danger:               '#FF453A',       // iOS Red (dark)
+  danger:               '#FF453A',
   dangerDim:            '#3A0F0D',
-  warning:              '#FFD60A',       // iOS Yellow (dark)
+  warning:              '#FFD60A',
   warningDim:           '#3A2E00',
-  rest:                 '#64D2FF',       // iOS Cyan (dark) — rest timer
+  rest:                 '#64D2FF',
 
   // ── Gradient aliases ──────────────────────────────────────
-  gradientStart:        '#0A84FF',
-  gradientEnd:          '#409CFF',
+  gradientStart:        '#FF8C00',
+  gradientEnd:          '#FFA940',
 
   // ── Misc ──────────────────────────────────────────────────
-  white:                '#FFFFFF',
-  black:                '#000000',
+  white:                '#FFF8F0',
+  black:                '#0C0A08',
 
-  // ── Glass surfaces — tuned for #020617 dark background ───
-  glass06:              'rgba(255,255,255,0.09)',
-  glass09:              'rgba(255,255,255,0.13)',
-  glassBorder:          'rgba(255,255,255,0.18)',
-  glassBorderHi:        'rgba(255,255,255,0.28)',
-  // Subtle blue glow (replaces purple glow)
-  accentGlow:           'rgba(10,132,255,0.30)',
+  // ── Glass surfaces — warm-tinted white on obsidian ────────
+  glass06:              'rgba(255,240,220,0.08)',
+  glass09:              'rgba(255,240,220,0.12)',
+  glassBorder:          'rgba(255,240,220,0.16)',
+  glassBorderHi:        'rgba(255,240,220,0.26)',
+  accentGlow:           'rgba(255,140,0,0.28)',
 
-  // ── Light theme (unchanged structurally) ──────────────────
-  lightBackground:      '#F2F2F7',       // iOS system background
+  // ── Light theme (unchanged) ───────────────────────────────
+  lightBackground:      '#F2F2F7',
   lightSurface:         '#FFFFFF',
   lightSurfaceElevated: '#F2F2F7',
   lightBorder:          '#C6C6C8',
@@ -139,7 +133,7 @@ export const MUSCLE_TAG_COLOR: Record<string, string> = {
   'Back':        '#4ECDC4',
   'Shoulders':   '#FFD93D',
   'Biceps':      '#6BCB77',
-  'Triceps':     '#409CFF',
+  'Triceps':     '#60A5FA',  // sky blue — distinct from amber accent
   'Forearms':    '#C084FC',
   'Core':        '#FF9F43',
   'Quads':       '#48CAE4',
@@ -165,8 +159,8 @@ export const MUSCLE_TAG_COLOR: Record<string, string> = {
   // Arm specifics
   'Long Head':   '#9B72F5',
   'Short Head':  '#6BCB77',
-  'Lateral Head':'#409CFF',
-  'Medial Head': '#1E88E5',
+  'Lateral Head':'#60A5FA',  // sky blue
+  'Medial Head': '#3B82F6',  // standard blue
   'Brachialis':  '#7CB9A8',
   // Core specifics (orange family)
   'Abs':         '#FF9F43',
@@ -194,4 +188,4 @@ export const BORDER_RADIUS = {
 
 export const DOCK_HEIGHT              = 72;
 export const ANALYTICS_DEFAULT_DAYS  = 14;
-export const MAX_BACKUPS              = 7;
+export const MAX_BACKUPS             = 7;

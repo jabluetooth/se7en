@@ -28,7 +28,7 @@ export function ProgressRing({ value, max, size = 48, strokeWidth = 4, label }: 
             <Stop offset='100%' stopColor='#2ECAC4' />
           </LinearGradient>
         </Defs>
-        <Circle cx={size/2} cy={size/2} r={r} fill='none' stroke='rgba(255,255,255,0.08)' strokeWidth={strokeWidth} />
+        <Circle cx={size/2} cy={size/2} r={r} fill='none' stroke='rgba(255,240,220,0.08)' strokeWidth={strokeWidth} />
         <Circle
           cx={size/2} cy={size/2} r={r}
           fill='none' stroke={'url(#' + gradId + ')'} strokeWidth={strokeWidth}
@@ -40,7 +40,7 @@ export function ProgressRing({ value, max, size = 48, strokeWidth = 4, label }: 
       {label !== undefined && (
         <View style={StyleSheet.absoluteFill} pointerEvents='none'>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: done ? COLORS.accent : 'rgba(255,255,255,0.65)', letterSpacing: -0.3 }}>{label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: done ? COLORS.accent : 'rgba(255,240,220,0.65)', letterSpacing: -0.3 }}>{label}</Text>
           </View>
         </View>
       )}

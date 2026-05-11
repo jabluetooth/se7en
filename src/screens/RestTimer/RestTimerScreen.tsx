@@ -136,7 +136,7 @@ export function RestTimerScreen({
                     <Stop offset="100%" stopColor={urgent ? '#E83535' : '#2ECAC4'} />
                   </SvgGrad>
                 </Defs>
-                <Circle cx={130} cy={130} r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+                <Circle cx={130} cy={130} r={R} fill="none" stroke="rgba(255,240,220,0.08)" strokeWidth={stroke} />
                 <Circle cx={130} cy={130} r={R} fill="none"
                   stroke={urgent ? 'rgba(240,80,80,0.20)' : 'rgba(123,94,250,0.16)'}
                   strokeWidth={stroke + 10} strokeDasharray={circ} strokeDashoffset={off}
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   summaryVal:       { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
   summaryValAccent: { color: COLORS.accent },
   summarySub:       { fontSize: 11, color: COLORS.textMuted },
-  summaryLine:      { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.10)' },
+  summaryLine:      { width: 1, height: 40, backgroundColor: 'rgba(255,240,220,0.10)' },
 
   timerWrap:        { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingBottom: 8 },
   ringWrap:         { position: 'relative', width: 260, height: 260, alignItems: 'center', justifyContent: 'center' },
@@ -241,11 +241,11 @@ const s = StyleSheet.create({
   presetBtn:        { borderRadius: 999, overflow: 'hidden' },
   presetBtnActive:  {},
   presetGrad:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999 },
-  presetText:       { paddingHorizontal: 14, paddingVertical: 7, fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
+  presetText:       { paddingHorizontal: 14, paddingVertical: 7, fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, backgroundColor: 'rgba(255,240,220,0.06)', borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', overflow: 'hidden' },
   presetTextActive: { fontSize: 13, fontWeight: '700', color: '#000' },
 
   adjust:           { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  adjustBtn:        { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  adjustBtn:        { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', alignItems: 'center', justifyContent: 'center' },
   adjustText:       { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
   adjustLabel:      { fontSize: 12, color: COLORS.textMuted },
 

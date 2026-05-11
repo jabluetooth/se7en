@@ -18,12 +18,12 @@ export function GlassView({ children, style, opacity = 'low', radius = 16, borde
   const tintAlpha = opacity === 'high' ? 0.09 : opacity === 'mid' ? 0.06 : 0.04;
 
   // Match reference border: oklch(100% 0 0 / 0.10)
-  const bc = borderColor ?? 'rgba(255,255,255,0.10)';
+  const bc = borderColor ?? 'rgba(255,240,220,0.10)';
 
   const glowShadow = glow
     ? Platform.select({
         ios: {
-          shadowColor:   '#0A84FF',
+          shadowColor:   '#FF8C00',
           shadowOpacity: 0.35,
           shadowRadius:  18,
           shadowOffset:  { width: 0, height: 4 },
@@ -47,16 +47,16 @@ export function GlassView({ children, style, opacity = 'low', radius = 16, borde
       <View style={outerStyle}>
         <BlurView intensity={blurIntensity} tint="dark" style={StyleSheet.absoluteFill} />
         {/* Base tint — matches reference 0.06 white */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,255,255,${tintAlpha})` }]} />
-        {/* Inset top specular — matches reference inset 0 1px 0 rgba(255,255,255,0.14) */}
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,240,220,${tintAlpha})` }]} />
+        {/* Inset top specular — matches reference inset 0 1px 0 rgba(255,240,220,0.14) */}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,240,220,0.14)' }} />
         {children}
       </View>
     );
   }
 
   return (
-    <View style={[outerStyle, { backgroundColor: 'rgba(20,20,28,0.85)' }]}>
+    <View style={[outerStyle, { backgroundColor: 'rgba(28,20,14,0.88)' }]}>
       {children}
     </View>
   );

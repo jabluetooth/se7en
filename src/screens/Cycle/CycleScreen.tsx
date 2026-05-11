@@ -141,7 +141,7 @@ const EX_H = 56;
 // ─── Exercise row styles (shared by ExerciseDragSort) ────────────────────────
 
 const er = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
   info:    { flex: 1, minWidth: 0 },
   name:    { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -311,7 +311,7 @@ function ExerciseDragSort({ exercises, planId, dayId, onEdit, onDelete, onScroll
 
 const ed = StyleSheet.create({
   line:      { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 1 },
-  rowLifted: { backgroundColor: 'rgba(10,132,255,0.08)', borderRadius: 10 },
+  rowLifted: { backgroundColor: 'rgba(255,140,0,0.08)', borderRadius: 10 },
   float: {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
     ...Platform.select({
@@ -425,9 +425,9 @@ function DayCard({
               radius={(showList || showEditor) ? 0 : 16}
               style={[dc.card, isCurrent && dc.cardCurrent]}
               borderColor={
-                isCurrent ? 'rgba(10,132,255,0.45)' :
-                isDone    ? 'rgba(10,132,255,0.20)' :
-                'rgba(255,255,255,0.08)'
+                isCurrent ? 'rgba(255,140,0,0.45)' :
+                isDone    ? 'rgba(255,140,0,0.20)' :
+                'rgba(255,240,220,0.08)'
               }
               glow={isCurrent}
             >
@@ -482,7 +482,7 @@ function DayCard({
 
           {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
-            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,255,255,0.08)">
+            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,240,220,0.08)">
               {day.isRestDay ? (
                 <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
               ) : exercises.length > 0 ? (
@@ -516,15 +516,15 @@ function DayCard({
 
       {/* ── Editor cabinet — OUTSIDE Swipeable so RNGH doesn't block PanResponder ── */}
       {showEditor && (
-        <GlassView radius={0} style={dc.cabinet} borderColor="rgba(10,132,255,0.20)">
+        <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,140,0,0.20)">
           <View style={dc.restToggleRow}>
             <Text style={dc.restToggleLbl}>Rest Day</Text>
             <Switch
               value={day.isRestDay}
               onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
-              trackColor={{ false: 'rgba(255,255,255,0.12)', true: COLORS.accent }}
+              trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
               thumbColor="#fff"
-              ios_backgroundColor="rgba(255,255,255,0.12)"
+              ios_backgroundColor="rgba(255,240,220,0.12)"
             />
           </View>
 
@@ -594,7 +594,7 @@ const dc = StyleSheet.create({
   dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },
   cardCurrent:  {},
   numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  numBadgeMuted:{ backgroundColor: 'rgba(255,255,255,0.07)' },
+  numBadgeMuted:{ backgroundColor: 'rgba(255,240,220,0.07)' },
   num:          { fontSize: 17, fontWeight: '700', color: COLORS.textSecondary },
   numActive:    { fontSize: 17, fontWeight: '700', color: '#fff' },
   content:      { flex: 1, minWidth: 0 },
@@ -612,11 +612,11 @@ const dc = StyleSheet.create({
   recSection:   { marginBottom: 12 },
   recLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
-  recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(10,132,255,0.35)', backgroundColor: 'rgba(10,132,255,0.10)' },
+  recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.10)' },
   recChipTxt:   { fontSize: 12, fontWeight: '600', color: COLORS.accent, maxWidth: 120 },
   exList:       { marginBottom: 8 },
   // Read-only row
-  readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.05)' },
   readInfo:     { flex: 1 },
   readName:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
   readMeta:     { fontSize: 12, color: COLORS.textMuted },
@@ -628,7 +628,7 @@ const dc = StyleSheet.create({
   addTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
   restTxt:       { fontSize: 13, color: COLORS.textSecondary },
   capBottom:     { height: 0 },
-  restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
   restToggleLbl: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
 });
 
@@ -783,7 +783,7 @@ function DayListDragSort({
 
       {dragFrom !== null && (
         <Animated.View style={[dl.float, { transform: [{ translateY: floatY }], opacity: 0.92 }]} pointerEvents="none">
-          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,255,255,0.18)">
+          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,240,220,0.18)">
             <View style={[dc.numBadge, dc.numBadgeMuted]}>
               <Text style={dc.num}>{snapshotRef.current[dragFrom]?.dayPosition}</Text>
             </View>
@@ -924,7 +924,7 @@ export function CycleScreen() {
 
         {/* ── Plan edit cabinet (inline, same pattern as day card) ── */}
         {planExpanded && (
-          <GlassView radius={16} style={s.planCabinet} borderColor="rgba(10,132,255,0.22)">
+          <GlassView radius={16} style={s.planCabinet} borderColor="rgba(255,140,0,0.22)">
 
             {/* Plan name */}
             <Text style={s.cabinetLabel}>PLAN NAME</Text>
@@ -934,7 +934,7 @@ export function CycleScreen() {
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Plan name"
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor="rgba(255,240,220,0.25)"
                 returnKeyType="done"
                 autoCorrect={false}
               />
@@ -1035,15 +1035,15 @@ const s = StyleSheet.create({
   header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   planLabel:      { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
   title:          { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  editBtnActive:  { borderColor: 'rgba(10,132,255,0.50)', backgroundColor: 'rgba(10,132,255,0.12)' },
+  editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
+  editBtnActive:  { borderColor: 'rgba(255,140,0,0.50)', backgroundColor: 'rgba(255,140,0,0.12)' },
 
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
   cabinetLabel:   { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
   nameField:      { paddingHorizontal: 12, paddingVertical: 11 },
   nameInput:      { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
-  splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.07)' },
+  splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.07)' },
   splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   splitDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
   splitBtnTxt:    { fontSize: 15, fontWeight: '600', color: '#fff' },
@@ -1060,7 +1060,7 @@ const s = StyleSheet.create({
   rateVal:    { fontSize: 30, fontWeight: '800', color: COLORS.accent, letterSpacing: -0.5 },
   rateSub:    { fontSize: 13, color: COLORS.textSecondary },
   bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.10)' },
+  barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
 
   hint:       { fontSize: 11, color: COLORS.textLabel, textAlign: 'center', marginBottom: 8, letterSpacing: 0.2 },
   list:       { paddingHorizontal: 16 },

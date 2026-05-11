@@ -14,15 +14,15 @@ interface Props {
 
 // All variants updated to iOS-blue palette (no purple)
 const V: Record<BadgeVariant, { bg: string; text: string; border: string }> = {
-  accent:    { bg: 'rgba(10,132,255,0.15)',  text: COLORS.accent,        border: 'rgba(10,132,255,0.32)'  },
-  current:   { bg: 'rgba(10,132,255,0.20)',  text: COLORS.accentHigh,    border: 'rgba(10,132,255,0.42)'  },
-  completed: { bg: 'rgba(10,132,255,0.11)',  text: COLORS.accent,        border: 'rgba(10,132,255,0.24)'  },
+  accent:    { bg: 'rgba(255,140,0,0.15)',  text: COLORS.accent,        border: 'rgba(255,140,0,0.32)'  },
+  current:   { bg: 'rgba(255,140,0,0.20)',  text: COLORS.accentHigh,    border: 'rgba(255,140,0,0.42)'  },
+  completed: { bg: 'rgba(255,140,0,0.11)',  text: COLORS.accent,        border: 'rgba(255,140,0,0.24)'  },
   danger:    { bg: 'rgba(255,69,58,0.15)',   text: COLORS.danger,        border: 'rgba(255,69,58,0.32)'   },
   missed:    { bg: 'rgba(255,69,58,0.15)',   text: COLORS.danger,        border: 'rgba(255,69,58,0.32)'   },
   warn:      { bg: 'rgba(255,214,10,0.14)',  text: COLORS.warning,       border: 'rgba(255,214,10,0.30)'  },
   rest:      { bg: 'rgba(100,210,255,0.14)', text: COLORS.rest,          border: 'rgba(100,210,255,0.30)' },
-  neutral:   { bg: 'rgba(255,255,255,0.07)', text: COLORS.textSecondary, border: 'rgba(255,255,255,0.12)' },
-  upcoming:  { bg: 'rgba(255,255,255,0.05)', text: COLORS.textMuted,     border: 'rgba(255,255,255,0.09)' },
+  neutral:   { bg: 'rgba(255,240,220,0.07)', text: COLORS.textSecondary, border: 'rgba(255,240,220,0.12)' },
+  upcoming:  { bg: 'rgba(255,240,220,0.05)', text: COLORS.textMuted,     border: 'rgba(255,240,220,0.09)' },
 };
 
 export function Badge({ label, variant = 'accent', size = 'sm' }: Props) {
