@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fsSettings } from '../services/firestoreService';
 import { Settings } from '../types';
 import { DEFAULT_METRIC_PLATES } from '../constants';
+import { computeDayPosition, shiftDate } from '../utils/cycleUtils';
 import type { Unsubscribe } from 'firebase/firestore';
 
 const CACHE_KEY = '@se7en_settings';
@@ -15,6 +16,7 @@ const defaults: Settings = {
   lastBackupDate:  null,
   activePlanId:    null,
   currentDayPosition: 1,
+  cycleStartDate:  null,
   createdAt:       new Date().toISOString(),
 };
 
@@ -23,16 +25,15 @@ interface SettingsStore {
   loaded:     boolean;
   _unsub:     Unsubscribe | null;
 
-  /** Load from cache first, then merge from Firestore */
   load:        (uid: string) => Promise<void>;
-  /** Persist to cache + Firestore */
   save:        (partial: Partial<Settings>) => Promise<void>;
   setActivePlan: (planId: string | null) => Promise<void>;
-  advanceDay:  () => Promise<void>;
-  resetDay:    () => Promise<void>;
-  /** Start real-time listener */
+  /** Anchor the cycle to a calendar date (YYYY-MM-DD). Defaults to today.
+   *  Pass a date in the past to say "I started N days ago." */
+  startCycle:  (startDate?: string) => Promise<void>;
+  /** Shift the cycle start by ±1 day without full reset. */
+  shiftCycle:  (days: number) => Promise<void>;
   startSync:   (uid: string) => void;
-  /** Stop listener and reset state */
   stopSync:    () => void;
 }
 
@@ -75,12 +76,23 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (uid) fsSettings.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/settings]', e));
   },
 
-  setActivePlan: async (planId) => get().save({ activePlanId: planId, currentDayPosition: 1 }),
-  advanceDay:    async () => {
-    const next = get().settings.currentDayPosition >= 7 ? 1 : get().settings.currentDayPosition + 1;
-    return get().save({ currentDayPosition: next });
+  setActivePlan: async (planId) => {
+    const today = new Date().toISOString().slice(0, 10);
+    return get().save({ activePlanId: planId, currentDayPosition: 1, cycleStartDate: today });
   },
-  resetDay:      async () => get().save({ currentDayPosition: 1 }),
+
+  startCycle: async (startDate) => {
+    const date   = startDate ?? new Date().toISOString().slice(0, 10);
+    const dayPos = computeDayPosition(date);
+    return get().save({ cycleStartDate: date, currentDayPosition: dayPos });
+  },
+
+  shiftCycle: async (days) => {
+    const current = get().settings.cycleStartDate ?? new Date().toISOString().slice(0, 10);
+    const shifted = shiftDate(current, days);
+    const dayPos  = computeDayPosition(shifted);
+    return get().save({ cycleStartDate: shifted, currentDayPosition: dayPos });
+  },
 
   startSync: (uid) => {
     get()._unsub?.();

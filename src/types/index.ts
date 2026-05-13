@@ -10,7 +10,8 @@ export interface Settings {
   backupFrequency: BackupFrequency;
   lastBackupDate: string | null;
   activePlanId: string | null;
-  currentDayPosition: number; // 1–7
+  currentDayPosition: number;   // 1–7 legacy fallback; prefer cycleStartDate
+  cycleStartDate: string | null; // YYYY-MM-DD of when Day 1 of current cycle began
   createdAt: string;
 }
 

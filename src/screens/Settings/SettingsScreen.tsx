@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
@@ -7,6 +7,8 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useSessionStore } from '../../stores/sessionStore';
+import { computeDayPosition, formatCycleDate } from '../../utils/cycleUtils';
 import { GRAD, COLORS, SPACING, BORDER_RADIUS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 
@@ -19,8 +21,13 @@ interface Props {
 
 export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, userName }: Props) {
   const { activePlan } = usePlanStore();
-  const { settings } = useSettingsStore();
+  const { settings, startCycle, shiftCycle } = useSettingsStore();
+  const { clearAllSessions } = useSessionStore();
   const [weightUnit, setWeightUnit] = useState<'kg'|'lb'>('kg');
+
+  const currentDayPos  = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition);
+  const cycleDay       = activePlan?.days.find(d => d.dayPosition === currentDayPos);
+  const cycleDateLabel = settings.cycleStartDate ? formatCycleDate(settings.cycleStartDate) : null;
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View style={s.section}>
@@ -90,6 +97,35 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
             </GlassView>
           )}
 
+          {/* Training Cycle */}
+          {activePlan && (
+            <Section title="Training Cycle">
+              <Row
+                label={cycleDay ? `Day ${currentDayPos} — ${cycleDay.label}` : `Day ${currentDayPos}`}
+                sub={cycleDateLabel ? `Cycle started ${cycleDateLabel}` : 'No cycle date set'}
+              />
+              <Row
+                label="Shift start earlier"
+                sub="Move back 1 day (e.g. started yesterday)"
+                right={<Text style={s.cycleBtn}>−1</Text>}
+                onPress={() => shiftCycle(-1)}
+              />
+              <Row
+                label="Shift start later"
+                sub="Move forward 1 day"
+                right={<Text style={s.cycleBtn}>+1</Text>}
+                onPress={() => shiftCycle(1)}
+              />
+              <Row
+                label="Reset cycle to today"
+                sub="Day 1 starts from today"
+                right={<ChevronRight />}
+                onPress={() => startCycle()}
+                last
+              />
+            </Section>
+          )}
+
           <Section title="Weight & Units">
             <Row label="Weight Unit" right={<SegControl options={['kg', 'lb']} value={weightUnit} onChange={v => setWeightUnit(v as any)} />} />
             <Row label="Plate System" sub="Metric (20, 15, 10, 5, 2.5, 1.25 kg)" right={<ChevronRight />} onPress={() => {}} last />
@@ -112,7 +148,23 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
             {onOpenExerciseBuilder && (
               <Row label="Exercise Builder" sub="Add or edit exercises" right={<ChevronRight />} onPress={onOpenExerciseBuilder} />
             )}
-            <Row label="Delete All Data" danger right={<Text style={{ color: COLORS.danger }}>{'>'}</Text>} onPress={() => {}} last />
+            <Row
+              label="Clear Session History"
+              sub="Removes all logged workouts from calendar"
+              danger
+              right={<Text style={{ color: COLORS.danger }}>{'>'}</Text>}
+              onPress={() =>
+                Alert.alert(
+                  'Clear Session History?',
+                  'This permanently deletes all logged workouts. Your plan and settings are kept.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Clear', style: 'destructive', onPress: () => clearAllSessions() },
+                  ],
+                )
+              }
+              last
+            />
           </Section>
 
           {/* Account */}
@@ -158,6 +210,7 @@ const s = StyleSheet.create({
   rowLabel:       { fontSize: 15, fontWeight: '600', color: '#fff' },
   rowSub:         { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary, marginTop: 2 },
   chevron:        { fontSize: 14, color: COLORS.textSecondary, fontWeight: '600' },
+  cycleBtn:       { fontSize: 18, fontWeight: '700', color: COLORS.accent, width: 28, textAlign: 'center' },
   seg:            { flexDirection: 'row', padding: 2, gap: 2 },
   segBtn:         { borderRadius: 6, overflow: 'hidden' },
   segBtnActive:   {},

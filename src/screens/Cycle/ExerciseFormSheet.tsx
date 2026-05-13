@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Modal, KeyboardAvoidingView, Platform,
+  StyleSheet, Modal, KeyboardAvoidingView, Platform, PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -145,7 +145,88 @@ interface Props {
   onClose:   () => void;
 }
 
-const REST_PRESETS = [0, 45, 60, 90, 120, 180] as const;
+const TIMER_MAX  = 300; // 5 minutes
+const TIMER_STEP = 15;  // snap every 15 s
+
+// ─── Rest Timer Slider ────────────────────────────────────────────────────────
+
+function RestTimerSlider({
+  value, onChange,
+}: { value: number; onChange: (v: number) => void }) {
+  // trackWRef: always-current width read by PanResponder callbacks (avoids stale closure).
+  // trackW state: triggers a re-render so fill + thumb positions update after layout.
+  const trackWRef   = useRef(1);
+  const [trackW, setTrackW] = useState(1);
+  // onChangeRef keeps the callback fresh without recreating the PanResponder.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const snap = (raw: number) =>
+    Math.round(Math.max(0, Math.min(TIMER_MAX, raw)) / TIMER_STEP) * TIMER_STEP;
+
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder:  () => true,
+    onPanResponderGrant: (e) =>
+      onChangeRef.current(snap((e.nativeEvent.locationX / trackWRef.current) * TIMER_MAX)),
+    onPanResponderMove: (e) =>
+      onChangeRef.current(snap((e.nativeEvent.locationX / trackWRef.current) * TIMER_MAX)),
+  })).current;
+
+  const pct    = value / TIMER_MAX;
+  const fillW  = trackW * pct;
+  // Keep thumb fully within the track: left-clamp at 0, right-clamp so thumb doesn't overflow
+  const thumbL = Math.max(0, Math.min(trackW - 22, trackW * pct - 11));
+
+  const fmt = (s: number) =>
+    s === 0 ? 'Off' : s < 60 ? `${s}s` : Number.isInteger(s / 60) ? `${s / 60}min` : `${s}s`;
+
+  const TICKS = [0, 60, 120, 180, 240, 300];
+
+  return (
+    <View>
+      <View
+        {...pan.panHandlers}
+        onLayout={e => {
+          const w = e.nativeEvent.layout.width;
+          trackWRef.current = w;
+          setTrackW(w);
+        }}
+        style={sl.track}
+      >
+        <View style={sl.trackBg} />
+        <View style={[sl.trackFg, { width: fillW }]} />
+        <View style={[sl.thumb, { left: thumbL }]} pointerEvents="none" />
+      </View>
+
+      <View style={sl.ticks}>
+        {TICKS.map(t => {
+          const active = Math.abs(value - t) < TIMER_STEP / 2;
+          return (
+            <View key={t} style={sl.tickWrap}>
+              <View style={[sl.tick, active && sl.tickActive]} />
+              <Text style={[sl.tickLbl, active && sl.tickLblActive]}>{fmt(t)}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const sl = StyleSheet.create({
+  track:    { height: 36, justifyContent: 'center', marginBottom: 2 },
+  trackBg:  { position: 'absolute', left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.12)' },
+  trackFg:  { position: 'absolute', left: 0, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
+  thumb:    { position: 'absolute', top: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff',
+              shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
+  ticks:    { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  tickWrap: { alignItems: 'center', gap: 3 },
+  tick:     { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(255,240,220,0.18)' },
+  tickActive:   { backgroundColor: COLORS.accent },
+  tickLbl:      { fontSize: 9, color: COLORS.textLabel, fontWeight: '500' },
+  tickLblActive:{ color: COLORS.accent, fontWeight: '700' },
+});
 
 const SET_TYPES: SetType[] = [
   'standard', 'repRange', 'toFailure', 'superset', 'dropSet', 'pyramid', 'progressive',
@@ -305,26 +386,16 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                 <View style={f.restHeader}>
                   <Text style={f.fieldLabel}>Rest Timer</Text>
                   <Text style={f.restCurrent}>
-                    {restTimerSecs === 0 ? 'Off' : restTimerSecs < 60 ? `${restTimerSecs}s` : `${restTimerSecs / 60}min`}
+                    {restTimerSecs === 0
+                      ? 'Off'
+                      : restTimerSecs < 60
+                      ? `${restTimerSecs}s`
+                      : Number.isInteger(restTimerSecs / 60)
+                      ? `${restTimerSecs / 60}min`
+                      : `${restTimerSecs}s`}
                   </Text>
                 </View>
-                <View style={f.restRow}>
-                  {REST_PRESETS.map(p => {
-                    const active = restTimerSecs === p;
-                    return (
-                      <TouchableOpacity
-                        key={p}
-                        onPress={() => setRestTimerSecs(p)}
-                        style={[f.restChip, active && f.restChipActive]}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={[f.restChipTxt, active && f.restChipTxtActive]}>
-                          {p === 0 ? 'Off' : p < 60 ? `${p}s` : `${p / 60}min`}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                <RestTimerSlider value={restTimerSecs} onChange={setRestTimerSecs} />
               </View>
 
               {/* ── Advanced toggle ── */}
@@ -480,13 +551,8 @@ const f = StyleSheet.create({
   quickDivider:{ width: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginHorizontal: 16, marginTop: 24 },
 
   // Rest timer
-  restHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  restCurrent:    { fontSize: 13, fontWeight: '700', color: COLORS.accent },
-  restRow:        { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  restChip:       { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
-  restChipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.15)' },
-  restChipTxt:    { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
-  restChipTxtActive: { color: COLORS.accent },
+  restHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  restCurrent: { fontSize: 13, fontWeight: '700', color: COLORS.accent },
 
   // Advanced toggle
   advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.09)' },

@@ -30,6 +30,10 @@ interface SessionStore {
   finishSession:          (sessionNote?: string) => Promise<WorkoutSession>;
   skipDay:                (planId: string, dayPosition: number, dayLabel: string, reason?: SkipReason) => Promise<WorkoutSession>;
   acknowledgeRestDay:     (planId: string, dayPosition: number, dayLabel: string) => Promise<void>;
+  /** Log a day as fully completed at its scheduled calendar date (uses cycleStartDate to derive the date). */
+  quickCompleteDay:       (planId: string, day: WorkoutDay, cycleStartDate: string | null) => Promise<WorkoutSession>;
+  /** Wipe all session history locally and from Firestore. */
+  clearAllSessions:       () => Promise<void>;
   getSessionsForExercise: (exerciseName: string) => WorkoutSession[];
   getLastSession:         (dayPosition: number) => WorkoutSession | undefined;
   startTimer:             () => void;
@@ -204,6 +208,73 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   acknowledgeRestDay: async () => {},
+
+  quickCompleteDay: async (planId, day, cycleStartDate) => {
+    // Derive the calendar date for this day position from the cycle anchor.
+    let finishedAt: string;
+    if (cycleStartDate) {
+      const d = new Date(cycleStartDate + 'T00:00:00');
+      d.setDate(d.getDate() + (day.dayPosition - 1));
+      d.setHours(18, 0, 0, 0); // log at 6 PM on the scheduled date
+      finishedAt = d.toISOString();
+    } else {
+      finishedAt = new Date().toISOString();
+    }
+
+    // Skip if already logged as completed on this calendar date
+    const targetDate = finishedAt.slice(0, 10);
+    const existing = get().sessions.find(s =>
+      s.planId === planId &&
+      s.dayPosition === day.dayPosition &&
+      s.finishedAt?.slice(0, 10) === targetDate &&
+      s.status === 'completed',
+    );
+    if (existing) return existing;
+
+    const exercises = buildExercises(day).map(ex => ({
+      ...ex,
+      isCompleted: true,
+      sets: ex.sets.map(st => ({
+        ...st,
+        actualReps:   st.targetReps   ?? 0,
+        actualWeight: st.targetWeight ?? null,
+        isCompleted:  true,
+        completedAt:  finishedAt,
+      })),
+    }));
+
+    const session: WorkoutSession = {
+      id: generateId(), planId,
+      dayPosition: day.dayPosition, dayLabel: day.label,
+      status: 'completed',
+      startedAt: finishedAt, finishedAt,
+      duration: 0, skipReason: null, sessionNote: null,
+      totalVolume: sessionTotalVolume(exercises),
+      prsBreached: [], exercises,
+    };
+
+    const sessions = [...get().sessions, session];
+    set({ sessions });
+    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+    const uid = await getUid();
+    if (uid) fsSessions.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e));
+    return session;
+  },
+
+  clearAllSessions: async () => {
+    get().stopTimer();
+    set({ sessions: [], activeSession: null, sessionTimer: 0 });
+    await Promise.all([
+      AsyncStorage.removeItem(HISTORY_KEY),
+      AsyncStorage.removeItem(ACTIVE_KEY),
+    ]);
+    const uid = await getUid();
+    if (uid) {
+      try {
+        await Promise.all([fsSessions.deleteAll(uid), fsActiveSession.clear(uid)]);
+      } catch (e) { __DEV__ && console.warn('[se7en/session] clearAll', e); }
+    }
+  },
 
   getSessionsForExercise: (exerciseName) =>
     get().sessions.filter(s => s.exercises.some(e => e.exerciseName === exerciseName)),

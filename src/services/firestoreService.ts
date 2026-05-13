@@ -98,6 +98,11 @@ export const fsSessions = {
     await setDoc(sessionDoc(uid, session.id), session);
   },
 
+  async deleteAll(uid: string): Promise<void> {
+    const snap = await getDocs(sessionsCol(uid));
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  },
+
   listen(uid: string, cb: (sessions: WorkoutSession[]) => void): Unsubscribe {
     return onSnapshot(sessionsCol(uid), snap => {
       cb(snap.docs.map(d => d.data() as WorkoutSession));

@@ -13,6 +13,7 @@ import { MissionCard } from './MissionCard';
 import { ContributionHeatmap } from './ContributionHeatmap';
 import { HighlightSlideshow } from './HighlightSlideshow';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
+import { computeDayPosition } from '../../utils/cycleUtils';
 
 // HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
 // (shown as a modal in AppNavigator whenever activeSession !== null).
@@ -26,7 +27,14 @@ export function HomeScreen({ onNavigate }: Props) {
   const { sessions, startSession } = useSessionStore();
   const { settings }               = useSettingsStore();
 
-  const currentDay   = activePlan?.days.find(d => d.dayPosition === settings.currentDayPosition);
+  // Derive the current day position from the cycle anchor date.
+  // Falls back to the stored position for users who haven't set cycleStartDate yet.
+  const currentDayPos = computeDayPosition(
+    settings.cycleStartDate,
+    settings.currentDayPosition,
+  );
+
+  const currentDay   = activePlan?.days.find(d => d.dayPosition === currentDayPos);
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
 
   const handleStart = () => {
@@ -73,20 +81,20 @@ export function HomeScreen({ onNavigate }: Props) {
         >
           {/* ── Orbit + slider ── */}
           <CycleOrbitWidget
-            currentDay={settings.currentDayPosition}
+            currentDay={currentDayPos}
             sessions={planSessions}
           />
 
           <DaySlider
             days={activePlan.days}
-            currentDay={settings.currentDayPosition}
+            currentDay={currentDayPos}
             sessions={planSessions}
           />
 
           {/* ── Mission card ── */}
           <MissionCard
             currentDay={currentDay}
-            currentDayNum={settings.currentDayPosition}
+            currentDayNum={currentDayPos}
             onStart={handleStart}
           />
 
@@ -94,12 +102,16 @@ export function HomeScreen({ onNavigate }: Props) {
           <View style={s.sectionGap} />
 
           {/* ── Heatmap ── */}
-          <ContributionHeatmap sessions={planSessions} activePlan={activePlan} />
+          <ContributionHeatmap
+            sessions={planSessions}
+            activePlan={activePlan}
+            cycleStartDate={settings.cycleStartDate}
+          />
 
           {/* ── Highlight slideshow ── */}
           <HighlightSlideshow
             sessions={planSessions}
-            currentDay={settings.currentDayPosition}
+            currentDay={currentDayPos}
             onNavigate={onNavigate}
           />
 

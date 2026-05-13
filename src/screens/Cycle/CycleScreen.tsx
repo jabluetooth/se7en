@@ -13,6 +13,7 @@ import { Badge, BadgeVariant } from '../../components/common/Badge';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { computeDayPosition } from '../../utils/cycleUtils';
 import { GRAD, COLORS, MUSCLE_TAG_COLOR, BAR_WEIGHTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutDay, WorkoutSession, Exercise } from '../../types';
@@ -40,15 +41,15 @@ function getStatus(
   sessions: WorkoutSession[],
 ): DayStatus {
   if (dayIsRest(day)) return 'rest';
-  if (day.dayPosition === currentPos) return 'current';
+  // Check session history first — a completed/missed session takes priority
+  // over the "current" indicator so the badge reflects reality.
   const last = sessions
-    .filter(s => s.dayPosition === day.dayPosition)
-    .sort((a, b) =>
-      new Date(b.startedAt ?? b.finishedAt!).getTime() -
-      new Date(a.startedAt ?? a.finishedAt!).getTime(),
-    )[0];
-  if (!last) return 'upcoming';
-  return last.status === 'completed' ? 'completed' : last.status === 'missed' ? 'missed' : 'upcoming';
+    .filter(s => s.dayPosition === day.dayPosition && s.finishedAt)
+    .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())[0];
+  if (last?.status === 'completed') return 'completed';
+  if (last?.status === 'missed')    return 'missed';
+  if (day.dayPosition === currentPos) return 'current';
+  return 'upcoming';
 }
 
 const STATUS_BADGE: Record<DayStatus, { label: string; variant: BadgeVariant }> = {
@@ -136,6 +137,26 @@ const sw = StyleSheet.create({
   editTxt:  { fontSize: 13, fontWeight: '700', color: '#fff' },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.danger, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
   clearTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+});
+
+// ─── Swipe-right: Done button ─────────────────────────────────────────────────
+
+function DoneAction({ onPress }: { onPress: () => void }) {
+  return (
+    <View style={sd.wrap}>
+      <TouchableOpacity style={sd.btn} onPress={onPress} activeOpacity={0.8}>
+        <Ionicons name="checkmark-circle" size={18} color="#000" />
+        <Text style={sd.txt}>Done</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const sd = StyleSheet.create({
+  // paddingRight creates the gap between the button and the card edge
+  wrap: { flexDirection: 'row', alignItems: 'center', paddingLeft: 12, paddingRight: 10, marginBottom: 8 },
+  btn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#34D399', paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14 },
+  txt:  { fontSize: 13, fontWeight: '800', color: '#000' },
 });
 
 // ─── Exercise drag-sort ───────────────────────────────────────────────────────
@@ -331,20 +352,27 @@ function DayCard({
   day,
   planId,
   status,
+  isToday,
   onEdit,
   onClear,
+  onDone,
+  dragHandlers,
   onScrollEnabledChange,
 }: {
   day: WorkoutDay;
   planId: string;
   status: DayStatus;
+  isToday: boolean;
   onEdit: () => void;
   onClear: () => void;
+  onDone?: () => void;
+  dragHandlers?: object;
   onScrollEnabledChange?: (enabled: boolean) => void;
 }) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
   const swipeRef   = useRef<Swipeable>(null);
-  const isCurrent  = status === 'current';
+  // Amber glow/border follows the real calendar day, independent of completion status.
+  const isCurrent  = isToday;
   const isDone     = status === 'completed';
   const tags       = topTags(day);
 
@@ -354,12 +382,18 @@ function DayCard({
   const [showEditor,  setShowEditor ] = useState(false);
   const [formVisible, setFormVisible] = useState(false);
   const [editingEx,   setEditingEx  ] = useState<Exercise | null>(null);
+  const [editLabel,   setEditLabel  ] = useState(day.label);
 
-  const handleEdit = () => {
-    swipeRef.current?.close();
-    setShowList(false);
-    setShowEditor(e => !e);   // toggle editor from Edit button
+  // Keep editLabel in sync when the plan updates from outside (e.g. Firestore sync)
+  useEffect(() => { setEditLabel(day.label); }, [day.label]);
+
+  const commitLabel = () => {
+    const trimmed = editLabel.trim();
+    if (trimmed && trimmed !== day.label)
+      updateDay(planId, day.id, { label: trimmed });
   };
+
+  const handleEdit  = () => { swipeRef.current?.close(); setShowList(false); setShowEditor(e => !e); };
   const handleClear = () => { swipeRef.current?.close(); onClear(); };
 
   const isRest        = dayIsRest(day);
@@ -413,10 +447,14 @@ function DayCard({
           the exercise PanResponder drag handles. */}
       <Swipeable
         ref={swipeRef}
+        renderLeftActions={!isRest && onDone ? () => (
+          <DoneAction onPress={() => { swipeRef.current?.close(); onDone(); }} />
+        ) : undefined}
         renderRightActions={(_p, dragX) => (
           <SwipeActions dragX={dragX} onEdit={handleEdit} onClear={handleClear} />
         )}
         overshootRight={false}
+        overshootLeft={false}
         friction={2}
         enabled={!showEditor}
       >
@@ -436,7 +474,7 @@ function DayCard({
               }
               glow={isCurrent}
             >
-              <View style={dc.dragHandle} pointerEvents="none">
+              <View style={dc.dragHandle} {...(dragHandlers ?? {})}>
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 
@@ -522,6 +560,23 @@ function DayCard({
       {/* ── Editor cabinet — OUTSIDE Swipeable so RNGH doesn't block PanResponder ── */}
       {showEditor && (
         <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,140,0,0.20)">
+
+          {/* Day name */}
+          <Text style={dc.labelHint}>DAY NAME</Text>
+          <GlassView opacity="low" radius={10} style={dc.labelField}>
+            <TextInput
+              style={dc.labelInput}
+              value={editLabel}
+              onChangeText={setEditLabel}
+              onBlur={commitLabel}
+              onSubmitEditing={commitLabel}
+              placeholder="e.g. Push Day"
+              placeholderTextColor={COLORS.textMuted}
+              returnKeyType="done"
+              maxLength={50}
+            />
+          </GlassView>
+
           <View style={dc.restToggleRow}>
             <Text style={dc.restToggleLbl}>Rest Day</Text>
             <Switch
@@ -622,6 +677,9 @@ const dc = StyleSheet.create({
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
+  labelHint:    { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 7 },
+  labelField:   { paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
+  labelInput:   { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, padding: 0 },
   recSection:   { marginBottom: 12 },
   recLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
@@ -648,7 +706,7 @@ const dc = StyleSheet.create({
 // ─── Day list drag-sort ───────────────────────────────────────────────────────
 
 function DayListDragSort({
-  days, planId, sessions, currentPos, onEdit, onClear, onScrollEnabledChange,
+  days, planId, sessions, currentPos, onEdit, onClear, onDone, onScrollEnabledChange,
 }: {
   days:                   WorkoutDay[];
   planId:                 string;
@@ -656,6 +714,7 @@ function DayListDragSort({
   currentPos:             number;
   onEdit:                 (day: WorkoutDay) => void;
   onClear:                (day: WorkoutDay) => void;
+  onDone:                 (day: WorkoutDay) => void;
   onScrollEnabledChange?: (enabled: boolean) => void;
 }) {
   const { updatePlan }  = usePlanStore();
@@ -705,8 +764,10 @@ function DayListDragSort({
   if (panHandlersRef.current.length !== days.length) {
     panHandlersRef.current = days.map((_, idx) =>
       PanResponder.create({
+        // Claim on start — the handler lives on the drag-handle icon only (not a
+        // full-width overlay), so it never blocks Swipeable horizontal gestures.
         onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder:  (_, gs) => Math.abs(gs.dy) > Math.abs(gs.dx) * 1.2,
+        onMoveShouldSetPanResponder:  () => true,
 
         onPanResponderGrant: () => {
           containerRef.current?.measureInWindow((_x, y) => { containerTopRef.current = y; });
@@ -778,18 +839,14 @@ function DayListDragSort({
               day={day}
               planId={planId}
               status={getStatus(day, currentPos, sessions)}
+              isToday={day.dayPosition === currentPos}
               onEdit={() => onEdit(day)}
               onClear={() => onClear(day)}
+              onDone={() => onDone(day)}
+              dragHandlers={panHandlersRef.current[idx]}
               onScrollEnabledChange={onScrollEnabledChange}
             />
             {showBelow && <View style={dl.line} />}
-            {/* Overlay covers only the card header (height:72). Cabinet exercises sit below
-                this boundary so their own drag handles are never intercepted here. */}
-            <View
-              {...panHandlersRef.current[idx]}
-              hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-              style={dl.handleOverlay}
-            />
           </View>
         );
       })}
@@ -829,9 +886,11 @@ const dl = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function CycleScreen() {
-  const { activePlan, updateDay, updatePlan } = usePlanStore();
-  const { sessions }                          = useSessionStore();
-  const { settings }                          = useSettingsStore();
+  const { activePlan, updateDay, updatePlan }  = usePlanStore();
+  const { sessions, quickCompleteDay }         = useSessionStore();
+  const { settings, shiftCycle }              = useSettingsStore();
+
+  const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition);
 
   const [editingDay,    setEditingDay   ] = useState<WorkoutDay | null>(null);
   const [planExpanded,  setPlanExpanded ] = useState(false);
@@ -913,6 +972,15 @@ export function CycleScreen() {
         { text: 'Clear', style: 'destructive', onPress: () => updateDay(activePlan.id, day.id, { isRestDay: true, exercises: [] }) },
       ],
     );
+  };
+
+  const handleQuickDone = (day: WorkoutDay) => {
+    quickCompleteDay(activePlan.id, day, settings.cycleStartDate)
+      .then(() => {
+        // Completing today's day advances the cycle so the next day becomes "Today"
+        if (day.dayPosition === currentDayPos) shiftCycle(-1);
+      })
+      .catch(() => Alert.alert('Error', 'Could not log the session. Please try again.'));
   };
 
   return (
@@ -1005,7 +1073,7 @@ export function CycleScreen() {
           </View>
         </GlassView>
 
-        <Text style={s.hint}>Tap to view · Drag ≡ to reorder · Swipe left to edit or clear</Text>
+        <Text style={s.hint}>Swipe right → Done · Swipe left → Edit / Clear · Drag ≡ to reorder</Text>
 
         {/* ── Day list ── */}
         <ScrollView
@@ -1019,9 +1087,10 @@ export function CycleScreen() {
             days={days}
             planId={activePlan.id}
             sessions={sessions}
-            currentPos={settings.currentDayPosition}
+            currentPos={currentDayPos}
             onEdit={setEditingDay}
             onClear={handleClear}
+            onDone={handleQuickDone}
             onScrollEnabledChange={setScrollEnabled}
           />
           <View style={{ height: 100 }} />

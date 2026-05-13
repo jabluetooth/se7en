@@ -5,9 +5,10 @@ import { WorkoutDay, WorkoutSession } from '../../types';
 import { COLORS, GRAD } from '../../constants';
 
 interface Props {
-  days:       WorkoutDay[];
-  currentDay: number; // 1–7
-  sessions:   WorkoutSession[];
+  days:           WorkoutDay[];
+  currentDay:     number;        // 1–7
+  sessions:       WorkoutSession[];
+  cycleStartDate: string | null;
 }
 
 const ITEM_W    = 50;
@@ -15,38 +16,40 @@ const ITEM_H    = 64;
 const ITEM_GAP  = 8;
 const PAD_H     = 20;
 const SCREEN_W  = Dimensions.get('window').width;
+const DOW       = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-export function DaySlider({ days, currentDay, sessions }: Props) {
+export function DaySlider({ days, currentDay, sessions, cycleStartDate }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
-  const isRestDayPos = (dp: number) =>
-    days.find(d => d.dayPosition === dp)?.isRestDay ?? false;
+  // Build 7 items — all day positions 1–7, rest days included
+  const items = Array.from({ length: 7 }, (_, i) => {
+    const dp     = i + 1;
+    const day    = days.find(d => d.dayPosition === dp);
+    const isRest = day?.isRestDay ?? false;
 
-  // If currentDay falls on a plan rest day, treat "O" as active instead
-  const effectiveDay = isRestDayPos(currentDay) ? 0 : currentDay;
+    // Sub-label: day-of-week when cycle is anchored, otherwise abbreviated label
+    let sub: string;
+    if (cycleStartDate) {
+      const d = new Date(cycleStartDate + 'T00:00:00');
+      d.setDate(d.getDate() + (dp - 1));
+      sub = DOW[d.getDay()];
+    } else {
+      sub = isRest ? 'REST' : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${dp}`);
+    }
 
-  // "O" anchor + only non-rest workout days
-  const items = [
-    { label: 'O', dayNum: 0, sub: 'OFF' },
-    ...Array.from({ length: 7 }, (_, i) => {
-      const dp  = i + 1;
-      const day = days.find(d => d.dayPosition === dp);
-      if (day?.isRestDay) return null;
-      const sub = day?.label?.split(' ')[0]?.toUpperCase() ?? `D${dp}`;
-      return { label: String(dp), dayNum: dp, sub };
-    }).filter((x): x is { label: string; dayNum: number; sub: string } => x !== null),
-  ];
+    return { dayNum: dp, label: String(dp), sub, isRest };
+  });
 
-  // Auto-scroll to center effective day on mount / change
+  // Auto-scroll to centre current day on mount / change
   useEffect(() => {
-    const idx        = items.findIndex(it => it.dayNum === effectiveDay);
-    const itemTotal  = ITEM_W + ITEM_GAP;
-    const itemCenter = PAD_H + idx * itemTotal + ITEM_W / 2;
-    const offset     = itemCenter - SCREEN_W / 2;
+    const idx       = items.findIndex(it => it.dayNum === currentDay);
+    if (idx < 0) return;
+    const itemTotal = ITEM_W + ITEM_GAP;
+    const offset    = PAD_H + idx * itemTotal + ITEM_W / 2 - SCREEN_W / 2;
     setTimeout(() => {
       scrollRef.current?.scrollTo({ x: Math.max(0, offset), animated: false });
     }, 80);
-  }, [effectiveDay]);
+  }, [currentDay]);
 
   return (
     <View style={s.wrapper}>
@@ -57,9 +60,9 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
         contentContainerStyle={s.content}
         decelerationRate="fast"
       >
-        {items.map((item, idx) => {
-          const isCurrent = item.dayNum === effectiveDay;
-          const isPast    = item.dayNum > 0 && item.dayNum < effectiveDay;
+        {items.map(item => {
+          const isCurrent = item.dayNum === currentDay;
+          const isPast    = item.dayNum < currentDay;
           const hasDone   = sessions.some(
             se => se.dayPosition === item.dayNum && se.status === 'completed',
           );
@@ -67,26 +70,49 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
           if (isCurrent) {
             return (
               <LinearGradient
-                key={idx}
-                colors={GRAD.accent}
+                key={item.dayNum}
+                colors={item.isRest
+                  ? ['#0D3D2A', '#1A6B48'] as const
+                  : GRAD.accent}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={s.activeItem}
               >
-                <Text style={s.activeNum}>{item.label}</Text>
-                <Text style={s.activeSub}>{item.sub}</Text>
+                <Text style={[s.activeNum, item.isRest && s.activeNumRest]}>
+                  {item.label}
+                </Text>
+                <Text style={[s.activeSub, item.isRest && s.activeSubRest]}>
+                  {item.sub}
+                </Text>
               </LinearGradient>
             );
           }
 
           return (
             <View
-              key={idx}
-              style={[s.item, isPast ? s.itemPast : s.itemFuture]}
+              key={item.dayNum}
+              style={[
+                s.item,
+                item.isRest ? s.itemRest :
+                isPast      ? s.itemPast :
+                              s.itemFuture,
+              ]}
             >
-              {isPast && hasDone && <View style={s.doneDot} />}
-              <Text style={[s.num, isPast && s.numPast]}>{item.label}</Text>
-              <Text style={[s.sub, isPast && s.subPast]}>{item.sub}</Text>
+              {!item.isRest && isPast && hasDone && <View style={s.doneDot} />}
+              <Text style={[
+                s.num,
+                item.isRest ? s.numRest :
+                isPast      ? s.numPast  : undefined,
+              ]}>
+                {item.label}
+              </Text>
+              <Text style={[
+                s.sub,
+                item.isRest ? s.subRest :
+                isPast      ? s.subPast  : undefined,
+              ]}>
+                {item.sub}
+              </Text>
             </View>
           );
         })}
@@ -96,8 +122,8 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
 }
 
 const s = StyleSheet.create({
-  wrapper:    { paddingVertical: 6 },
-  content:    { paddingHorizontal: PAD_H, gap: ITEM_GAP, alignItems: 'center' },
+  wrapper:  { paddingVertical: 6 },
+  content:  { paddingHorizontal: PAD_H, gap: ITEM_GAP, alignItems: 'center' },
 
   activeItem: {
     width: ITEM_W, height: ITEM_H + 8,
@@ -105,10 +131,12 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     gap: 3,
   },
-  activeNum:  { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -0.5 },
-  activeSub:  { fontSize: 8,  fontWeight: '800', color: 'rgba(0,0,0,0.55)', letterSpacing: 0.5 },
+  activeNum:     { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -0.5 },
+  activeSub:     { fontSize: 8,  fontWeight: '800', color: 'rgba(0,0,0,0.55)', letterSpacing: 0.5 },
+  activeNumRest: { color: '#fff' },
+  activeSubRest: { color: 'rgba(255,255,255,0.65)' },
 
-  item:       {
+  item: {
     width: ITEM_W, height: ITEM_H,
     borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
@@ -117,14 +145,17 @@ const s = StyleSheet.create({
   },
   itemPast:   { backgroundColor: 'rgba(123,94,250,0.10)', borderColor: 'rgba(123,94,250,0.22)' },
   itemFuture: { backgroundColor: 'rgba(255,240,220,0.04)', borderColor: 'rgba(255,240,220,0.08)' },
+  itemRest:   { backgroundColor: 'rgba(52,211,153,0.07)',  borderColor: 'rgba(52,211,153,0.22)' },
 
-  doneDot:    {
+  doneDot: {
     position: 'absolute', top: 6, right: 7,
     width: 5, height: 5, borderRadius: 3,
     backgroundColor: COLORS.accent,
   },
-  num:        { fontSize: 18, fontWeight: '800', color: COLORS.textMuted },
-  numPast:    { color: COLORS.accent },
-  sub:        { fontSize: 8, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase' },
-  subPast:    { color: 'rgba(123,94,250,0.65)' },
+  num:     { fontSize: 18, fontWeight: '800', color: COLORS.textMuted },
+  numPast: { color: COLORS.accent },
+  numRest: { color: 'rgba(52,211,153,0.55)' },
+  sub:     { fontSize: 8, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase' },
+  subPast: { color: 'rgba(123,94,250,0.65)' },
+  subRest: { color: 'rgba(52,211,153,0.45)' },
 });

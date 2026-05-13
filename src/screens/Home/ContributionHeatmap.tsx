@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants';
-import { WorkoutSession, WorkoutPlan } from '../../types';
+import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
+import { dayPositionForDate } from '../../utils/cycleUtils';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
@@ -37,11 +38,15 @@ function rgba(hex: string, a: number) {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Sel { day: number; session: WorkoutSession | null; }
-interface Props { sessions: WorkoutSession[]; activePlan?: WorkoutPlan | null; }
+interface Props {
+  sessions:       WorkoutSession[];
+  activePlan?:    WorkoutPlan | null;
+  cycleStartDate: string | null;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ContributionHeatmap({ sessions, activePlan }: Props) {
+export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Props) {
   const today = new Date();
   const [view, setView] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [sel,  setSel]  = useState<Sel | null>(null);
@@ -55,6 +60,13 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
 
   const isRestDay = (dayPos: number) =>
     activePlan?.days.find(d => d.dayPosition === dayPos)?.isRestDay ?? false;
+
+  // Returns the plan day for a calendar date using the cycle anchor.
+  const planDayForCalDay = (calDay: number): WorkoutDay | null => {
+    const pos = dayPositionForDate(cycleStartDate, new Date(year, month, calDay));
+    if (pos === null || !activePlan) return null;
+    return activePlan.days.find(d => d.dayPosition === pos) ?? null;
+  };
 
   // planId → splitType — when a user changes plans mid-cycle,
   // each week row will show the correct split for that week.
@@ -93,18 +105,6 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
 
   const maxVol     = useMemo(() => Math.max(...all.map(s => s.totalVolume), 1), [all]);
   const monthCount = dayMap.size;
-
-  // True when any past calendar day this month has no workout logged
-  const hasRestCells = useMemo(() => {
-    const now = new Date();
-    const daysThisMonth = new Date(year, month + 1, 0).getDate();
-    for (let d = 1; d <= daysThisMonth; d++) {
-      const cellDate = new Date(year, month, d);
-      const isToday  = cellDate.toDateString() === now.toDateString();
-      if (!isToday && cellDate < now && !dayMap.has(d)) return true;
-    }
-    return false;
-  }, [dayMap, year, month]);
 
   // Unique non-rest workout day positions; deduplicate legend entries by label
   const usedPos = useMemo(() => {
@@ -227,14 +227,32 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
                       {pillDays.map((day, di) => {
                         if (!day) return <View key={di} style={s.emptyCell} />;
 
-                        const sess       = dayMap.get(day) ?? null;
-                        const todayD     = isTodayFn(day);
-                        const active     = sel?.day === day;
-                        const isPast     = new Date(year, month, day) <= today;
-                        const rest       = !!sess && isRestDay(sess.dayPosition);
-                        const color      = sess && !rest ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR) : null;
-                        const isRestCell = !sess && isPast && !todayD;
-                        const fh         = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
+                        const sess      = dayMap.get(day) ?? null;
+                        const todayD    = isTodayFn(day);
+                        const active    = sel?.day === day;
+                        const isPast    = new Date(year, month, day) < today;
+
+                        // Use cycle schedule to determine if this date is a rest day.
+                        // Falls back to session's own dayPosition when no cycle is anchored.
+                        const planDay   = planDayForCalDay(day);
+                        const schedRest = planDay
+                          ? planDay.isRestDay
+                          : (!!sess && isRestDay(sess.dayPosition));
+
+                        // Workout color — suppressed when schedule says rest
+                        const color = sess && !schedRest
+                          ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
+                          : null;
+
+                        // Faint planned-but-missed colour for past workout days with no session
+                        const missedColor = !sess && isPast && !todayD && planDay && !planDay.isRestDay
+                          ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
+                          : null;
+
+                        // Green only when the plan schedule explicitly marks this date as rest
+                        const isRestCell = schedRest && (isPast || todayD);
+
+                        const fh = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
 
                         return (
                           <TouchableOpacity
@@ -243,9 +261,10 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
                             activeOpacity={0.75}
                             style={[
                               s.cell,
-                              color      ? { backgroundColor: rgba(color, 0.20), borderColor: rgba(color, 0.42) } : null,
-                              isRestCell ? { backgroundColor: rgba(REST_GREEN, 0.16), borderColor: rgba(REST_GREEN, 0.30) } : null,
-                              !color && !isRestCell ? s.cellEmpty : null,
+                              color       ? { backgroundColor: rgba(color, 0.20),       borderColor: rgba(color, 0.42) }       : null,
+                              missedColor ? { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) } : null,
+                              isRestCell  ? { backgroundColor: rgba(REST_GREEN, 0.16),  borderColor: rgba(REST_GREEN, 0.30) }  : null,
+                              !color && !isRestCell && !missedColor ? s.cellEmpty : null,
                               todayD && s.cellToday,
                               active && s.cellActive,
                             ]}
@@ -255,10 +274,11 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
                             )}
                             <Text style={[
                               s.cellNum,
-                              !sess && !todayD && !isRestCell && s.cellNumEmpty,
-                              isRestCell                       && s.cellNumRest,
-                              todayD && !sess                  && s.cellNumToday,
-                              !!color                          && s.cellNumSess,
+                              !sess && !todayD && !isRestCell && !missedColor && s.cellNumEmpty,
+                              isRestCell  && s.cellNumRest,
+                              todayD && !sess && s.cellNumToday,
+                              !!color     && s.cellNumSess,
+                              !!missedColor && { color: rgba(missedColor, 0.45) } as any,
                             ]}>
                               {day}
                             </Text>
@@ -354,8 +374,8 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
 
       {/* ── Legend — only what's on the calendar ── */}
       <View style={s.legend}>
-        {/* Rest — only when a rest-day session exists this month */}
-        {hasRestCells && (
+        {/* Rest / recovery legend entry — always shown */}
+        {(
           <View style={s.legendWorkout}>
             <View style={[s.legendCell, { backgroundColor: rgba(REST_GREEN, 0.18) }]} />
             <Text style={[s.legendWorkoutTxt, { color: REST_GREEN }]}>Rest</Text>

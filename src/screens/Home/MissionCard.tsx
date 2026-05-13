@@ -1,9 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { WorkoutDay } from '../../types';
 import { COLORS, GRAD } from '../../constants';
+
+const GREEN = '#34D399';
 
 interface Props {
   currentDay:    WorkoutDay | undefined;
@@ -12,7 +14,6 @@ interface Props {
 }
 
 export function MissionCard({ currentDay, currentDayNum, onStart }: Props) {
-  // isRestDay may be undefined on plans stored before the field was added — fall back to label check
   const isRest      = currentDay?.isRestDay === true || currentDay?.label?.toLowerCase() === 'rest';
   const primaryLift = currentDay?.exercises[0]?.name ?? null;
 
@@ -26,11 +27,39 @@ export function MissionCard({ currentDay, currentDayNum, onStart }: Props) {
     ? `Starting with ${primaryLift}`
     : `${currentDay?.exercises.length ?? 0} exercises planned`;
 
+  // Pulsing green dot animation
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isRest) { pulse.setValue(0); return; }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.delay(600),
+        Animated.timing(pulse, { toValue: 0, duration: 0,    useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [isRest]);
+
+  const ringScale   = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.55, 0.25, 0] });
+
   return (
     <GlassView opacity="high" radius={20} style={s.card}>
       {/* Status badge */}
       <View style={s.badgeRow}>
-        <View style={[s.dot, { backgroundColor: isRest ? COLORS.rest : COLORS.accent }]} />
+        {/* Dot container — pulse ring behind, solid dot in front */}
+        <View style={s.dotWrap}>
+          {!isRest && (
+            <Animated.View style={[
+              s.dotRing,
+              { transform: [{ scale: ringScale }], opacity: ringOpacity },
+            ]} />
+          )}
+          <View style={[s.dot, { backgroundColor: isRest ? COLORS.rest : GREEN }]} />
+        </View>
         <Text style={s.badgeTxt}>{isRest ? 'REST DAY' : 'NEXT MISSION'}</Text>
       </View>
 
@@ -55,8 +84,12 @@ export function MissionCard({ currentDay, currentDayNum, onStart }: Props) {
 
 const s = StyleSheet.create({
   card:     { marginHorizontal: 16, marginBottom: 8, padding: 18 },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  dot:      { width: 6, height: 6, borderRadius: 3 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+
+  dotWrap:  { width: 10, height: 10, alignItems: 'center', justifyContent: 'center' },
+  dotRing:  { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN },
+  dot:      { width: 8, height: 8, borderRadius: 4 },
+
   badgeTxt: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.3, textTransform: 'uppercase' },
   title:    { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4, marginBottom: 4 },
   subtitle: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
