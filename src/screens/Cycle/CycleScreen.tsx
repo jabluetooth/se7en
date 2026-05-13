@@ -526,7 +526,15 @@ function DayCard({
             <Text style={dc.restToggleLbl}>Rest Day</Text>
             <Switch
               value={isRest}
-              onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
+              onValueChange={val => {
+                const update: Partial<WorkoutDay> = { isRestDay: val };
+                // When turning off rest, clear the "Rest" label so the label-based
+                // fallback in dayIsRest() doesn't immediately snap the switch back on.
+                if (!val && day.label?.toLowerCase() === 'rest') {
+                  update.label = `Day ${day.dayPosition}`;
+                }
+                updateDay(planId, day.id, update);
+              }}
               trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
               thumbColor="#fff"
               ios_backgroundColor="rgba(255,240,220,0.12)"
