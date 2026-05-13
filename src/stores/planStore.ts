@@ -62,18 +62,28 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   load: async (uid) => {
+    // Backfill isRestDay for plans stored before the field was added
+    const normalize = (plans: WorkoutPlan[]): WorkoutPlan[] =>
+      plans.map(p => ({
+        ...p,
+        days: p.days.map(d => ({
+          ...d,
+          isRestDay: d.isRestDay ?? (d.label?.toLowerCase() === 'rest' && d.exercises.length === 0),
+        })),
+      }));
+
     // Cache first
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
       if (raw) {
-        const cached = JSON.parse(raw) as WorkoutPlan[];
+        const cached = normalize(JSON.parse(raw) as WorkoutPlan[]);
         set({ plans: cached, activePlan: cached.find(p => p.isActive) ?? null, loaded: true });
       }
     } catch {}
 
     // Firestore authoritative
     try {
-      const remote = await fsPlans.getAll(uid);
+      const remote = normalize(await fsPlans.getAll(uid));
       if (remote.length > 0) {
         set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));

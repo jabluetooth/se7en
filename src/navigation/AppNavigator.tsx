@@ -39,7 +39,7 @@ export function AppNavigator() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'Home':     return <HomeScreen />;
+      case 'Home':     return <HomeScreen onNavigate={setActiveTab} />;
       case 'Cycle':    return <CycleScreen />;
       case 'Progress': return <ProgressScreen />;
       case 'Settings': return (

@@ -12,7 +12,8 @@ interface Props {
 }
 
 export function MissionCard({ currentDay, currentDayNum, onStart }: Props) {
-  const isRest      = currentDay?.isRestDay ?? false;
+  // isRestDay may be undefined on plans stored before the field was added — fall back to label check
+  const isRest      = currentDay?.isRestDay === true || currentDay?.label?.toLowerCase() === 'rest';
   const primaryLift = currentDay?.exercises[0]?.name ?? null;
 
   const title    = isRest

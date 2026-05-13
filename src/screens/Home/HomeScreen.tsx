@@ -5,56 +5,29 @@ import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { usePRStore } from '../../stores/prStore';
 import { COLORS } from '../../constants';
-import { WorkoutSession, PersonalRecord } from '../../types';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { CycleOrbitWidget } from './CycleOrbitWidget';
 import { DaySlider } from './DaySlider';
 import { MissionCard } from './MissionCard';
 import { ContributionHeatmap } from './ContributionHeatmap';
-import { BentoGrid } from './BentoGrid';
+import { HighlightSlideshow } from './HighlightSlideshow';
+import { TabName } from '../../components/FloatingDock/FloatingDock';
 
 // HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
 // (shown as a modal in AppNavigator whenever activeSession !== null).
 
-function computeStreak(sessions: WorkoutSession[]): number {
-  const completed = sessions
-    .filter(s => s.status === 'completed' && s.finishedAt)
-    .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime());
-
-  if (completed.length === 0) return 0;
-
-  let streak = 1;
-  let prev   = new Date(completed[0].finishedAt!);
-  prev.setHours(0, 0, 0, 0);
-
-  for (let i = 1; i < completed.length; i++) {
-    const cur = new Date(completed[i].finishedAt!);
-    cur.setHours(0, 0, 0, 0);
-    if ((prev.getTime() - cur.getTime()) / 86_400_000 <= 1.5) {
-      streak++;
-      prev = cur;
-    } else {
-      break;
-    }
-  }
-  return streak;
+interface Props {
+  onNavigate: (tab: TabName) => void;
 }
 
-export function HomeScreen() {
-  const { activePlan }                          = usePlanStore();
-  const { sessions, startSession }              = useSessionStore();
-  const { settings }                            = useSettingsStore();
-  const { records }                             = usePRStore();
+export function HomeScreen({ onNavigate }: Props) {
+  const { activePlan }             = usePlanStore();
+  const { sessions, startSession } = useSessionStore();
+  const { settings }               = useSettingsStore();
 
   const currentDay   = activePlan?.days.find(d => d.dayPosition === settings.currentDayPosition);
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
-
-  const streak: number = computeStreak(planSessions);
-  const latestPR: PersonalRecord | null = records.length > 0
-    ? [...records].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
-    : null;
 
   const handleStart = () => {
     if (!activePlan || !currentDay) return;
@@ -123,11 +96,11 @@ export function HomeScreen() {
           {/* ── Heatmap ── */}
           <ContributionHeatmap sessions={planSessions} activePlan={activePlan} />
 
-          {/* ── Bento stats ── */}
-          <BentoGrid
+          {/* ── Highlight slideshow ── */}
+          <HighlightSlideshow
             sessions={planSessions}
-            latestPR={latestPR}
-            streak={streak}
+            currentDay={settings.currentDayPosition}
+            onNavigate={onNavigate}
           />
 
           <View style={s.bottomPad} />

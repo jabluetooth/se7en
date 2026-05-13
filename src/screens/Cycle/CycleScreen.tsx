@@ -30,12 +30,16 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type DayStatus = 'completed' | 'missed' | 'rest' | 'current' | 'upcoming';
 
+function dayIsRest(day: WorkoutDay): boolean {
+  return day.isRestDay === true || day.label?.toLowerCase() === 'rest';
+}
+
 function getStatus(
   day: WorkoutDay,
   currentPos: number,
   sessions: WorkoutSession[],
 ): DayStatus {
-  if (day.isRestDay) return 'rest';
+  if (dayIsRest(day)) return 'rest';
   if (day.dayPosition === currentPos) return 'current';
   const last = sessions
     .filter(s => s.dayPosition === day.dayPosition)
@@ -358,8 +362,9 @@ function DayCard({
   };
   const handleClear = () => { swipeRef.current?.close(); onClear(); };
 
+  const isRest        = dayIsRest(day);
   const existingNames = new Set(day.exercises.map(e => e.name.toLowerCase()));
-  const recommended   = day.isRestDay ? [] : getRecommended(day.label, existingNames);
+  const recommended   = isRest ? [] : getRecommended(day.label, existingNames);
 
   const openAdd  = () => { setEditingEx(null); setFormVisible(true); };
   const openEdit = (ex: Exercise) => { setEditingEx(ex); setFormVisible(true); };
@@ -455,7 +460,7 @@ function DayCard({
                   {isCurrent && <View style={dc.todayDot} />}
                 </View>
                 <Text style={dc.sub}>
-                  {day.isRestDay ? 'Recovery day' : `${day.exercises.length} exercise${day.exercises.length !== 1 ? 's' : ''}`}
+                  {isRest ? 'Recovery day' : `${day.exercises.length} exercise${day.exercises.length !== 1 ? 's' : ''}`}
                 </Text>
                 {tags.length > 0 && (
                   <View style={dc.tagsRow}>
@@ -483,8 +488,8 @@ function DayCard({
           {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
             <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,240,220,0.08)">
-              {day.isRestDay ? (
-                <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
+              {isRest ? (
+                <Text style={dc.restTxt}>Recovery day — no exercises scheduled.</Text>
               ) : exercises.length > 0 ? (
                 <View style={dc.exList}>
                   {exercises.map(ex => (
@@ -520,7 +525,7 @@ function DayCard({
           <View style={dc.restToggleRow}>
             <Text style={dc.restToggleLbl}>Rest Day</Text>
             <Switch
-              value={day.isRestDay}
+              value={isRest}
               onValueChange={val => updateDay(planId, day.id, { isRestDay: val })}
               trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
               thumbColor="#fff"
@@ -528,8 +533,8 @@ function DayCard({
             />
           </View>
 
-          {day.isRestDay ? (
-            <Text style={dc.restTxt}>🛌  Recovery day — no exercises scheduled.</Text>
+          {isRest ? (
+            <Text style={dc.restTxt}>Recovery day — no exercises scheduled.</Text>
           ) : (
             <>
               {recommended.length > 0 && (

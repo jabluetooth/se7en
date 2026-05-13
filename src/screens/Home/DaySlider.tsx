@@ -19,28 +19,34 @@ const SCREEN_W  = Dimensions.get('window').width;
 export function DaySlider({ days, currentDay, sessions }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
-  // Index 0 = "O" (off/rest anchor), indices 1-7 = workout days
+  const isRestDayPos = (dp: number) =>
+    days.find(d => d.dayPosition === dp)?.isRestDay ?? false;
+
+  // If currentDay falls on a plan rest day, treat "O" as active instead
+  const effectiveDay = isRestDayPos(currentDay) ? 0 : currentDay;
+
+  // "O" anchor + only non-rest workout days
   const items = [
     { label: 'O', dayNum: 0, sub: 'OFF' },
     ...Array.from({ length: 7 }, (_, i) => {
       const dp  = i + 1;
       const day = days.find(d => d.dayPosition === dp);
-      // Show first word of the day label (e.g. "Push" from "Push Day")
+      if (day?.isRestDay) return null;
       const sub = day?.label?.split(' ')[0]?.toUpperCase() ?? `D${dp}`;
       return { label: String(dp), dayNum: dp, sub };
-    }),
+    }).filter((x): x is { label: string; dayNum: number; sub: string } => x !== null),
   ];
 
-  // Auto-scroll to center current day on mount / change
+  // Auto-scroll to center effective day on mount / change
   useEffect(() => {
-    const idx        = currentDay; // O is index 0; day 1 is index 1 etc.
+    const idx        = items.findIndex(it => it.dayNum === effectiveDay);
     const itemTotal  = ITEM_W + ITEM_GAP;
     const itemCenter = PAD_H + idx * itemTotal + ITEM_W / 2;
     const offset     = itemCenter - SCREEN_W / 2;
     setTimeout(() => {
       scrollRef.current?.scrollTo({ x: Math.max(0, offset), animated: false });
     }, 80);
-  }, [currentDay]);
+  }, [effectiveDay]);
 
   return (
     <View style={s.wrapper}>
@@ -52,8 +58,8 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
         decelerationRate="fast"
       >
         {items.map((item, idx) => {
-          const isCurrent = item.dayNum === currentDay;
-          const isPast    = item.dayNum > 0 && item.dayNum < currentDay;
+          const isCurrent = item.dayNum === effectiveDay;
+          const isPast    = item.dayNum > 0 && item.dayNum < effectiveDay;
           const hasDone   = sessions.some(
             se => se.dayPosition === item.dayNum && se.status === 'completed',
           );

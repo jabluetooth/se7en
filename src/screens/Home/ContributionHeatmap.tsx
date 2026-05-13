@@ -94,12 +94,35 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
 
   const maxVol     = useMemo(() => Math.max(...all.map(s => s.totalVolume), 1), [all]);
   const monthCount = dayMap.size;
-  const usedPos    = useMemo(
-    () => [...new Set([...dayMap.values()]
-      .filter(s => !isRestDay(s.dayPosition))
-      .map(s => s.dayPosition))].sort(),
-    [dayMap, activePlan],
-  );
+
+  // True when any past calendar day this month has no workout logged
+  const hasRestCells = useMemo(() => {
+    const now = new Date();
+    const daysThisMonth = new Date(year, month + 1, 0).getDate();
+    for (let d = 1; d <= daysThisMonth; d++) {
+      const cellDate = new Date(year, month, d);
+      const isToday  = cellDate.toDateString() === now.toDateString();
+      if (!isToday && cellDate < now && !dayMap.has(d)) return true;
+    }
+    return false;
+  }, [dayMap, year, month]);
+
+  // Unique non-rest workout day positions; deduplicate legend entries by label
+  const usedPos = useMemo(() => {
+    const positions = [...new Set(
+      [...dayMap.values()]
+        .filter(s => !isRestDay(s.dayPosition))
+        .map(s => s.dayPosition),
+    )].sort();
+    const seenLabels = new Set<string>();
+    return positions.filter(dp => {
+      const label = activePlan?.days.find(d => d.dayPosition === dp)?.label ?? `Day ${dp}`;
+      if (label.toLowerCase().trim() === 'rest') return false;
+      if (seenLabels.has(label)) return false;
+      seenLabels.add(label);
+      return true;
+    });
+  }, [dayMap, activePlan]);
 
   // Build grid
   const firstDow  = new Date(year, month, 1).getDay();
@@ -209,7 +232,7 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
                         const todayD     = isTodayFn(day);
                         const active     = sel?.day === day;
                         const isPast     = new Date(year, month, day) <= today;
-                        const rest       = sess ? isRestDay(sess.dayPosition) : false;
+                        const rest       = !!sess && isRestDay(sess.dayPosition);
                         const color      = sess && !rest ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR) : null;
                         const isRestCell = !sess && isPast && !todayD;
                         const fh         = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
@@ -332,11 +355,13 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
 
       {/* ── Legend — only what's on the calendar ── */}
       <View style={s.legend}>
-        {/* Rest / recovery */}
-        <View style={s.legendWorkout}>
-          <View style={[s.legendCell, { backgroundColor: rgba(REST_GREEN, 0.18) }]} />
-          <Text style={[s.legendWorkoutTxt, { color: REST_GREEN }]}>Rest</Text>
-        </View>
+        {/* Rest — only when a rest-day session exists this month */}
+        {hasRestCells && (
+          <View style={s.legendWorkout}>
+            <View style={[s.legendCell, { backgroundColor: rgba(REST_GREEN, 0.18) }]} />
+            <Text style={[s.legendWorkoutTxt, { color: REST_GREEN }]}>Rest</Text>
+          </View>
+        )}
 
         {/* Workout types seen this month */}
         {usedPos.map(dp => {
