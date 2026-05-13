@@ -30,7 +30,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
       if (raw) set({ records: JSON.parse(raw) as PersonalRecord[], loaded: true });
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/pr]', e); }
 
     // Firestore authoritative
     try {
@@ -39,7 +39,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
         set({ records: remote, loaded: true });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/pr]', e); }
 
     set({ loaded: true });
   },
@@ -68,7 +68,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
     set({ records });
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(records));
     const uid = await getUid();
-    if (uid) fsPRs.set(uid, pr).catch(() => {});
+    if (uid) fsPRs.set(uid, pr).catch(e => __DEV__ && console.warn('[se7en/pr]', e));
   },
 
   getPR: (exerciseId) => get().records.find(r => r.exerciseId === exerciseId),

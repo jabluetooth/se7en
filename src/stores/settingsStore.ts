@@ -49,7 +49,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         const parsed = JSON.parse(raw) as Partial<Settings>;
         set({ settings: { ...defaults, ...parsed }, loaded: true });
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/settings]', e); }
 
     // 2. Firestore (authoritative, overwrites cache if different)
     try {
@@ -61,7 +61,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         // First time: push defaults to Firestore
         await fsSettings.set(uid, get().settings);
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/settings]', e); }
 
     set({ loaded: true });
   },
@@ -72,7 +72,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(updated));
 
     const uid = (await import('../config/firebase')).auth.currentUser?.uid;
-    if (uid) fsSettings.set(uid, updated).catch(() => {});
+    if (uid) fsSettings.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/settings]', e));
   },
 
   setActivePlan: async (planId) => get().save({ activePlanId: planId, currentDayPosition: 1 }),

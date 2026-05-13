@@ -17,6 +17,19 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+
+// ─── Timeout guard (15 s) — prevents reads hanging on poor connectivity ────────
+
+const FS_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(p: Promise<T>, ms = FS_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore request timed out')), ms)
+    ),
+  ]);
+}
 import { Settings, WorkoutPlan, WorkoutSession, PersonalRecord } from '../types';
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
@@ -35,7 +48,7 @@ const prsCol       = (uid: string)                  => collection(db, 'users', u
 
 export const fsSettings = {
   async get(uid: string): Promise<Settings | null> {
-    const snap = await getDoc(settingsDoc(uid));
+    const snap = await withTimeout(getDoc(settingsDoc(uid)));
     return snap.exists() ? (snap.data() as Settings) : null;
   },
 
@@ -54,7 +67,7 @@ export const fsSettings = {
 
 export const fsPlans = {
   async getAll(uid: string): Promise<WorkoutPlan[]> {
-    const snap = await getDocs(plansCol(uid));
+    const snap = await withTimeout(getDocs(plansCol(uid)));
     return snap.docs.map(d => d.data() as WorkoutPlan);
   },
 
@@ -77,7 +90,7 @@ export const fsPlans = {
 
 export const fsSessions = {
   async getAll(uid: string): Promise<WorkoutSession[]> {
-    const snap = await getDocs(sessionsCol(uid));
+    const snap = await withTimeout(getDocs(sessionsCol(uid)));
     return snap.docs.map(d => d.data() as WorkoutSession);
   },
 
@@ -96,7 +109,7 @@ export const fsSessions = {
 
 export const fsActiveSession = {
   async get(uid: string): Promise<WorkoutSession | null> {
-    const snap = await getDoc(activeSessDoc(uid));
+    const snap = await withTimeout(getDoc(activeSessDoc(uid)));
     return snap.exists() ? (snap.data() as WorkoutSession) : null;
   },
 
@@ -119,7 +132,7 @@ export const fsActiveSession = {
 
 export const fsPRs = {
   async getAll(uid: string): Promise<PersonalRecord[]> {
-    const snap = await getDocs(prsCol(uid));
+    const snap = await withTimeout(getDocs(prsCol(uid)));
     return snap.docs.map(d => d.data() as PersonalRecord);
   },
 

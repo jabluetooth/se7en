@@ -58,7 +58,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     const resolvedUid = uid ?? await getUid();
     if (!resolvedUid) return;
     // Sync changed plans to Firestore individually (batch-like)
-    plans.forEach(p => fsPlans.set(resolvedUid, p).catch(() => {}));
+    plans.forEach(p => fsPlans.set(resolvedUid, p).catch(e => __DEV__ && console.warn('[se7en/plan]', e)));
   },
 
   load: async (uid) => {
@@ -79,7 +79,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         const cached = normalize(JSON.parse(raw) as WorkoutPlan[]);
         set({ plans: cached, activePlan: cached.find(p => p.isActive) ?? null, loaded: true });
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/plan]', e); }
 
     // Firestore authoritative
     try {
@@ -88,7 +88,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/plan]', e); }
 
     set({ loaded: true });
   },
@@ -195,7 +195,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     const plans = get().plans.filter(p => p.id !== planId);
     set({ plans, activePlan: get().activePlan?.id === planId ? null : get().activePlan });
     get()._persist(plans);
-    getUid().then(uid => { if (uid) fsPlans.delete(uid, planId).catch(() => {}); });
+    getUid().then(uid => { if (uid) fsPlans.delete(uid, planId).catch(e => __DEV__ && console.warn('[se7en/plan]', e)); });
   },
 
   setActivePlan: (planId) => {

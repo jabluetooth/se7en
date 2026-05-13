@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants';
 import { WorkoutSession, WorkoutPlan } from '../../types';
-import { MOCK_CALENDAR_SESSIONS } from '../../data/mockCalendarSessions';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
@@ -50,7 +49,7 @@ export function ContributionHeatmap({ sessions, activePlan }: Props) {
   const year  = view.getFullYear();
   const month = view.getMonth();
 
-  const all = useMemo(() => [...sessions, ...MOCK_CALENDAR_SESSIONS], [sessions]);
+  const all = sessions;
 
   const splitName = activePlan?.splitType ?? 'Workout';
 

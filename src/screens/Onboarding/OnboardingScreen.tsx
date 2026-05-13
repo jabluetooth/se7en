@@ -108,6 +108,13 @@ export function OnboardingScreen({ onComplete }: Props) {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
       if (result.canceled) return;
+
+      const fileInfo = await FileSystem.getInfoAsync(result.assets[0].uri);
+      if (fileInfo.exists && 'size' in fileInfo && (fileInfo.size as number) > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Import file must be under 10 MB.');
+        return;
+      }
+
       const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
       const raw = JSON.parse(content);
       const validation = validateImportJSON(raw);

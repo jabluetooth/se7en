@@ -10,6 +10,24 @@ import {
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
+// ─── Rate limiter — 5 failed attempts triggers a 5-minute lockout ─────────────
+
+const signInLimiter = (() => {
+  let failures = 0;
+  let lockedUntil = 0;
+  return {
+    check(): string | null {
+      if (Date.now() < lockedUntil) {
+        const mins = Math.max(1, Math.ceil((lockedUntil - Date.now()) / 60_000));
+        return `Too many failed attempts. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`;
+      }
+      return null;
+    },
+    fail()    { if (++failures >= 5) { lockedUntil = Date.now() + 5 * 60_000; failures = 0; } },
+    succeed() { failures = 0; lockedUntil = 0; },
+  };
+})();
+
 interface AuthStore {
   user:        User | null;
   initialised: boolean;      // onAuthStateChanged has fired at least once
@@ -43,11 +61,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }),
 
   signIn: async (email, password) => {
+    const locked = signInLimiter.check();
+    if (locked) { set({ error: locked }); return; }
     set({ loading: true, error: null });
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      signInLimiter.succeed();
       // user state updated by onAuthStateChanged listener
     } catch (e: any) {
+      signInLimiter.fail();
       set({ error: friendlyError(e.code), loading: false });
       throw e;
     } finally {

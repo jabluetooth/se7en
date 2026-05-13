@@ -80,7 +80,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       } else {
         set({ sessions: history, loaded: true });
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/session]', e); }
 
     // Firestore authoritative
     try {
@@ -98,7 +98,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         set({ sessions: remoteHistory });
         await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remoteHistory));
       }
-    } catch {}
+    } catch (e) { __DEV__ && console.warn('[se7en/session]', e); }
 
     set({ loaded: true });
   },
@@ -128,7 +128,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     };
     set({ activeSession: session });
     AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
-    getUid().then(uid => { if (uid) fsActiveSession.set(uid, session).catch(() => {}); });
+    getUid().then(uid => { if (uid) fsActiveSession.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
     get().startTimer();
   },
 
@@ -144,7 +144,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       });
       const updated = { ...s.activeSession, exercises };
       AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
-      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(() => {}); });
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
       return { activeSession: updated };
     });
   },
@@ -181,8 +181,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const uid = await getUid();
     if (uid) {
       await Promise.all([
-        fsActiveSession.clear(uid).catch(() => {}),
-        fsSessions.set(uid, finished).catch(() => {}),
+        fsActiveSession.clear(uid).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
+        fsSessions.set(uid, finished).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
       ]);
     }
     return finished;
@@ -199,7 +199,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set({ sessions });
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
     const uid = await getUid();
-    if (uid) fsSessions.set(uid, session).catch(() => {});
+    if (uid) fsSessions.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e));
     return session;
   },
 
@@ -229,6 +229,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     get().stopTimer();
     set({ activeSession: null, sessionTimer: 0 });
     AsyncStorage.removeItem(ACTIVE_KEY);
-    getUid().then(uid => { if (uid) fsActiveSession.clear(uid).catch(() => {}); });
+    getUid().then(uid => { if (uid) fsActiveSession.clear(uid).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
   },
 }));
