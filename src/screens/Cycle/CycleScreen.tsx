@@ -359,6 +359,7 @@ function DayCard({
   planId,
   status,
   isToday,
+  currentPos,
   onEdit,
   onClear,
   onDone,
@@ -369,6 +370,7 @@ function DayCard({
   planId: string;
   status: DayStatus;
   isToday: boolean;
+  currentPos: number;
   onEdit: () => void;
   onClear: () => void;
   onDone?: () => void;
@@ -377,9 +379,9 @@ function DayCard({
 }) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
   const swipeRef   = useRef<Swipeable>(null);
-  // Amber glow/border follows the real calendar day, independent of completion status.
   const isCurrent  = isToday;
   const isDone     = status === 'completed';
+  const isPastRest = status === 'rest' && day.dayPosition < currentPos;
   const tags       = topTags(day);
 
   // showList  = tap → read-only exercise list
@@ -453,7 +455,7 @@ function DayCard({
           the exercise PanResponder drag handles. */}
       <Swipeable
         ref={swipeRef}
-        renderLeftActions={!isRest && onDone ? (_p, dragX) => (
+        renderLeftActions={!isRest && !isDone && onDone ? (_p, dragX) => (
           <DoneAction dragX={dragX} onPress={() => { swipeRef.current?.close(); onDone(); }} />
         ) : undefined}
         renderRightActions={(_p, dragX) => (
@@ -480,7 +482,12 @@ function DayCard({
               }
               glow={isCurrent}
             >
-              <View style={dc.dragHandle} {...(dragHandlers ?? {})}>
+              {/* Dim overlay for completed / past-rest days — sits under content */}
+              {(isDone || isPastRest) && (
+                <View style={dc.dimOverlay} pointerEvents="none" />
+              )}
+
+              <View style={[dc.dragHandle, !dragHandlers && { opacity: 0.2 }]} {...(dragHandlers ?? {})}>
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 
@@ -490,8 +497,8 @@ function DayCard({
                 </LinearGradient>
               ) : (
                 <View style={[dc.numBadge, dc.numBadgeMuted]}>
-                  <Text style={[dc.num, isDone && { color: COLORS.accent }]}>
-                    {isDone ? '✓' : day.dayPosition}
+                  <Text style={[dc.num, isDone && { color: COLORS.accent }, isPastRest && { color: '#34D399' }]}>
+                    {isDone || isPastRest ? '✓' : day.dayPosition}
                   </Text>
                 </View>
               )}
@@ -665,6 +672,7 @@ function DayCard({
 const dc = StyleSheet.create({
   wrap:         { marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
   card:         { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
+  dimOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
   dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },
   cardCurrent:  {},
   numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -739,10 +747,25 @@ function DayListDragSort({
   const onScrollRef   = useRef(onScrollEnabledChange);
   const updatePlanRef = useRef(updatePlan);
   const planIdRef     = useRef(planId);
+  const currentPosRef = useRef(currentPos);
+  const sessionsRef   = useRef(sessions);
   daysRef.current       = days;
   onScrollRef.current   = onScrollEnabledChange;
   updatePlanRef.current = updatePlan;
   planIdRef.current     = planId;
+  currentPosRef.current = currentPos;
+  sessionsRef.current   = sessions;
+
+  // First index in the sorted list that is not locked (completed or past rest).
+  // Draggable cards cannot be dropped above this boundary.
+  const minDropRef = useRef(0);
+  minDropRef.current = (() => {
+    const idx = daysRef.current.findIndex(d => {
+      const st = getStatus(d, currentPosRef.current, sessionsRef.current);
+      return st !== 'completed' && !(st === 'rest' && d.dayPosition < currentPosRef.current);
+    });
+    return idx === -1 ? 0 : idx;
+  })();
 
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropTo,   setDropTo  ] = useState<number | null>(null);
@@ -787,16 +810,16 @@ function DayListDragSort({
         },
 
         onPanResponderMove: (evt) => {
-          const relY = evt.nativeEvent.pageY - containerTopRef.current;
-          const h    = layoutsRef.current[dragFromRef.current ?? 0]?.height ?? CARD_EST_H;
+          const relY    = evt.nativeEvent.pageY - containerTopRef.current;
+          const h       = layoutsRef.current[dragFromRef.current ?? 0]?.height ?? CARD_EST_H;
           floatY.setValue(Math.max(0, relY - h / 2));
-          const newTo = findAt(relY);
+          const newTo   = Math.max(findAt(relY), minDropRef.current);
           if (newTo !== dropToRef.current) { dropToRef.current = newTo; setDropTo(newTo); }
         },
 
         onPanResponderRelease: () => {
           const from = dragFromRef.current ?? 0;
-          const to   = dropToRef.current   ?? from;
+          const to   = Math.max(dropToRef.current ?? from, minDropRef.current);
           if (from !== to) {
             LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
             const contents = [...snapshotRef.current].map(d => ({
@@ -846,10 +869,15 @@ function DayListDragSort({
               planId={planId}
               status={getStatus(day, currentPos, sessions)}
               isToday={day.dayPosition === currentPos}
+              currentPos={currentPos}
               onEdit={() => onEdit(day)}
               onClear={() => onClear(day)}
               onDone={() => onDone(day)}
-              dragHandlers={panHandlersRef.current[idx]}
+              dragHandlers={(() => {
+                const st = getStatus(day, currentPos, sessions);
+                const locked = st === 'completed' || (st === 'rest' && day.dayPosition < currentPos);
+                return locked ? undefined : panHandlersRef.current[idx];
+              })()}
               onScrollEnabledChange={onScrollEnabledChange}
             />
             {showBelow && <View style={dl.line} />}

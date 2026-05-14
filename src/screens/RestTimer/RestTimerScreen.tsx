@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
@@ -37,17 +37,65 @@ export function RestTimerScreen({
   const [done,    setDone   ] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Absolute wall-clock time when the timer should reach zero.
+  // Lets us correct for time lost while the app was backgrounded.
+  const endTimeRef  = useRef<number | null>(null);
+  const runningRef  = useRef(running);
+  runningRef.current = running;
+
+  // Helper: start a fresh 1-second interval from a known remaining count
+  const startInterval = (secs: number) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (secs <= 0) return;
+    endTimeRef.current = Date.now() + secs * 1000;
+    intervalRef.current = setInterval(() => {
+      setSeconds(s => {
+        if (s <= 1) {
+          clearInterval(intervalRef.current!);
+          endTimeRef.current = null;
+          setRunning(false);
+          setDone(true);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
   useEffect(() => {
     if (running && seconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setSeconds(s => {
-          if (s <= 1) { clearInterval(intervalRef.current!); setRunning(false); setDone(true); return 0; }
-          return s - 1;
-        });
-      }, 1000);
+      startInterval(seconds);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (!running) endTimeRef.current = null;
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [running, total]);
+
+  // When the app returns to the foreground, recalculate remaining time from
+  // the stored wall-clock end timestamp so background time is never lost.
+  useEffect(() => {
+    const onStateChange = (next: AppStateStatus) => {
+      if (next !== 'active' || !endTimeRef.current || !runningRef.current) return;
+
+      const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+
+      if (remaining === 0) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        endTimeRef.current = null;
+        setSeconds(0);
+        setRunning(false);
+        setDone(true);
+      } else {
+        // Restart cleanly with the corrected count
+        setSeconds(remaining);
+        startInterval(remaining);
+      }
+    };
+
+    const sub = AppState.addEventListener('change', onStateChange);
+    return () => sub.remove();
+  }, []);
 
   // Auto-return to session screen 1.5 s after timer completes
   useEffect(() => {
