@@ -56,7 +56,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
   const all = sessions;
 
-  const splitName = activePlan?.splitType ?? 'Workout';
+  const splitName = activePlan?.name ?? 'Workout';
 
   const isRestDay = (dayPos: number) =>
     activePlan?.days.find(d => d.dayPosition === dayPos)?.isRestDay ?? false;
@@ -72,7 +72,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   // each week row will show the correct split for that week.
   const planSplitMap = useMemo(() => {
     const m = new Map<string, string>();
-    if (activePlan) m.set(activePlan.id, activePlan.splitType);
+    if (activePlan) m.set(activePlan.id, activePlan.name);
     return m;
   }, [activePlan]);
 

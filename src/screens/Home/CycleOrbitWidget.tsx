@@ -6,7 +6,8 @@ import { COLORS, GRAD } from '../../constants';
 
 interface Props {
   currentDay: number; // 1–7
-  sessions: WorkoutSession[];
+  sessions:   WorkoutSession[];
+  dayLabel:   string;
 }
 
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -26,7 +27,7 @@ function arcPath(cx: number, cy: number, R: number, ri: number, a0: number, a1: 
   );
 }
 
-export function CycleOrbitWidget({ currentDay, sessions }: Props) {
+export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
   const SZ = 200, cx = 100, cy = 100, R = 88, ri = 68;
   const SEG = 360 / 7;
   const GAP = 3.5;
@@ -78,9 +79,9 @@ export function CycleOrbitWidget({ currentDay, sessions }: Props) {
       </Svg>
 
       <View style={s.overlay} pointerEvents="none">
-        <Text style={s.lbl}>CYCLE</Text>
-        <Text style={s.num}>{cycleNum}</Text>
-        <Text style={s.pct}>{pct}%</Text>
+        <Text style={s.lbl}>DAY {currentDay}</Text>
+        <Text style={s.name} numberOfLines={1} adjustsFontSizeToFit>{dayLabel.toUpperCase()}</Text>
+        <Text style={s.pct}>C{cycleNum} · {pct}%</Text>
       </View>
     </View>
   );
@@ -89,7 +90,7 @@ export function CycleOrbitWidget({ currentDay, sessions }: Props) {
 const s = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center' },
   overlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  lbl:       { fontSize: 9,  fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 2 },
-  num:       { fontSize: 42, fontWeight: '900', color: '#fff', letterSpacing: -2,  lineHeight: 46 },
-  pct:       { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginTop: 2 },
+  lbl:  { fontSize: 9,  fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 4 },
+  name: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5, textAlign: 'center', paddingHorizontal: 10 },
+  pct:  { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
 });
