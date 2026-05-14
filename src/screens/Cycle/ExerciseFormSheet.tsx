@@ -4,12 +4,11 @@ import {
   StyleSheet, Modal, KeyboardAvoidingView, Platform, PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { AppBackground } from '../../components/ui/AppBackground';
 import {
-  GRAD, COLORS, MUSCLE_TAGS, MUSCLE_TAG_COLOR,
+  COLORS, MUSCLE_TAGS, MUSCLE_TAG_COLOR,
   SET_TYPE_LABELS, BAR_WEIGHTS,
 } from '../../constants';
 import { Exercise, SetType, WeightUnit } from '../../types';
@@ -416,7 +415,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               {advanced && (
                 <>
                   {/* Set type */}
-                  <Text style={f.fieldLabel}>Set Type</Text>
+                  <Text style={[f.fieldLabel, { marginTop: 20 }]}>Set Type</Text>
                   <View style={f.chipGrid}>
                     {SET_TYPES.map(st => (
                       <TouchableOpacity
@@ -506,18 +505,6 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                 </>
               )}
 
-              {/* Save button */}
-              <TouchableOpacity
-                onPress={handleSave}
-                disabled={!canSave}
-                style={[f.saveBtn, { opacity: canSave ? 1 : 0.35 }]}
-                activeOpacity={0.85}
-              >
-                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={f.saveGrad}>
-                  <Text style={f.saveTxt}>{isEdit ? 'Save Changes' : 'Add Exercise'}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
               <View style={{ height: 40 }} />
             </ScrollView>
           </KeyboardAvoidingView>
@@ -581,9 +568,4 @@ const f = StyleSheet.create({
   // Notes
   notesWrap:  { paddingHorizontal: 14, paddingVertical: 12 },
   notesInput: { fontSize: 15, color: '#fff', padding: 0, minHeight: 60 },
-
-  // Save
-  saveBtn:    { marginTop: 28, borderRadius: 14, overflow: 'hidden' },
-  saveGrad:   { paddingVertical: 16, alignItems: 'center' },
-  saveTxt:    { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 });

@@ -144,7 +144,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
           </LinearGradient>
           <Text style={s.doneLabel}>S{set.setNumber}</Text>
           {!isBodyweight && (
-            <Text style={s.doneVal}>{set.actualWeight ?? '-'}{exercise.weightUnit}</Text>
+            <Text style={s.doneVal}>{set.actualWeight ?? '-'} {exercise.weightUnit}</Text>
           )}
           <Text style={s.doneVal}>
             {isFailure ? set.actualRepsToFailure : set.actualReps} reps
@@ -177,7 +177,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
       <View style={s.fields}>
         {!isBodyweight && (
           <View style={s.field}>
-            <Text style={s.fieldLbl}>Weight</Text>
+            <Text style={s.fieldLbl}>Weight ({exercise.weightUnit})</Text>
             <TextInput
               style={s.input}
               value={weight}

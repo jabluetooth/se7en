@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
@@ -7,8 +7,6 @@ import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-
-const PRESETS = [45, 60, 90, 120, 180];
 
 interface Props {
   exerciseName?:     string;
@@ -104,10 +102,24 @@ export function RestTimerScreen({
     return () => clearTimeout(t);
   }, [done]);
 
-  const startPreset = (val: number) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setTotal(val); setSeconds(val); setRunning(true); setDone(false);
-  };
+  // Pulse animation for the "resting..." status text — runs only while
+  // the timer is actively counting down.
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!running || done) {
+      pulse.stopAnimation();
+      Animated.timing(pulse, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.45, duration: 850, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,    duration: 850, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [running, done]);
 
   const toggle = () => {
     if (done) { onClose(); return; }
@@ -140,9 +152,11 @@ export function RestTimerScreen({
 
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
-          <View>
-            <Text style={s.headerSub}>After Set {setNumber}</Text>
-            <Text style={s.headerTitle}>{exerciseName}</Text>
+          <View style={s.headerTextWrap}>
+            <Text style={s.headerSub} numberOfLines={1}>After Set {setNumber}</Text>
+            <Text style={s.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+              {exerciseName}
+            </Text>
           </View>
           <Badge label="Rest" variant="rest" size="xs" />
         </View>
@@ -176,19 +190,26 @@ export function RestTimerScreen({
 
         {/* ── Ring timer ─────────────────────────────────── */}
         <View style={s.timerWrap}>
+          {/* Next set / next exercise pill — sits above the ring */}
+          <GlassView radius={999} style={s.nextPill}>
+            <Text style={s.nextText}>
+              {nextExerciseName ? `Next: ${nextExerciseName}` : `Next: Set ${setNumber + 1}`}
+            </Text>
+          </GlassView>
+
           <View style={s.ringWrap}>
             <View style={{ transform: [{ scaleX: -1 }] }}>
               <Svg width={260} height={260} viewBox="0 0 260 260">
                 <Defs>
                   <SvgGrad id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%"   stopColor={urgent ? '#FF5A5A' : '#9035F0'} />
-                    <Stop offset="50%"  stopColor={urgent ? '#EE4040' : '#7B5EFA'} />
+                    <Stop offset="0%"   stopColor={urgent ? '#FF5A5A' : '#22C55E'} />
+                    <Stop offset="50%"  stopColor={urgent ? '#EE4040' : '#10B981'} />
                     <Stop offset="100%" stopColor={urgent ? '#E83535' : '#2ECAC4'} />
                   </SvgGrad>
                 </Defs>
                 <Circle cx={130} cy={130} r={R} fill="none" stroke="rgba(255,240,220,0.08)" strokeWidth={stroke} />
                 <Circle cx={130} cy={130} r={R} fill="none"
-                  stroke={urgent ? 'rgba(240,80,80,0.20)' : 'rgba(123,94,250,0.16)'}
+                  stroke={urgent ? 'rgba(240,80,80,0.20)' : 'rgba(34,197,94,0.18)'}
                   strokeWidth={stroke + 10} strokeDasharray={circ} strokeDashoffset={off}
                   strokeLinecap="round" rotation={-90} origin="130,130" />
                 <Circle cx={130} cy={130} r={R} fill="none" stroke="url(#rg)"
@@ -205,24 +226,12 @@ export function RestTimerScreen({
               ) : (
                 <>
                   <Text style={[s.time, urgent && s.timeUrgent]}>{timeStr}</Text>
-                  <Text style={s.timeSub}>{running ? 'resting...' : 'paused'}</Text>
+                  <Animated.Text style={[s.timeSub, { opacity: pulse }]}>
+                    {running ? 'resting...' : 'paused'}
+                  </Animated.Text>
                 </>
               )}
             </View>
-          </View>
-
-          {/* Preset pills */}
-          <View style={s.presets}>
-            {PRESETS.map(p => (
-              <TouchableOpacity key={p} onPress={() => startPreset(p)} activeOpacity={0.8}
-                style={[s.presetBtn, seconds === p && !done && s.presetBtnActive]}>
-                {seconds === p && !done
-                  ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.presetGrad}>
-                      <Text style={s.presetTextActive}>{p < 60 ? p + 's' : Math.floor(p / 60) + 'min'}</Text>
-                    </LinearGradient>
-                  : <Text style={s.presetText}>{p < 60 ? p + 's' : Math.floor(p / 60) + 'min'}</Text>}
-              </TouchableOpacity>
-            ))}
           </View>
 
           {/* Adjust */}
@@ -234,13 +243,6 @@ export function RestTimerScreen({
               style={s.adjustBtn}><Text style={s.adjustText}>+15</Text></TouchableOpacity>
           </View>
         </View>
-
-        {/* ── Next set / next exercise pill ───────────────── */}
-        <GlassView radius={999} style={s.nextPill}>
-          <Text style={s.nextText}>
-            {nextExerciseName ? `Next: ${nextExerciseName}` : `Next: Set ${setNumber + 1}`}
-          </Text>
-        </GlassView>
 
         {/* ── Bottom controls ─────────────────────────────── */}
         <View style={s.controls}>
@@ -266,7 +268,8 @@ export function RestTimerScreen({
 }
 
 const s = StyleSheet.create({
-  header:           { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  header:           { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  headerTextWrap:   { flex: 1, minWidth: 0 },
   headerSub:        { fontSize: 13, fontWeight: '600', color: COLORS.textMuted, marginBottom: 2 },
   headerTitle:      { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
 
@@ -287,22 +290,15 @@ const s = StyleSheet.create({
   timeUrgent:       { color: COLORS.danger },
   timeSub:          { fontSize: 13, color: COLORS.textSecondary },
 
-  presets:          { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-  presetBtn:        { borderRadius: 999, overflow: 'hidden' },
-  presetBtnActive:  {},
-  presetGrad:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999 },
-  presetText:       { paddingHorizontal: 14, paddingVertical: 7, fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, backgroundColor: 'rgba(255,240,220,0.06)', borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', overflow: 'hidden' },
-  presetTextActive: { fontSize: 13, fontWeight: '700', color: '#000' },
-
   adjust:           { flexDirection: 'row', alignItems: 'center', gap: 12 },
   adjustBtn:        { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', alignItems: 'center', justifyContent: 'center' },
   adjustText:       { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
   adjustLabel:      { fontSize: 12, color: COLORS.textMuted },
 
-  nextPill:         { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 8, marginBottom: 10 },
+  nextPill:         { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 8 },
   nextText:         { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
 
-  controls:         { paddingHorizontal: 16, paddingBottom: 32, flexDirection: 'row', gap: 10 },
+  controls:         { paddingHorizontal: 16, paddingBottom: 48, flexDirection: 'row', gap: 10 },
   skipBtn:          { borderRadius: 14 },
   skipInner:        { height: 54, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center' },
   skipText:         { fontSize: 15, fontWeight: '600', color: COLORS.textSecondary },

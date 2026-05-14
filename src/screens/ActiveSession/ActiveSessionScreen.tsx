@@ -40,6 +40,16 @@ export function ActiveSessionScreen({ onFinish }: Props) {
   const volume      = Math.round(sessionTotalVolume(activeSession.exercises));
   const activeExIdx = activeSession.exercises.findIndex(ex => !ex.isCompleted);
 
+  // Volume unit derived from the session's exercises. `bodyweight` contributes
+  // reps (per utils/volume.ts), so display it as "reps". Mixed units fall back
+  // to "mixed" so the figure isn't mislabelled.
+  const volumeUnit = (() => {
+    const units = [...new Set(activeSession.exercises.map(e => e.weightUnit))];
+    if (units.length === 0) return 'kg';
+    if (units.length > 1)  return 'mixed';
+    return units[0] === 'bodyweight' ? 'reps' : units[0];
+  })();
+
   const handleFinish = async () => {
     const session = await finishSession();
     if (session) onFinish(session);
@@ -105,7 +115,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 
           <GlassView radius={12} style={s.statChip}>
             <Text style={s.statValue}>{volume}</Text>
-            <Text style={s.statLabel}>Volume (kg)</Text>
+            <Text style={s.statLabel}>Volume ({volumeUnit})</Text>
           </GlassView>
         </View>
 
