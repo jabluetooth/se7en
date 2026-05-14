@@ -76,19 +76,6 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
     return m;
   }, [activePlan]);
 
-  const weekSplit = (week: (number|null)[]): string | null => {
-    const counts = new Map<string, number>();
-    week.forEach(day => {
-      if (!day) return;
-      const sess = dayMap.get(day);
-      if (!sess) return;
-      const sp = planSplitMap.get(sess.planId) ?? splitName;
-      counts.set(sp, (counts.get(sp) ?? 0) + 1);
-    });
-    if (!counts.size) return null;
-    return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
-  };
-
   // day-of-month → best session (highest volume)
   const dayMap = useMemo(() => {
     const m = new Map<number, WorkoutSession>();
@@ -123,7 +110,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
     });
   }, [dayMap, activePlan]);
 
-  // Build grid
+  // Build grid — standard Sun→Sat calendar.
   const firstDow  = new Date(year, month, 1).getDay();
   const daysInMon = new Date(year, month + 1, 0).getDate();
   const cells: (number|null)[] = [
@@ -135,6 +122,50 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
   const isTodayFn = (d: number) =>
     today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+
+  // Split a row's days into cycle-aligned segments. A new segment starts on any
+  // day whose cycle position is 1 (the user's cycle start day-of-week). This
+  // keeps pills bound to the user's cycle (e.g. Tue→Mon) instead of Sun→Sat.
+  const cycleSegments = (days: number[]): number[][] => {
+    if (!cycleStartDate) return days.length ? [days] : [];
+    const out: number[][] = [];
+    let cur: number[] = [];
+    for (const day of days) {
+      const pos = dayPositionForDate(cycleStartDate, new Date(year, month, day));
+      if (pos === 1 && cur.length > 0) { out.push(cur); cur = []; }
+      cur.push(day);
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+
+  const segmentSplit = (days: number[]): string | null => {
+    const counts = new Map<string, number>();
+    days.forEach(day => {
+      const sess = dayMap.get(day);
+      if (!sess) return;
+      const sp = planSplitMap.get(sess.planId) ?? splitName;
+      counts.set(sp, (counts.get(sp) ?? 0) + 1);
+    });
+    if (!counts.size) return null;
+    return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  };
+
+  const segmentPillColor = (days: number[]): string | null => {
+    const todayDay = days.find(d => isTodayFn(d));
+    if (todayDay !== undefined) {
+      const ss = dayMap.get(todayDay);
+      if (ss && !isRestDay(ss.dayPosition)) return DAY_COLOR[ss.dayPosition] ?? null;
+    }
+    const counts = new Map<string, number>();
+    days.forEach(d => {
+      const ss = dayMap.get(d);
+      if (!ss || isRestDay(ss.dayPosition)) return;
+      const c = DAY_COLOR[ss.dayPosition] ?? DEFAULT_COLOR;
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    });
+    return counts.size ? [...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0] : null;
+  };
 
   const onPress = (day: number) =>
     setSel(prev => prev?.day === day ? null : { day, session: dayMap.get(day) ?? null });
@@ -180,120 +211,124 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
         {/* Grid */}
         <View style={s.grid}>
           {weeks.map((week, wi) => {
-            const sp = weekSplit(week);
-
             // Pill trims null-padding: spans only the actual calendar days
             const firstReal = week.findIndex(d => d !== null);
             const lastReal  = week.reduce<number>((l, d, i) => (d !== null ? i : l), -1);
             if (firstReal === -1) return null;
 
             const preCount  = firstReal;
-            const postCount = lastReal >= 0 ? week.length - 1 - lastReal : 0;
-            const pillDays  = lastReal >= 0 ? week.slice(firstReal, lastReal + 1) : [];
+            const postCount = week.length - 1 - lastReal;
+            const pillDays  = week.slice(firstReal, lastReal + 1).filter((d): d is number => d !== null);
 
-            // Pill background color
-            const pillColor = (() => {
-              const todayDay = pillDays.find(d => d !== null && isTodayFn(d!));
-              if (todayDay) {
-                const s = dayMap.get(todayDay!);
-                if (s && !isRestDay(s.dayPosition)) return DAY_COLOR[s.dayPosition] ?? null;
-              }
-              const counts = new Map<string, number>();
-              pillDays.forEach(d => {
-                if (!d) return;
-                const s = dayMap.get(d);
-                if (!s || isRestDay(s.dayPosition)) return;
-                const c = DAY_COLOR[s.dayPosition] ?? DEFAULT_COLOR;
-                counts.set(c, (counts.get(c) ?? 0) + 1);
-              });
-              return counts.size ? [...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0] : null;
-            })();
+            // Split the row at cycle boundaries → one pill per cycle slice
+            const segments = cycleSegments(pillDays);
 
             return (
               <View key={wi} style={s.weekWrap}>
 
-                {/* Row: pre-spacers + pill wrapper + post-spacers */}
+                {/* Row: pre-spacers + one pill-wrapper per cycle segment + post-spacers */}
                 <View style={s.weekRow}>
                   {Array.from({ length: preCount }).map((_, i) => (
                     <View key={`pre-${i}`} style={s.weekSlot} />
                   ))}
 
-                  {/* pillWrap: occupies proportional flex; centers title below pill */}
-                  <View style={[s.pillWrap, { flex: pillDays.length }]}>
-                    <View style={[
-                      s.weekPill,
-                      pillColor ? { backgroundColor: rgba(pillColor, 0.13) } : s.weekPillEmpty,
-                    ]}>
-                      {pillDays.map((day, di) => {
-                        if (!day) return <View key={di} style={s.emptyCell} />;
+                  {segments.map((segDays, si) => {
+                    const sp        = segmentSplit(segDays);
+                    const pillColor = segmentPillColor(segDays);
 
-                        const sess      = dayMap.get(day) ?? null;
-                        const todayD    = isTodayFn(day);
-                        const active    = sel?.day === day;
-                        const isPast    = new Date(year, month, day) < today;
+                    // Cycle continuity across rows — when a cycle spans the
+                    // Sat→Sun boundary, flatten the pill edges where it joins
+                    // the matching slice on the previous/next row so the cycle
+                    // reads as one shape rather than two unrelated pills.
+                    const firstPos = cycleStartDate
+                      ? dayPositionForDate(cycleStartDate, new Date(year, month, segDays[0]))
+                      : null;
+                    const lastPos  = cycleStartDate
+                      ? dayPositionForDate(cycleStartDate, new Date(year, month, segDays[segDays.length - 1]))
+                      : null;
+                    const continuesLeft  = firstPos !== null && firstPos > 1;
+                    const continuesRight = lastPos  !== null && lastPos  < 7;
+                    const isAnchor       = !continuesLeft;  // segment starts a new cycle
 
-                        // Use cycle schedule to determine if this date is a rest day.
-                        // Falls back to session's own dayPosition when no cycle is anchored.
-                        const planDay   = planDayForCalDay(day);
-                        const schedRest = planDay
-                          ? planDay.isRestDay
-                          : (!!sess && isRestDay(sess.dayPosition));
+                    return (
+                      <View key={`seg-${si}`} style={[s.pillWrap, { flex: segDays.length }]}>
+                        <View style={[
+                          s.weekPill,
+                          pillColor ? { backgroundColor: rgba(pillColor, 0.13) } : s.weekPillEmpty,
+                          continuesLeft  && { borderTopLeftRadius: 4,  borderBottomLeftRadius: 4 },
+                          continuesRight && { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+                        ]}>
+                          {segDays.map((day, di) => {
+                            const sess      = dayMap.get(day) ?? null;
+                            const todayD    = isTodayFn(day);
+                            const active    = sel?.day === day;
+                            const isPast    = new Date(year, month, day) < today;
 
-                        // Workout color — suppressed when schedule says rest
-                        const color = sess && !schedRest
-                          ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
-                          : null;
+                            // Use cycle schedule to determine if this date is a rest day.
+                            // Falls back to session's own dayPosition when no cycle is anchored.
+                            const planDay   = planDayForCalDay(day);
+                            const schedRest = planDay
+                              ? planDay.isRestDay
+                              : (!!sess && isRestDay(sess.dayPosition));
 
-                        // Faint planned-but-missed colour for past workout days with no session
-                        const missedColor = !sess && isPast && !todayD && planDay && !planDay.isRestDay
-                          ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
-                          : null;
+                            // Workout color — suppressed when schedule says rest
+                            const color = sess && !schedRest
+                              ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
+                              : null;
 
-                        // Green only when the plan schedule explicitly marks this date as rest
-                        const isRestCell = schedRest && (isPast || todayD);
+                            // Faint planned-but-missed colour for past workout days with no session
+                            const missedColor = !sess && isPast && !todayD && planDay && !planDay.isRestDay
+                              ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
+                              : null;
 
-                        const fh = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
+                            // Green only when the plan schedule explicitly marks this date as rest
+                            const isRestCell = schedRest && (isPast || todayD);
 
-                        return (
-                          <TouchableOpacity
-                            key={di}
-                            onPress={() => onPress(day)}
-                            activeOpacity={0.75}
-                            style={[
-                              s.cell,
-                              color       ? { backgroundColor: rgba(color, 0.20),       borderColor: rgba(color, 0.42) }       : null,
-                              missedColor ? { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) } : null,
-                              isRestCell  ? { backgroundColor: rgba(REST_GREEN, 0.16),  borderColor: rgba(REST_GREEN, 0.30) }  : null,
-                              !color && !isRestCell && !missedColor ? s.cellEmpty : null,
-                              todayD && s.cellToday,
-                              active && s.cellActive,
-                            ]}
-                          >
-                            {color && fh > 0 && (
-                              <View style={[s.fillBar, { height: fh, backgroundColor: rgba(color, 0.88) }]} />
-                            )}
-                            <Text style={[
-                              s.cellNum,
-                              !sess && !todayD && !isRestCell && !missedColor && s.cellNumEmpty,
-                              isRestCell  && s.cellNumRest,
-                              todayD && !sess && s.cellNumToday,
-                              !!color     && s.cellNumSess,
-                              !!missedColor && { color: rgba(missedColor, 0.45) } as any,
-                            ]}>
-                              {day}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                            const fh = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
 
-                    {/* Title centered below the pill */}
-                    {sp && pillColor && (
-                      <Text style={[s.pillTitleTxt, { color: rgba(pillColor, 0.85) }]} numberOfLines={1}>
-                        {sp}
-                      </Text>
-                    )}
-                  </View>
+                            return (
+                              <TouchableOpacity
+                                key={di}
+                                onPress={() => onPress(day)}
+                                activeOpacity={0.75}
+                                style={[
+                                  s.cell,
+                                  color       ? { backgroundColor: rgba(color, 0.20),       borderColor: rgba(color, 0.42) }       : null,
+                                  missedColor ? { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) } : null,
+                                  isRestCell  ? { backgroundColor: rgba(REST_GREEN, 0.16),  borderColor: rgba(REST_GREEN, 0.30) }  : null,
+                                  !color && !isRestCell && !missedColor ? s.cellEmpty : null,
+                                  todayD && s.cellToday,
+                                  active && s.cellActive,
+                                ]}
+                              >
+                                {color && fh > 0 && (
+                                  <View style={[s.fillBar, { height: fh, backgroundColor: rgba(color, 0.88) }]} />
+                                )}
+                                <Text style={[
+                                  s.cellNum,
+                                  !sess && !todayD && !isRestCell && !missedColor && s.cellNumEmpty,
+                                  isRestCell  && s.cellNumRest,
+                                  todayD && !sess && s.cellNumToday,
+                                  !!color     && s.cellNumSess,
+                                  !!missedColor && { color: rgba(missedColor, 0.45) } as any,
+                                ]}>
+                                  {day}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {/* Title — only on the segment that anchors the cycle,
+                            so a Mon→Sun cycle split across rows isn't labelled twice */}
+                        {sp && pillColor && isAnchor && (
+                          <Text style={[s.pillTitleTxt, { color: rgba(pillColor, 0.85) }]} numberOfLines={1}>
+                            {sp}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
 
                   {Array.from({ length: postCount }).map((_, i) => (
                     <View key={`post-${i}`} style={s.weekSlot} />
@@ -407,7 +442,9 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const CELL = 40;
-const GAP  = 5;
+const GAP  = 4;          // vertical gap between calendar rows
+const CELL_GAP = 4;      // horizontal gap between day cells
+const PILL_PAD = CELL_GAP / 2;  // 2*pad === gap keeps cell size uniform across segments
 
 function fillHeight(vol: number, max: number): number {
   if (!vol || !max) return 0;
@@ -447,7 +484,7 @@ const s = StyleSheet.create({
   weekWrap:      {},  // column wrapper — one per week
   weekRow:       { flexDirection: 'row', alignItems: 'center' },  // pre-spacers + pill + post-spacers
   weekSlot:      { flex: 1 },  // transparent placeholder for null-padding days
-  weekPill:      { flexDirection: 'row', borderRadius: 999, height: CELL + 8, paddingHorizontal: 4, gap: 3, alignItems: 'center', alignSelf: 'stretch' },
+  weekPill:      { flexDirection: 'row', borderRadius: 999, height: CELL + 8, paddingHorizontal: PILL_PAD, gap: CELL_GAP, alignItems: 'center', alignSelf: 'stretch' },
   weekPillEmpty: { backgroundColor: 'rgba(255,240,220,0.04)' },
 
   // pillWrap: occupies flex: pillDays.length in weekRow; centers title below pill

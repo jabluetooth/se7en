@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160">
+  <defs>
+    <linearGradient id="ath-orange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFC850"/>
+      <stop offset="100%" stop-color="#FF4400"/>
+    </linearGradient>
+    <linearGradient id="ath-shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+      <stop offset="40%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <filter id="ath-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="520" height="160" rx="22" fill="#06070E"/>
+
+  <!-- Top stripe -->
+  <rect x="40" y="22" width="440" height="4" fill="#FF8C00"/>
+  <rect x="40" y="28" width="440" height="1.5" fill="rgba(255,140,0,0.4)"/>
+
+  <!-- "SE" italic athletic -->
+  <text x="50" y="108"
+    font-family="'Impact','Arial Black','Helvetica Neue',sans-serif"
+    font-size="100" font-weight="900"
+    fill="#FFFFFF"
+    letter-spacing="-3"
+    transform="skewX(-8)">SE</text>
+
+  <!-- "7" extra-large orange -->
+  <text x="200" y="116"
+    font-family="'Impact','Arial Black','Helvetica Neue',sans-serif"
+    font-size="118" font-weight="900"
+    fill="url(#ath-orange)"
+    letter-spacing="-3"
+    transform="skewX(-8)"
+    filter="url(#ath-glow)">7</text>
+
+  <!-- Shine overlay on 7 -->
+  <text x="200" y="116"
+    font-family="'Impact','Arial Black','Helvetica Neue',sans-serif"
+    font-size="118" font-weight="900"
+    fill="url(#ath-shine)"
+    letter-spacing="-3"
+    transform="skewX(-8)">7</text>
+
+  <!-- "EN" italic athletic -->
+  <text x="290" y="108"
+    font-family="'Impact','Arial Black','Helvetica Neue',sans-serif"
+    font-size="100" font-weight="900"
+    fill="#FFFFFF"
+    letter-spacing="-3"
+    transform="skewX(-8)">EN</text>
+
+  <!-- Bottom stripe -->
+  <rect x="40" y="124" width="440" height="4" fill="#FF8C00"/>
+  <rect x="40" y="120.5" width="440" height="1.5" fill="rgba(255,140,0,0.4)"/>
+
+  <!-- Side text -->
+  <text x="40" y="148"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="10" font-weight="800"
+    fill="rgba(255,140,0,0.55)"
+    letter-spacing="4">EST · MMXXVI</text>
+  <text x="480" y="148"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="10" font-weight="800"
+    fill="rgba(255,140,0,0.55)"
+    text-anchor="end"
+    letter-spacing="4">7-DAY CYCLE</text>
+</svg>

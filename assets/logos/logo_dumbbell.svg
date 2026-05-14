@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="d-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A1410"/>
+      <stop offset="100%" stop-color="#06070E"/>
+    </linearGradient>
+    <linearGradient id="d-bar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFB040"/>
+      <stop offset="50%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#E06000"/>
+    </linearGradient>
+    <linearGradient id="d-plate" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFC850"/>
+      <stop offset="100%" stop-color="#FF5500"/>
+    </linearGradient>
+    <filter id="d-glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="200" height="200" rx="46" fill="url(#d-bg)"/>
+
+  <!-- Motion lines above bar -->
+  <line x1="42" y1="34" x2="58" y2="34" stroke="rgba(255,140,0,0.35)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="142" y1="34" x2="158" y2="34" stroke="rgba(255,140,0,0.35)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="60" y1="42" x2="72" y2="42" stroke="rgba(255,140,0,0.20)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="128" y1="42" x2="140" y2="42" stroke="rgba(255,140,0,0.20)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Dumbbell — forms top horizontal stroke of the 7 -->
+  <!-- Left outer plate -->
+  <rect x="14" y="60" width="9" height="32" rx="2" fill="url(#d-plate)"/>
+  <!-- Left inner plate -->
+  <rect x="25" y="50" width="14" height="52" rx="2" fill="url(#d-plate)"/>
+  <!-- Bar -->
+  <rect x="39" y="64" width="122" height="24" rx="3" fill="url(#d-bar)"/>
+  <!-- Bar specular highlight -->
+  <rect x="39" y="66" width="122" height="5" rx="2" fill="rgba(255,255,255,0.40)"/>
+  <!-- Knurl marks on bar -->
+  <g stroke="rgba(0,0,0,0.25)" stroke-width="1">
+    <line x1="58" y1="74" x2="58" y2="82"/>
+    <line x1="100" y1="74" x2="100" y2="82"/>
+    <line x1="142" y1="74" x2="142" y2="82"/>
+  </g>
+  <!-- Right inner plate -->
+  <rect x="161" y="50" width="14" height="52" rx="2" fill="url(#d-plate)"/>
+  <!-- Right outer plate -->
+  <rect x="177" y="60" width="9" height="32" rx="2" fill="url(#d-plate)"/>
+
+  <!-- Diagonal leg of the 7 -->
+  <path d="M 141 88 L 165 88 L 108 178 L 86 178 Z" fill="url(#d-bar)" filter="url(#d-glow)"/>
+</svg>

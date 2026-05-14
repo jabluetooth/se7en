@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="g-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB020"/>
+      <stop offset="50%" stop-color="#FF7000"/>
+      <stop offset="100%" stop-color="#E03000"/>
+    </linearGradient>
+    <linearGradient id="g-7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFE8C0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Vibrant orange field -->
+  <rect width="200" height="200" rx="46" fill="url(#g-bg)"/>
+
+  <!-- Decorative geometric grid (subtle) -->
+  <g stroke="rgba(255,255,255,0.10)" stroke-width="1" fill="none">
+    <circle cx="100" cy="100" r="80"/>
+    <circle cx="100" cy="100" r="60"/>
+    <line x1="100" y1="20" x2="100" y2="180"/>
+    <line x1="20" y1="100" x2="180" y2="100"/>
+    <line x1="40" y1="40" x2="160" y2="160"/>
+    <line x1="160" y1="40" x2="40" y2="160"/>
+  </g>
+
+  <!-- Diamond frame -->
+  <path d="M 100 26 L 174 100 L 100 174 L 26 100 Z"
+    fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5"/>
+
+  <!-- Solid geometric 7 (path, not text — pixel-perfect) -->
+  <path
+    d="M 58 56
+       L 142 56
+       L 142 76
+       L 100 76
+       L 86 152
+       L 64 152
+       L 78 76
+       L 58 76
+       Z"
+    fill="url(#g-7)"/>
+
+  <!-- Subtle bottom shadow line under 7 -->
+  <line x1="64" y1="160" x2="86" y2="160"
+    stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+</svg>

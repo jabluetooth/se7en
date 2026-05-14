@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="minOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FF8C00"/>
+    </linearGradient>
+    <linearGradient id="minBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111118"/>
+      <stop offset="100%" stop-color="#080910"/>
+    </linearGradient>
+    <linearGradient id="stripe" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF8C00" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#FF8C00" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#FF4400" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#FF4400" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" rx="44" fill="url(#minBg)"/>
+
+  <!-- Left vertical accent bar -->
+  <rect x="24" y="44" width="4" height="112" rx="2" fill="rgba(255,140,0,0.6)"/>
+
+  <!-- Bold 7 — white fading to orange -->
+  <text x="112" y="148"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="122" font-weight="900"
+    fill="url(#minOrange)"
+    text-anchor="middle"
+    letter-spacing="-5">7</text>
+
+  <!-- Bottom accent stripe -->
+  <rect x="24" y="164" width="152" height="3" rx="1.5" fill="url(#stripe)"/>
+
+  <!-- "SE_EN" sub-label -->
+  <text x="112" y="187"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="10" font-weight="700"
+    fill="rgba(255,240,220,0.30)"
+    text-anchor="middle"
+    letter-spacing="4">SE · EN</text>
+</svg>

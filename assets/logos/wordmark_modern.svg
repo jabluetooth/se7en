@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 130" width="460" height="130">
+  <defs>
+    <linearGradient id="m-7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB040"/>
+      <stop offset="100%" stop-color="#FF4400"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="460" height="130" rx="16" fill="#08090F"/>
+
+  <!-- Thin "se" -->
+  <text x="80" y="80"
+    font-family="'Helvetica Neue','Inter','Arial',sans-serif"
+    font-size="76" font-weight="200"
+    fill="#FFFFFF"
+    letter-spacing="2">se</text>
+
+  <!-- Bold "7" -->
+  <text x="200" y="84"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="86" font-weight="900"
+    fill="url(#m-7)"
+    letter-spacing="-3">7</text>
+
+  <!-- Thin "en" -->
+  <text x="262" y="80"
+    font-family="'Helvetica Neue','Inter','Arial',sans-serif"
+    font-size="76" font-weight="200"
+    fill="#FFFFFF"
+    letter-spacing="2">en</text>
+
+  <!-- Decorative orange dot at end -->
+  <circle cx="396" cy="78" r="5" fill="#FF8C00"/>
+
+  <!-- Tagline -->
+  <text x="80" y="108"
+    font-family="'Helvetica Neue','Inter','Arial',sans-serif"
+    font-size="10" font-weight="500"
+    fill="rgba(255,240,220,0.35)"
+    letter-spacing="6">TRAIN · CYCLE · REPEAT</text>
+</svg>

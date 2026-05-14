@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bar-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F0A08"/>
+      <stop offset="100%" stop-color="#06070E"/>
+    </linearGradient>
+    <linearGradient id="bar-peak" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD060"/>
+      <stop offset="50%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#E04000"/>
+    </linearGradient>
+    <linearGradient id="bar-mid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF8C00" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#C04000" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="bar-glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="200" height="200" rx="46" fill="url(#bar-bg)"/>
+
+  <!-- 7 vertical bars representing the 7-day cycle -->
+  <g>
+    <rect x="22"  y="120" width="18" height="50" rx="3" fill="rgba(255,140,0,0.22)"/>
+    <rect x="46"  y="100" width="18" height="70" rx="3" fill="rgba(255,140,0,0.40)"/>
+    <rect x="70"  y="78"  width="18" height="92" rx="3" fill="rgba(255,140,0,0.65)"/>
+    <!-- Peak (day 4) -->
+    <rect x="92"  y="50"  width="22" height="120" rx="4" fill="url(#bar-peak)" filter="url(#bar-glow)"/>
+    <rect x="118" y="78"  width="18" height="92" rx="3" fill="url(#bar-mid)"/>
+    <rect x="142" y="100" width="18" height="70" rx="3" fill="rgba(255,140,0,0.40)"/>
+    <rect x="166" y="120" width="18" height="50" rx="3" fill="rgba(255,140,0,0.22)"/>
+  </g>
+
+  <!-- Baseline -->
+  <line x1="18" y1="174" x2="186" y2="174" stroke="rgba(255,140,0,0.30)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- "7" label at top -->
+  <text x="103" y="42"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="34" font-weight="900"
+    fill="url(#bar-peak)"
+    text-anchor="middle"
+    letter-spacing="-1.5"
+    filter="url(#bar-glow)">7</text>
+
+  <!-- Active day indicator dot under peak bar -->
+  <circle cx="103" cy="184" r="3" fill="#FF8C00" filter="url(#bar-glow)"/>
+</svg>

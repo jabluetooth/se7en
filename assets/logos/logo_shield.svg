@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="sh-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#221608"/>
+      <stop offset="100%" stop-color="#05060C"/>
+    </linearGradient>
+    <linearGradient id="sh-shield" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E1410"/>
+      <stop offset="100%" stop-color="#0C0D14"/>
+    </linearGradient>
+    <linearGradient id="sh-stroke" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFC040"/>
+      <stop offset="100%" stop-color="#FF4400"/>
+    </linearGradient>
+    <linearGradient id="sh-num" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE090"/>
+      <stop offset="100%" stop-color="#FF5500"/>
+    </linearGradient>
+    <filter id="sh-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="200" height="200" rx="46" fill="url(#sh-bg)"/>
+
+  <!-- Shield silhouette — pointed at the bottom, curved shoulders -->
+  <path
+    d="M 100 20
+       L 168 40
+       L 168 110
+       Q 168 150 100 184
+       Q 32 150 32 110
+       L 32 40 Z"
+    fill="url(#sh-shield)"
+    stroke="url(#sh-stroke)"
+    stroke-width="3"/>
+
+  <!-- Inner shield outline (faint) -->
+  <path
+    d="M 100 30
+       L 158 47
+       L 158 108
+       Q 158 144 100 174
+       Q 42 144 42 108
+       L 42 47 Z"
+    fill="none"
+    stroke="rgba(255,140,0,0.16)"
+    stroke-width="1"/>
+
+  <!-- Crossing chevron lines (heraldic-style accent) -->
+  <line x1="50" y1="60" x2="80" y2="60" stroke="rgba(255,140,0,0.40)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="120" y1="60" x2="150" y2="60" stroke="rgba(255,140,0,0.40)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Bold 7 -->
+  <text x="102" y="132"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="84" font-weight="900"
+    fill="url(#sh-num)"
+    text-anchor="middle"
+    letter-spacing="-3"
+    filter="url(#sh-glow)">7</text>
+
+  <!-- Banner text at bottom of shield -->
+  <text x="100" y="158"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="8" font-weight="800"
+    fill="rgba(255,140,0,0.55)"
+    text-anchor="middle"
+    letter-spacing="3.5">SE · 7 · EN</text>
+</svg>

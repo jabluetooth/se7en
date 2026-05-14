@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="pl-disc" cx="40%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#3A1F0A"/>
+      <stop offset="100%" stop-color="#08080F"/>
+    </radialGradient>
+    <linearGradient id="pl-ring" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFC850"/>
+      <stop offset="100%" stop-color="#C04000"/>
+    </linearGradient>
+    <linearGradient id="pl-num" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE8A0"/>
+      <stop offset="100%" stop-color="#FF5500"/>
+    </linearGradient>
+    <filter id="pl-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="pl-shadow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.6"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="200" height="200" rx="46" fill="#04050B"/>
+
+  <!-- Plate shadow underneath -->
+  <ellipse cx="100" cy="175" rx="80" ry="8" fill="rgba(0,0,0,0.5)" filter="url(#pl-shadow)"/>
+
+  <!-- Outer plate disc -->
+  <circle cx="100" cy="100" r="85" fill="url(#pl-disc)"/>
+  <!-- Bold orange ring -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#pl-ring)" stroke-width="5"/>
+  <!-- Inner concentric ring (faint) -->
+  <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,140,0,0.18)" stroke-width="1.5"/>
+  <!-- Innermost ring -->
+  <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(255,140,0,0.08)" stroke-width="1"/>
+
+  <!-- Grip notch cutouts around the rim -->
+  <g fill="rgba(255,140,0,0.6)">
+    <circle cx="100" cy="22"  r="2.5"/>
+    <circle cx="155" cy="45"  r="2.5"/>
+    <circle cx="178" cy="100" r="2.5"/>
+    <circle cx="155" cy="155" r="2.5"/>
+    <circle cx="100" cy="178" r="2.5"/>
+    <circle cx="45"  cy="155" r="2.5"/>
+    <circle cx="22"  cy="100" r="2.5"/>
+    <circle cx="45"  cy="45"  r="2.5"/>
+  </g>
+
+  <!-- Top weight label -->
+  <text x="100" y="58"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="9" font-weight="800"
+    fill="rgba(255,140,0,0.55)"
+    text-anchor="middle"
+    letter-spacing="3.5">SE7EN</text>
+
+  <!-- Bold 7 -->
+  <text x="102" y="138"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="92" font-weight="900"
+    fill="url(#pl-num)"
+    text-anchor="middle"
+    letter-spacing="-3"
+    filter="url(#pl-glow)">7</text>
+
+  <!-- Bottom kg label -->
+  <text x="100" y="160"
+    font-family="'Helvetica Neue','Arial',sans-serif"
+    font-size="8" font-weight="700"
+    fill="rgba(255,240,220,0.30)"
+    text-anchor="middle"
+    letter-spacing="3">KG · DAYS</text>
+</svg>

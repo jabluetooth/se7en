@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300">
+  <defs>
+    <linearGradient id="st-7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE090"/>
+      <stop offset="50%" stop-color="#FF8C00"/>
+      <stop offset="100%" stop-color="#FF3300"/>
+    </linearGradient>
+    <linearGradient id="st-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#13100A"/>
+      <stop offset="100%" stop-color="#06070E"/>
+    </linearGradient>
+    <filter id="st-glow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="240" height="300" rx="32" fill="url(#st-bg)"/>
+
+  <!-- "Se" small at top -->
+  <text x="120" y="68"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="42" font-weight="900"
+    fill="rgba(255,255,255,0.92)"
+    text-anchor="middle"
+    letter-spacing="-1.5">Se</text>
+
+  <!-- Top divider -->
+  <line x1="60" y1="90" x2="180" y2="90"
+    stroke="rgba(255,140,0,0.50)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="120" cy="90" r="3" fill="#FF8C00"/>
+
+  <!-- Big "7" center -->
+  <text x="122" y="218"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="180" font-weight="900"
+    fill="url(#st-7)"
+    text-anchor="middle"
+    letter-spacing="-8"
+    filter="url(#st-glow)">7</text>
+
+  <!-- Bottom divider -->
+  <line x1="60" y1="240" x2="180" y2="240"
+    stroke="rgba(255,140,0,0.50)" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="120" cy="240" r="3" fill="#FF8C00"/>
+
+  <!-- "en" small at bottom -->
+  <text x="120" y="276"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="42" font-weight="900"
+    fill="rgba(255,255,255,0.92)"
+    text-anchor="middle"
+    letter-spacing="-1.5">en</text>
+</svg>

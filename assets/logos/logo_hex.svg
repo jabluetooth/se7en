@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="hexOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB020"/>
+      <stop offset="100%" stop-color="#FF4400"/>
+    </linearGradient>
+    <linearGradient id="hexBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1208"/>
+      <stop offset="100%" stop-color="#0A0B14"/>
+    </linearGradient>
+    <linearGradient id="hexStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8C00" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF4400" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="hexglow">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer hex (rotated 30°, flat-top) -->
+  <!-- Points at r=92: top-right, right, bottom-right, bottom-left, left, top-left -->
+  <polygon
+    points="100,8 179.7,54 179.7,146 100,192 20.3,146 20.3,54"
+    fill="url(#hexBg)"
+    stroke="url(#hexStroke)"
+    stroke-width="2"/>
+
+  <!-- Inner hex (faint guide) -->
+  <polygon
+    points="100,32 165.5,68 165.5,132 100,168 34.5,132 34.5,68"
+    fill="none"
+    stroke="rgba(255,140,0,0.08)"
+    stroke-width="1.5"/>
+
+  <!-- Corner accent dots -->
+  <circle cx="100"  cy="8"   r="3.5" fill="#FF8C00" opacity="0.7"/>
+  <circle cx="179.7" cy="54" r="3.5" fill="#FF8C00" opacity="0.4"/>
+  <circle cx="179.7" cy="146" r="3.5" fill="#FF8C00" opacity="0.2"/>
+
+  <!-- Horizontal mid-line accent -->
+  <line x1="34" y1="100" x2="80" y2="100"
+    stroke="rgba(255,140,0,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="122" y1="100" x2="166" y2="100"
+    stroke="rgba(255,140,0,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Bold 7 -->
+  <text x="101" y="132"
+    font-family="'Arial Black','Helvetica Neue',sans-serif"
+    font-size="88" font-weight="900"
+    fill="url(#hexOrange)"
+    text-anchor="middle"
+    letter-spacing="-3"
+    filter="url(#hexglow)">7</text>
+</svg>
