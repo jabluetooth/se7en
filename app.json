@@ -29,7 +29,21 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Se7en to access your photos so you can set a background for your workout summary."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Se7en to save workout summary images to your photos.",
+          "savePhotosPermission": "Allow Se7en to save workout summary images to your photos.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ]
     ]
   }
 }
