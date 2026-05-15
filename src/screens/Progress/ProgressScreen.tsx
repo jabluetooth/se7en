@@ -13,6 +13,11 @@ import { COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutSession, SetLog, WeightUnit } from '../../types';
 
+// Shared text colors for progress signals — applied to font color only so the
+// surrounding card / chip surfaces stay unchanged.
+const PROGRESS_GREEN_TXT = '#34D399';
+const DECLINE_RED_TXT    = '#FF8E8E';
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 interface ExerciseSessionPoint {
@@ -346,14 +351,20 @@ function ExpandedChart({ sessions, isBodyweight, unit, width }:
     );
   }
 
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const mid = (max + min) / 2;
+  const max    = Math.max(...data);
+  const min    = Math.min(...data);
+  const isFlat = max === min;
+  const range  = isFlat ? 1 : max - min;
+  const mid    = (max + min) / 2;
 
   const pts = data.map((v, i) => ({
     x: padL + (i / (data.length - 1)) * innerW,
-    y: padTop + (1 - (v - min) / range) * innerH,
+    // When every session shares the same value, plotting (v - min)/range = 0
+    // would slam the line to the bottom. Place it on the centre line instead
+    // so the visual matches the data — no progress, no movement.
+    y: isFlat
+      ? padTop + innerH / 2
+      : padTop + (1 - (v - min) / range) * innerH,
   }));
 
   const linePath = pts.map((p, i) =>
@@ -383,19 +394,29 @@ function ExpandedChart({ sessions, isBodyweight, unit, width }:
         <Path d={`M${padL},${baseY} L${W - padR},${baseY}`}
           stroke="rgba(255,240,220,0.10)" strokeWidth={1} />
 
-        {/* Y-axis labels — drawn inside the SVG so they scale + align cleanly */}
-        <SvgText x={padL - 6} y={padTop + 3} fontSize={9} fontWeight="700"
-          fill={COLORS.textMuted} textAnchor="end">
-          {fmtAxis(max)}
-        </SvgText>
-        <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="600"
-          fill={COLORS.textMuted} textAnchor="end">
-          {fmtAxis(mid)}
-        </SvgText>
-        <SvgText x={padL - 6} y={baseY + 3} fontSize={9} fontWeight="600"
-          fill={COLORS.textMuted} textAnchor="end">
-          {fmtAxis(min)}
-        </SvgText>
+        {/* Y-axis labels — single centred label when the data is flat,
+            otherwise the usual max / mid / min triplet. */}
+        {isFlat ? (
+          <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="700"
+            fill={COLORS.textMuted} textAnchor="end">
+            {fmtAxis(max)}
+          </SvgText>
+        ) : (
+          <>
+            <SvgText x={padL - 6} y={padTop + 3} fontSize={9} fontWeight="700"
+              fill={COLORS.textMuted} textAnchor="end">
+              {fmtAxis(max)}
+            </SvgText>
+            <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="600"
+              fill={COLORS.textMuted} textAnchor="end">
+              {fmtAxis(mid)}
+            </SvgText>
+            <SvgText x={padL - 6} y={baseY + 3} fontSize={9} fontWeight="600"
+              fill={COLORS.textMuted} textAnchor="end">
+              {fmtAxis(min)}
+            </SvgText>
+          </>
+        )}
 
         {/* Area fill + line */}
         <Path d={areaPath} fill="rgba(255,140,0,0.12)" />
@@ -480,7 +501,7 @@ function ExerciseCard({ history, expanded, onToggle, chartWidth }: {
       >
         <View style={card.info}>
           <View style={card.nameRow}>
-            <Text style={[card.name, { color: exColor }]} numberOfLines={1}>{exerciseName}</Text>
+            <Text style={card.name} numberOfLines={1}>{exerciseName}</Text>
             {isRecentPR && (
               <View style={card.prBadge}>
                 <Text style={card.prTxt}>NEW PR</Text>
@@ -499,7 +520,7 @@ function ExerciseCard({ history, expanded, onToggle, chartWidth }: {
           ]}>
             <Text style={[
               card.trendDotTxt,
-              direction === 'up' ? { color: '#7FE0A0' } : { color: '#FF8E8E' },
+              direction === 'up' ? { color: PROGRESS_GREEN_TXT } : { color: DECLINE_RED_TXT },
             ]}>
               {direction === 'up' ? '+' : '−'}
             </Text>
@@ -515,12 +536,12 @@ function ExerciseCard({ history, expanded, onToggle, chartWidth }: {
       </Pressable>
 
       <View style={card.chipsRow}>
-        <View style={card.chip}>
-          <Text style={card.chipLbl}>BEST</Text>
+        <View style={[card.chip, { borderColor: exColor + '55', backgroundColor: exColor + '15' }]}>
+          <Text style={[card.chipLbl, { color: exColor }]}>BEST</Text>
           <Text style={card.chipVal}>{bestLabel}</Text>
         </View>
-        <View style={card.chip}>
-          <Text style={card.chipLbl}>LAST</Text>
+        <View style={[card.chip, { borderColor: exColor + '55', backgroundColor: exColor + '15' }]}>
+          <Text style={[card.chipLbl, { color: exColor }]}>LAST</Text>
           <Text style={card.chipVal}>{lastLabel}</Text>
         </View>
         {prev && (
@@ -532,8 +553,8 @@ function ExerciseCard({ history, expanded, onToggle, chartWidth }: {
             <Text style={card.chipLbl}>TREND</Text>
             <Text style={[
               card.chipVal,
-              direction === 'up'   && { color: '#7FE0A0' },
-              direction === 'down' && { color: '#FF8E8E' },
+              direction === 'up'   && { color: PROGRESS_GREEN_TXT },
+              direction === 'down' && { color: DECLINE_RED_TXT },
             ]}>
               {direction === 'up' ? '+' : direction === 'down' ? '−' : '·'}{' '}
               {Math.abs(delta) % 1 === 0
@@ -803,7 +824,7 @@ const s = StyleSheet.create({
   statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
   statLabel:        { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.9, textTransform: 'uppercase' },
   statValue:        { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
-  statAccent:       { color: COLORS.accent },
+  statAccent:       { color: PROGRESS_GREEN_TXT },
   statUnit:         { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
 
   // Activity card

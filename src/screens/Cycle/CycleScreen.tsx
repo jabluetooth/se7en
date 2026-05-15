@@ -822,15 +822,16 @@ function DayListDragSort({
           const to   = Math.max(dropToRef.current ?? from, minDropRef.current);
           if (from !== to) {
             LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
-            const contents = [...snapshotRef.current].map(d => ({
-              label: d.label, isRestDay: d.isRestDay, exercises: d.exercises,
-            }));
-            const [removed] = contents.splice(from, 1);
-            contents.splice(to, 0, removed);
-            const newDays = snapshotRef.current.map((d, i) => ({
-              ...d, label: contents[i].label, isRestDay: contents[i].isRestDay, exercises: contents[i].exercises,
-            }));
-            updatePlanRef.current(planIdRef.current, { days: newDays });
+            // Move the WHOLE day object (id, dayPosition, label, exercises, …)
+            // so its identity — and therefore its session history → status badge
+            // — travels with the card. Swapping only the content used to leave
+            // the original slot's dayPosition behind, causing the missed/done
+            // badge to appear on whatever exercise had been dragged into that
+            // slot.
+            const reordered = [...snapshotRef.current];
+            const [moved]   = reordered.splice(from, 1);
+            reordered.splice(to, 0, moved);
+            updatePlanRef.current(planIdRef.current, { days: reordered });
           }
           onScrollRef.current?.(true);
           dragFromRef.current = null; dropToRef.current = null;
@@ -991,7 +992,11 @@ export function CycleScreen() {
     );
   }
 
-  const days   = [...activePlan.days].sort((a, b) => a.dayPosition - b.dayPosition);
+  // Use the plan's own array order — drag-and-drop reorders happen by moving
+  // whole day objects in `activePlan.days`, so the visual list must follow
+  // that order directly. Re-sorting by `dayPosition` here would silently undo
+  // every reorder because dayPosition is stable per card (sessions key off it).
+  const days   = activePlan.days;
   const recent = sessions.slice(-14);
   const done   = recent.filter(ss => ss.status === 'completed').length;
   const rate   = recent.length === 0 ? 0 : Math.round((done / recent.length) * 100);
@@ -1173,7 +1178,7 @@ const s = StyleSheet.create({
   rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   rateLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
   rateNumRow: { flexDirection: 'row', alignItems: 'baseline' },
-  rateVal:    { fontSize: 30, fontWeight: '800', color: COLORS.accent, letterSpacing: -0.5 },
+  rateVal:    { fontSize: 30, fontWeight: '800', color: '#34D399', letterSpacing: -0.5 },
   rateSub:    { fontSize: 13, color: COLORS.textSecondary },
   bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
   barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
