@@ -178,11 +178,12 @@ function SummaryPage({ session, width, bgImage, shotRef }: {
 
       {/* ── Workout identity — centered ─────────────────── */}
       <View style={pg.top}>
-        <View style={pg.chip}>
+        <GlassView radius={99} style={pg.chip}>
           <TrophyIcon size={12} color={COLORS.accent} />
           <Text style={pg.chipText}>Workout Complete</Text>
+          <Text style={pg.chipDot}>·</Text>
           <Text style={pg.chipDate}>{finishedDate}</Text>
-        </View>
+        </GlassView>
         <Text style={pg.name}>{session.dayLabel}</Text>
         <Text style={pg.nameSub}>Day {session.dayPosition} · {session.duration} min</Text>
       </View>
@@ -573,9 +574,11 @@ const pg = StyleSheet.create({
 
   // Summary — top (centered)
   top:           { alignItems: 'center', gap: 4 },
-  chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', backgroundColor: 'rgba(255,140,0,0.16)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.32)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8 },
-  chipText:      { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.5, textTransform: 'uppercase' },
-  chipDate:      { fontSize: 11, color: COLORS.textMuted },
+  // Glass pill — GlassView provides the blurred background + subtle border
+  chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
+  chipText:      { fontSize: 11, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase' },
+  chipDot:       { fontSize: 11, fontWeight: '700', color: COLORS.textMuted },
+  chipDate:      { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
   name:          { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, lineHeight: 36, textAlign: 'center' },
   nameSub:       { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
 

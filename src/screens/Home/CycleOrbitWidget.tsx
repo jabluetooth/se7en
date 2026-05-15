@@ -80,7 +80,16 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
 
       <View style={s.overlay} pointerEvents="none">
         <Text style={s.lbl}>DAY {currentDay}</Text>
-        <Text style={s.name} numberOfLines={1} adjustsFontSizeToFit>{dayLabel.toUpperCase()}</Text>
+        <View style={s.nameWrap}>
+          <Text
+            style={s.name}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {dayLabel.toUpperCase()}
+          </Text>
+        </View>
         <Text style={s.pct}>C{cycleNum} · {pct}%</Text>
       </View>
     </View>
@@ -90,7 +99,10 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
 const s = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center' },
   overlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  lbl:  { fontSize: 9,  fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 4 },
-  name: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5, textAlign: 'center', paddingHorizontal: 10 },
-  pct:  { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
+  lbl:      { fontSize: 9,  fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 4 },
+  // Fixed-width chord that fits inside the inner ring (ri=68 → diameter 136).
+  // Gives adjustsFontSizeToFit something concrete to shrink against.
+  nameWrap: { width: 124, alignItems: 'center', justifyContent: 'center' },
+  name:     { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5, textAlign: 'center' },
+  pct:      { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 4 },
 });
