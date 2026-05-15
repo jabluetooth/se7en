@@ -1132,7 +1132,7 @@ export function CycleScreen() {
             onDone={handleQuickDone}
             onScrollEnabledChange={setScrollEnabled}
           />
-          <View style={{ height: 80 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
 

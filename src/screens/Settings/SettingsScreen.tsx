@@ -229,7 +229,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
           )}
 
           <Text style={s.version}>Se7en v1.0.0 · MVP</Text>
-          <View style={{ height: 80 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </View>

@@ -138,5 +138,5 @@ const s = StyleSheet.create({
   scroll:      { flex: 1 },
   scrollContent: { paddingTop: 4, paddingBottom: 8 },
   sectionGap:  { height: 8 },
-  bottomPad:   { height: 80 },
+  bottomPad:   { height: 40 },
 });
