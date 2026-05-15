@@ -106,10 +106,6 @@ function VolumeLineGraph({ data, peakIdx, width }:
       <Circle cx={peak.x} cy={peak.y} r={9}
         fill="none" stroke={COLORS.accent} strokeOpacity={0.30} strokeWidth={2} />
       <Circle cx={peak.x} cy={peak.y} r={5} fill={COLORS.accent} />
-
-      {/* Peak value label above the point */}
-      <Path d={`M${peak.x - 22},${Math.max(peak.y - 22, 4)} h44 v14 h-44 z`}
-        fill={COLORS.accent} fillOpacity={0.15} />
     </Svg>
   );
 }
@@ -417,29 +413,32 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   };
 
   // Pick a background image from the device's photo library.
-  const pickBackground = () => {
+  // Note: we DO NOT close the menu modal first. On Android the picker is a
+  // separate Activity and launches fine over our modal; closing our modal
+  // first was causing the picker Activity to be dismissed by the lifecycle
+  // event before it could present (which is why the promise hung).
+  const pickBackground = async () => {
     console.log('[bg] pickBackground: Pressable tap fired');
-    afterMenuClose(async () => {
-      console.log('[bg] pickBackground: launching ImagePicker');
-      try {
-        const res = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 1,
-          allowsEditing: false,
-        });
-        console.log('[bg] pickBackground result:', res);
-        if (res.canceled) return;
-        const uri = res.assets?.[0]?.uri;
-        if (!uri) {
-          Alert.alert('No image returned', 'The picker did not return an image URI.');
-          return;
-        }
-        setBgImage(uri);
-      } catch (e) {
-        console.log('[bg] pickBackground error:', e);
-        Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
+    try {
+      console.log('[bg] pickBackground: launching ImagePicker (modal stays open)');
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 1,
+        allowsEditing: false,
+      });
+      console.log('[bg] pickBackground result:', res);
+      if (res.canceled) {
+        setMenuOpen(false);
+        return;
       }
-    });
+      const uri = res.assets?.[0]?.uri;
+      if (uri) setBgImage(uri);
+    } catch (e) {
+      console.log('[bg] pickBackground error:', e);
+      Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
+    } finally {
+      setMenuOpen(false);
+    }
   };
 
   // Capture the Summary page as a PNG and save it to the device's photo library
