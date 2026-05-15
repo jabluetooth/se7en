@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent,
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -404,30 +404,43 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
     setPage(newPage);
   };
 
-  // iOS only allows one modal on screen at a time. Closing the options menu
-  // and *immediately* opening the system image picker / permission sheet can
-  // cause the second modal to silently fail to present. Wait for the menu's
-  // dismiss animation to finish before launching the next sheet.
-  const afterMenuClose = (fn: () => void) => {
+  // Close the options menu, then wait for the dismiss animation + any
+  // queued interactions before launching the next native modal/intent.
+  // setTimeout is unreliable on slower devices; InteractionManager waits
+  // for the JS-driven animation queue to drain.
+  const afterMenuClose = (fn: () => void | Promise<void>) => {
     setMenuOpen(false);
-    setTimeout(fn, 350);
+    InteractionManager.runAfterInteractions(() => {
+      // small extra buffer in case the modal's fade-out is still in flight
+      setTimeout(fn, 120);
+    });
   };
 
   // Pick a background image from the device's photo library.
-  const pickBackground = () => afterMenuClose(async () => {
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 1,
-        allowsEditing: false,
-      });
-      if (!res.canceled && res.assets?.[0]?.uri) {
-        setBgImage(res.assets[0].uri);
+  const pickBackground = () => {
+    console.log('[bg] pickBackground: Pressable tap fired');
+    afterMenuClose(async () => {
+      console.log('[bg] pickBackground: launching ImagePicker');
+      try {
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 1,
+          allowsEditing: false,
+        });
+        console.log('[bg] pickBackground result:', res);
+        if (res.canceled) return;
+        const uri = res.assets?.[0]?.uri;
+        if (!uri) {
+          Alert.alert('No image returned', 'The picker did not return an image URI.');
+          return;
+        }
+        setBgImage(uri);
+      } catch (e) {
+        console.log('[bg] pickBackground error:', e);
+        Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
       }
-    } catch (e) {
-      Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
-    }
-  });
+    });
+  };
 
   // Capture the Summary page as a PNG and save it to the device's photo library
   const saveAsImage = () => afterMenuClose(async () => {
