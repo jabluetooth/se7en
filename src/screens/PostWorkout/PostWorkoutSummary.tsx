@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
+  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,11 +11,9 @@ import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { GlassView } from '../../components/common/GlassView';
-import { Badge } from '../../components/common/Badge';
-import { SetTypeBadge } from '../../components/common/SetTypeBadge';
 import { TrophyIcon } from '../../components/common/TrophyIcon';
 import { COLORS } from '../../constants';
-import { WorkoutSession, WorkoutDay } from '../../types';
+import { WorkoutSession, WorkoutDay, Exercise } from '../../types';
 import { AppBackground } from '../../components/ui/AppBackground';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -29,16 +27,6 @@ function ChevronLeft() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       <Path d="M15 18l-6-6 6-6" stroke={COLORS.textSecondary} strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-function ChevronDown({ flipped = false }: { flipped?: boolean }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-      style={{ transform: [{ rotate: flipped ? '180deg' : '0deg' }] } as any}>
-      <Path d="M6 9l6 6 6-6" stroke={COLORS.accent} strokeWidth="2"
         strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
@@ -338,8 +326,9 @@ function ExercisesPage({ session, width }: { session: WorkoutSession; width: num
         // wherever a gap is present so the card reads as separated.
         const gapAbove   = isFirst || open || prevOpen;
         const gapBelow   = isLast  || open || nextOpen;
-        // Big margin around an opened card; 1px hairline between closed pairs.
-        const marginBot  = isLast ? 0 : (open || nextOpen ? 10 : 1);
+        // Generous breathing room around an opened card; visible 4px between
+        // closed pairs so they read as a stack of cards, not one fused panel.
+        const marginBot  = isLast ? 0 : (open || nextOpen ? 14 : 4);
         const showWeight = x.ex.weightUnit !== 'bodyweight';
         const volLabel   = `${fmtVol(x.volume)}${showWeight ? ' ' + x.ex.weightUnit : ' reps'}`;
 
@@ -429,9 +418,8 @@ function ExercisesPage({ session, width }: { session: WorkoutSession; width: num
 
 // ─── Page 3: Next Up ──────────────────────────────────────────────────────────
 
-function NextUpPage({ nextDay, width }: { nextDay?: WorkoutDay; width: number }) {
-  const [showAll, setShowAll] = useState(false);
-
+function NextUpPage({ nextDay, width, visible }:
+  { nextDay?: WorkoutDay; width: number; visible: boolean }) {
   if (!nextDay) {
     return (
       <View style={[pg.page, { width, alignItems: 'center', justifyContent: 'center' }]}>
@@ -442,54 +430,86 @@ function NextUpPage({ nextDay, width }: { nextDay?: WorkoutDay; width: number })
     );
   }
 
-  const exercises = showAll ? nextDay.exercises : nextDay.exercises.slice(0, 5);
-
   return (
     <ScrollView
       style={{ width }}
-      contentContainerStyle={[pg.page, { paddingBottom: 48 }]}
+      contentContainerStyle={[pg.page, { width, alignItems: 'center', paddingBottom: 48 }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Day header */}
-      <GlassView radius={14} style={nu.header}>
-        <LinearGradient
-          colors={['rgba(100,210,255,0.10)', 'transparent']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={nu.headerGrad}
-        >
-          <View>
-            <Text style={nu.dayName}>{nextDay.label}</Text>
-            <Text style={nu.daySub}>Day {nextDay.dayPosition} · {nextDay.exercises.length} exercises</Text>
-          </View>
-          <Badge label={`Day ${nextDay.dayPosition}`} variant="rest" size="xs" />
-        </LinearGradient>
-      </GlassView>
+      {/* Centered identity block — mirrors the Summary page's header */}
+      <View style={nu.head}>
+        <Text style={nu.eyebrow}>Up Next</Text>
+        <Text style={nu.dayName}>{nextDay.label}</Text>
+        <Text style={nu.daySub}>
+          Day {nextDay.dayPosition} · {nextDay.exercises.length} exercise{nextDay.exercises.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
 
-      {/* Exercise rows */}
-      <GlassView radius={12} style={nu.listCard}>
-        {exercises.map((ex, i) => (
-          <View key={ex.id} style={[nu.exRow, i < exercises.length - 1 && nu.exRowBorder]}>
-            <SetTypeBadge type={ex.setType} />
-            <Text style={nu.exName} numberOfLines={1}>{ex.name}</Text>
-            <Text style={nu.exTarget}>
-              {ex.targetSets} × {ex.toFailure ? 'fail' : (ex.targetRepsMin ?? '—')}
-            </Text>
-            {ex.targetWeight != null && (
-              <Text style={nu.exWeight}>{ex.targetWeight}{ex.weightUnit}</Text>
-            )}
-          </View>
+      {/* Animated exercise list — each row drifts up from below, staggered */}
+      <View style={nu.list}>
+        {nextDay.exercises.map((ex, i) => (
+          <UpcomingRow key={ex.id} ex={ex} index={i} visible={visible} />
         ))}
-
-        {nextDay.exercises.length > 5 && (
-          <TouchableOpacity onPress={() => setShowAll(v => !v)} style={nu.showMore} activeOpacity={0.7}>
-            <Text style={nu.showMoreText}>
-              {showAll ? 'Show less' : `+${nextDay.exercises.length - 5} more exercises`}
-            </Text>
-            <ChevronDown flipped={showAll} />
-          </TouchableOpacity>
-        )}
-      </GlassView>
+      </View>
     </ScrollView>
+  );
+}
+
+function UpcomingRow({ ex, index, visible }:
+  { ex: Exercise; index: number; visible: boolean }) {
+  const translateY = useRef(new Animated.Value(28)).current;
+  const opacity    = useRef(new Animated.Value(0)).current;
+
+  // Drive the stagger off `visible` (true only when Page 3 is the active pager
+  // page). Without this gate the animations would all fire on mount of the
+  // pager — long before the user swiped over — and finish before being seen.
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 420,
+          delay: 80 + index * 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 420,
+          delay: 80 + index * 80,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Reset so the animation can replay next time the user navigates back.
+      translateY.setValue(28);
+      opacity.setValue(0);
+    }
+  }, [visible, index, translateY, opacity]);
+
+  // Formula display: sets × reps × weight = volume
+  const repsLabel = ex.toFailure
+    ? 'fail'
+    : ex.targetRepsMin === ex.targetRepsMax || !ex.targetRepsMax
+      ? `${ex.targetRepsMin ?? '–'}`
+      : `${ex.targetRepsMin}–${ex.targetRepsMax}`;
+
+  const hasWeight = ex.targetWeight != null && ex.targetWeight > 0 && ex.weightUnit !== 'bodyweight';
+  const vol       = hasWeight && !ex.toFailure && ex.targetRepsMin
+    ? ex.targetSets * ex.targetRepsMin * (ex.targetWeight ?? 0)
+    : null;
+  const volLabel  = vol != null
+    ? vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : `${Math.round(vol)}`
+    : null;
+
+  return (
+    <Animated.View style={[nu.row, { opacity, transform: [{ translateY }] }]}>
+      <Text style={nu.exName} numberOfLines={1}>{ex.name}</Text>
+      <Text style={nu.exMeta}>
+        {ex.targetSets} × {repsLabel}
+        {hasWeight ? ` × ${ex.targetWeight}${ex.weightUnit}` : ''}
+        {volLabel ? ` = ${volLabel}` : ''}
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -612,7 +632,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
         >
           <SummaryPage   session={session}  width={width} bgImage={bgImage} shotRef={shotRef} />
           <ExercisesPage session={session}  width={width} />
-          <NextUpPage    nextDay={nextDay}  width={width} />
+          <NextUpPage    nextDay={nextDay}  width={width} visible={page === 2} />
         </ScrollView>
 
         {/* ── Bottom page indicator ─────────────────────── */}
@@ -765,20 +785,21 @@ const mn = StyleSheet.create({
   divider:   { height: 1, backgroundColor: 'rgba(255,240,220,0.08)', marginVertical: 2 },
 });
 
-// Next Up page
+// Next Up page — minimal, centered, mirrors the Summary page's identity block
 const nu = StyleSheet.create({
-  empty:        { fontSize: 16, fontWeight: '600', color: COLORS.textMuted, marginTop: 16 },
-  emptySub:     { fontSize: 13, color: COLORS.textLabel, marginTop: 6 },
-  header:       { marginBottom: 12, overflow: 'hidden' },
-  headerGrad:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  dayName:      { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  daySub:       { fontSize: 12, color: COLORS.textMuted, marginTop: 3 },
-  listCard:     { overflow: 'hidden' },
-  exRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  exRowBorder:  { borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.07)' },
-  exName:       { flex: 1, fontSize: 14, fontWeight: '600', color: '#fff' },
-  exTarget:     { fontSize: 11, color: COLORS.textMuted },
-  exWeight:     { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, minWidth: 52, textAlign: 'right' },
-  showMore:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingVertical: 11 },
-  showMoreText: { fontSize: 13, fontWeight: '600', color: COLORS.accent },
+  // Empty state
+  empty:    { fontSize: 16, fontWeight: '600', color: COLORS.textMuted, marginTop: 16 },
+  emptySub: { fontSize: 13, color: COLORS.textLabel, marginTop: 6 },
+
+  // Centered header
+  head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 28, alignSelf: 'stretch' },
+  eyebrow:  { fontSize: 11, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  dayName:  { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, lineHeight: 36, textAlign: 'center' },
+  daySub:   { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
+
+  // Animated list
+  list:     { gap: 22, alignSelf: 'stretch', alignItems: 'center', paddingHorizontal: 8 },
+  row:      { alignItems: 'center', gap: 5, alignSelf: 'stretch' },
+  exName:   { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, textAlign: 'center' },
+  exMeta:   { fontSize: 13, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.3, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });

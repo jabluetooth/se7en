@@ -5,10 +5,9 @@ import { WorkoutDay, WorkoutSession } from '../../types';
 import { COLORS, GRAD } from '../../constants';
 
 interface Props {
-  days:           WorkoutDay[];
-  currentDay:     number;        // 1–7
-  sessions:       WorkoutSession[];
-  cycleStartDate: string | null;
+  days:       WorkoutDay[];
+  currentDay: number;        // 1–7
+  sessions:   WorkoutSession[];
 }
 
 const ITEM_W    = 50;
@@ -16,26 +15,20 @@ const ITEM_H    = 64;
 const ITEM_GAP  = 8;
 const PAD_H     = 20;
 const SCREEN_W  = Dimensions.get('window').width;
-const DOW       = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-export function DaySlider({ days, currentDay, sessions, cycleStartDate }: Props) {
+export function DaySlider({ days, currentDay, sessions }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
-  // Build 7 items — all day positions 1–7, rest days included
+  // Build 7 items — all day positions 1–7, rest days included.
+  // Sub-label always shows the workout name (PUSH / PULL / LEGS / REST) so the
+  // user reads "what am I training", not "what day of the week is it".
   const items = Array.from({ length: 7 }, (_, i) => {
     const dp     = i + 1;
     const day    = days.find(d => d.dayPosition === dp);
     const isRest = day?.isRestDay ?? false;
-
-    // Sub-label: day-of-week when cycle is anchored, otherwise abbreviated label
-    let sub: string;
-    if (cycleStartDate) {
-      const d = new Date(cycleStartDate + 'T00:00:00');
-      d.setDate(d.getDate() + (dp - 1));
-      sub = DOW[d.getDay()];
-    } else {
-      sub = isRest ? 'REST' : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${dp}`);
-    }
+    const sub    = isRest
+      ? 'REST'
+      : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${dp}`);
 
     return { dayNum: dp, label: String(dp), sub, isRest };
   });

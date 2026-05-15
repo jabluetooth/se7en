@@ -90,7 +90,6 @@ export function HomeScreen({ onNavigate }: Props) {
             days={activePlan.days}
             currentDay={currentDayPos}
             sessions={planSessions}
-            cycleStartDate={settings.cycleStartDate}
           />
 
           {/* ── Mission card ── */}
