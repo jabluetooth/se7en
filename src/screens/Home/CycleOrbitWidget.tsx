@@ -40,14 +40,17 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
     <View style={s.container}>
       <Svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}>
         <Defs>
-          {/* Both gradients share the same two-stop iOS-blue ramp */}
-          <SvgGrad id="done" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%"   stopColor={GRAD.accent[0]} stopOpacity="1" />
-            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="1" />
-          </SvgGrad>
+          {/* Orange-only palette for the cycle arcs.
+              `curr` — bright accent at near-full opacity → today's vivid arc.
+              `done` — same accent hue but at low opacity → past days read as
+                       a darker, dimmer inverse of today, never green / violet. */}
           <SvgGrad id="curr" x1="0%" y1="0%" x2="100%" y2="100%">
             <Stop offset="0%"   stopColor={GRAD.accent[0]} stopOpacity="1" />
-            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="0.7" />
+            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="0.9" />
+          </SvgGrad>
+          <SvgGrad id="done" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%"   stopColor={GRAD.accent[0]} stopOpacity="0.38" />
+            <Stop offset="100%" stopColor={GRAD.accent[1]} stopOpacity="0.22" />
           </SvgGrad>
         </Defs>
 

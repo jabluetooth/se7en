@@ -497,7 +497,7 @@ function DayCard({
                 </LinearGradient>
               ) : (
                 <View style={[dc.numBadge, dc.numBadgeMuted]}>
-                  <Text style={[dc.num, isDone && { color: COLORS.accent }, isPastRest && { color: '#34D399' }]}>
+                  <Text style={[dc.num, (isDone || isPastRest) && { color: COLORS.accent }]}>
                     {isDone || isPastRest ? '✓' : day.dayPosition}
                   </Text>
                 </View>

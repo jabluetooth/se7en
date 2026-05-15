@@ -21,7 +21,7 @@ const CARD_H = 236;
 const DAY_COLOR: Record<number, string> = {
   1: '#FF6B6B',
   2: '#4ECDC4',
-  3: '#A78BFA',
+  3: '#FACC15',
   4: '#FB923C',
   5: '#60A5FA',
   6: '#F472B6',

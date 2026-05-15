@@ -71,19 +71,14 @@ export function DaySlider({ days, currentDay, sessions, cycleStartDate }: Props)
             return (
               <LinearGradient
                 key={item.dayNum}
-                colors={item.isRest
-                  ? ['#0D3D2A', '#1A6B48'] as const
-                  : GRAD.accent}
+                // Rest and workout active pills share the accent gradient — same UI.
+                colors={GRAD.accent}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={s.activeItem}
               >
-                <Text style={[s.activeNum, item.isRest && s.activeNumRest]}>
-                  {item.label}
-                </Text>
-                <Text style={[s.activeSub, item.isRest && s.activeSubRest]}>
-                  {item.sub}
-                </Text>
+                <Text style={s.activeNum}>{item.label}</Text>
+                <Text style={s.activeSub}>{item.sub}</Text>
               </LinearGradient>
             );
           }
@@ -131,10 +126,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     gap: 3,
   },
-  activeNum:     { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -0.5 },
-  activeSub:     { fontSize: 8,  fontWeight: '800', color: 'rgba(0,0,0,0.55)', letterSpacing: 0.5 },
-  activeNumRest: { color: '#fff' },
-  activeSubRest: { color: 'rgba(255,255,255,0.65)' },
+  activeNum: { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -0.5 },
+  activeSub: { fontSize: 8,  fontWeight: '800', color: 'rgba(0,0,0,0.55)', letterSpacing: 0.5 },
 
   item: {
     width: ITEM_W, height: ITEM_H,
@@ -143,9 +136,12 @@ const s = StyleSheet.create({
     gap: 2,
     borderWidth: 1,
   },
-  itemPast:   { backgroundColor: 'rgba(123,94,250,0.10)', borderColor: 'rgba(123,94,250,0.22)' },
+  // Past = dim orange (inverse-opacity of the bright accent today uses).
+  itemPast:   { backgroundColor: 'rgba(255,140,0,0.10)',  borderColor: 'rgba(255,140,0,0.28)'  },
   itemFuture: { backgroundColor: 'rgba(255,240,220,0.04)', borderColor: 'rgba(255,240,220,0.08)' },
-  itemRest:   { backgroundColor: 'rgba(52,211,153,0.07)',  borderColor: 'rgba(52,211,153,0.22)' },
+  // Rest = same orange treatment as past workout days. The label content
+  // ("REST") is what differentiates them, not the palette.
+  itemRest:   { backgroundColor: 'rgba(255,140,0,0.10)',  borderColor: 'rgba(255,140,0,0.28)' },
 
   doneDot: {
     position: 'absolute', top: 6, right: 7,
@@ -154,8 +150,8 @@ const s = StyleSheet.create({
   },
   num:     { fontSize: 18, fontWeight: '800', color: COLORS.textMuted },
   numPast: { color: COLORS.accent },
-  numRest: { color: 'rgba(52,211,153,0.55)' },
+  numRest: { color: COLORS.accent },
   sub:     { fontSize: 8, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase' },
-  subPast: { color: 'rgba(123,94,250,0.65)' },
-  subRest: { color: 'rgba(52,211,153,0.45)' },
+  subPast: { color: 'rgba(255,140,0,0.70)' },
+  subRest: { color: 'rgba(255,140,0,0.70)' },
 });

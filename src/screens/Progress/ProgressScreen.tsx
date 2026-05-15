@@ -55,23 +55,8 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Stable per-exercise color so the same exercise keeps the same hue
-// regardless of sort order or filter state.
-const EX_PALETTE = [
-  '#FF8C00', // orange  (accent)
-  '#4ECDC4', // teal
-  '#A78BFA', // violet
-  '#FF6B6B', // coral
-  '#60A5FA', // sky
-  '#F472B6', // pink
-  '#22C55E', // green
-  '#FB923C', // tangerine
-];
-function colorFor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = ((h * 31) + id.charCodeAt(i)) | 0;
-  return EX_PALETTE[Math.abs(h) % EX_PALETTE.length];
-}
+// All exercise cards share the same accent (orange) — single-hue surface so the
+// status/sparkline are the only colour signals the eye has to parse.
 
 // Walk every completed session → group sets by exerciseId, capture top weight,
 // top reps, volume, est1RM for each session occurrence.
@@ -484,7 +469,7 @@ function ExerciseCard({ history, expanded, onToggle, chartWidth }: {
   const sparkN = Math.min(8, sessions.length);
   const sparkData = sessions.slice(-sparkN).map(metric);
 
-  const exColor = colorFor(history.exerciseId);
+  const exColor = COLORS.accent;
 
   const bestLabel = isBodyweight
     ? `${bestSession.topReps} reps`

@@ -5,7 +5,9 @@ import { GlassView } from '../../components/common/GlassView';
 import { WorkoutDay } from '../../types';
 import { COLORS, GRAD } from '../../constants';
 
-const GREEN = '#34D399';
+// "Ready" indicator dot — was green, switched to the accent orange so the
+// home cycle palette stays warm.
+const GREEN = COLORS.accent;
 
 interface Props {
   currentDay:    WorkoutDay | undefined;

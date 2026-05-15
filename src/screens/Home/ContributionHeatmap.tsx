@@ -10,14 +10,16 @@ import { dayPositionForDate } from '../../utils/cycleUtils';
 const DAY_COLOR: Record<number, string> = {
   1: '#FF6B6B',  // coral red    Push
   2: '#4ECDC4',  // teal         Pull
-  3: '#A78BFA',  // violet       Legs
+  3: '#FACC15',  // warm yellow  Legs
   4: '#FB923C',  // orange       Upper Push  (distinct from red D1)
   5: '#60A5FA',  // sky blue     Upper Pull
   6: '#F472B6',  // pink         Lower
   7: '#94A3B8',  // slate        Full Body / misc
 };
 
-const REST_GREEN    = '#34D399';  // emerald — past days with no session logged
+const REST_GREEN    = '#A8A29E';  // warm stone — past days with no session logged
+// NOTE: variable name kept for stability; the rest-day cells are now a neutral
+// stone tone rather than green, to keep the cycle's palette warm-only.
 const DEFAULT_COLOR = '#636366';  // fallback gray
 
 const MONTH_FULL = [
