@@ -12,6 +12,7 @@ import { usePlanStore } from '../../stores/planStore';
 import { COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutSession, SetLog, WeightUnit } from '../../types';
+import { fmtVol, fmtDate } from '../../utils/format';
 
 // Shared text colors for progress signals — applied to font color only so the
 // surrounding card / chip surfaces stay unchanged.
@@ -45,14 +46,6 @@ type SortMode = 'recent' | 'volume' | 'name';
 function epley1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   return weight * (1 + reps / 30);
-}
-
-function fmtVol(n: number): string {
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n));
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // All exercise cards share the same accent (orange) — single-hue surface so the
@@ -624,10 +617,16 @@ export function ProgressScreen() {
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const completedSessions = sessions.filter(s => s.status === 'completed');
-  const totalWorkouts     = completedSessions.length;
-  const recent14          = completedSessions.slice(-14);
-  const recentVolume      = recent14.reduce((a, s) => a + s.totalVolume, 0);
+  // Memoised together so unrelated state updates (sort / search) don't redo
+  // these passes over the full sessions list every render.
+  const { totalWorkouts, recentVolume } = useMemo(() => {
+    const completed   = sessions.filter(s => s.status === 'completed');
+    const recent14    = completed.slice(-14);
+    return {
+      totalWorkouts: completed.length,
+      recentVolume:  recent14.reduce((a, s) => a + s.totalVolume, 0),
+    };
+  }, [sessions]);
 
   const histories = useMemo(() => aggregateExercises(sessions), [sessions]);
   const exerciseCount = histories.length;

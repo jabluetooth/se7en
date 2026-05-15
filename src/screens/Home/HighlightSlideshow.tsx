@@ -10,6 +10,7 @@ import { usePRStore } from '../../stores/prStore';
 import { WorkoutSession } from '../../types';
 import { COLORS } from '../../constants';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
+import { fmtVol as fmtNum } from '../../utils/format';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE   = 16;
@@ -67,10 +68,10 @@ function weekVol(sessions: WorkoutSession[], daysBack: number, span: number): nu
     .reduce((a, s) => a + s.totalVolume, 0);
 }
 
+// Local wrapper so "no data yet" (v === 0) shows an em-dash instead of "0".
 function fmtVol(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000)     return `${(v / 1_000).toFixed(1)}k`;
-  return v === 0 ? '—' : String(Math.round(v));
+  if (v === 0) return '—';
+  return fmtNum(v);
 }
 
 export function HighlightSlideshow({ sessions, currentDay, onNavigate }: Props) {

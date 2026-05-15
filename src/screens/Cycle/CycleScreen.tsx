@@ -167,7 +167,10 @@ const sd = StyleSheet.create({
 
 // ─── Exercise drag-sort ───────────────────────────────────────────────────────
 
-const EX_H = 56;
+const EX_H       = 56;
+// Initial guess for a day card's rendered height — used to seed the drag-sort
+// layout map before onLayout fires with the real measurement.
+const CARD_EST_H = 88;
 
 // ─── Exercise row styles (shared by ExerciseDragSort) ────────────────────────
 
@@ -734,7 +737,6 @@ function DayListDragSort({
   const { updatePlan }  = usePlanStore();
   const containerRef    = useRef<View>(null);
   const containerTopRef = useRef(0);
-  const CARD_EST_H      = 88;
   // Pre-populated with estimates; onLayout overwrites with real values.
   const layoutsRef = useRef<{ y: number; height: number }[]>(
     days.map((_, i) => ({ y: i * CARD_EST_H, height: CARD_EST_H })),

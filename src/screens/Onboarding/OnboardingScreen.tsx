@@ -145,23 +145,8 @@ export function OnboardingScreen({ onComplete }: Props) {
     }
   };
 
-  // ─── Dots indicator ─────────────────────────────────────────────────────────
-  const Dots = ({ current }: { current: number }) => (
-    <View style={styles.dots}>
-      {[2, 3, 4].map((s) => (
-        <View
-          key={s}
-          style={[
-            styles.dot,
-            {
-              backgroundColor: current >= s ? colors.accent : colors.border,
-              width: current === s ? 20 : 8,
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
+  // Dots indicator is hoisted to module scope (see end of file) so that
+  // remounting the screen body on keystroke doesn't reset the indicator.
 
   // ─── Step 1: Welcome ────────────────────────────────────────────────────────
   if (step === 1) {
@@ -202,7 +187,7 @@ export function OnboardingScreen({ onComplete }: Props) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Dots current={2} />
+          <Dots current={2} accent={colors.accent} border={colors.border} />
           <Text style={[styles.stepTitle, { color: colors.text }]}>Tell us about yourself</Text>
           <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
             We'll build your perfect plan based on your answers.
@@ -322,7 +307,7 @@ export function OnboardingScreen({ onComplete }: Props) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Dots current={3} />
+          <Dots current={3} accent={colors.accent} border={colors.border} />
           <Text style={[styles.stepTitle, { color: colors.text }]}>Your Recommended Plan</Text>
           <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
             Based on your profile. Tap a plan to select it.
@@ -443,7 +428,7 @@ export function OnboardingScreen({ onComplete }: Props) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Dots current={4} />
+        <Dots current={4} accent={colors.accent} border={colors.border} />
         <Text style={[styles.stepTitle, { color: colors.text }]}>Plan Overview</Text>
         <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
           Name your plan and review what's included.
@@ -633,3 +618,25 @@ const styles = StyleSheet.create({
   restBadge: { fontSize: 12, fontWeight: '600' },
   customizeHint: { fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: SPACING.sm },
 });
+
+// Hoisted so the screen body doesn't remount the indicator on every keystroke.
+// Colours travel as props since `useTheme()` lives inside the screen component.
+function Dots({ current, accent, border }:
+  { current: number; accent: string; border: string }) {
+  return (
+    <View style={styles.dots}>
+      {[2, 3, 4].map(s => (
+        <View
+          key={s}
+          style={[
+            styles.dot,
+            {
+              backgroundColor: current >= s ? accent : border,
+              width: current === s ? 20 : 8,
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}

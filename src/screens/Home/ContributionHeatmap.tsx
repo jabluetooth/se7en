@@ -17,7 +17,7 @@ const DAY_COLOR: Record<number, string> = {
   7: '#94A3B8',  // slate        Full Body / misc
 };
 
-const REST_GREEN    = '#A8A29E';  // warm stone — past days with no session logged
+const REST_STONE    = '#A8A29E';  // warm stone — past days with no session logged
 // NOTE: variable name kept for stability; the rest-day cells are now a neutral
 // stone tone rather than green, to keep the cycle's palette warm-only.
 const DEFAULT_COLOR = '#636366';  // fallback gray
@@ -297,7 +297,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                   s.cell,
                                   color       ? { backgroundColor: rgba(color, 0.20),       borderColor: rgba(color, 0.42) }       : null,
                                   missedColor ? { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) } : null,
-                                  isRestCell  ? { backgroundColor: rgba(REST_GREEN, 0.16),  borderColor: rgba(REST_GREEN, 0.30) }  : null,
+                                  isRestCell  ? { backgroundColor: rgba(REST_STONE, 0.16),  borderColor: rgba(REST_STONE, 0.30) }  : null,
                                   !color && !isRestCell && !missedColor ? s.cellEmpty : null,
                                   todayD && s.cellToday,
                                   active && s.cellActive,
@@ -414,8 +414,8 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
         {/* Rest / recovery legend entry — always shown */}
         {(
           <View style={s.legendWorkout}>
-            <View style={[s.legendCell, { backgroundColor: rgba(REST_GREEN, 0.18) }]} />
-            <Text style={[s.legendWorkoutTxt, { color: REST_GREEN }]}>Rest</Text>
+            <View style={[s.legendCell, { backgroundColor: rgba(REST_STONE, 0.18) }]} />
+            <Text style={[s.legendWorkoutTxt, { color: REST_STONE }]}>Rest</Text>
           </View>
         )}
 

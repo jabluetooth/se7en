@@ -32,6 +32,53 @@ const BAR_TYPES: { id: BarType; label: string; weight: string }[] = [
 
 const WEIGHT_UNITS: WeightUnit[] = ['kg', 'lb', 'plates', 'bodyweight'];
 
+const STEP_LABELS = ['Basics', 'Volume', 'Review'] as const;
+
+// ── Sub-components hoisted to module scope — declaring them inside the screen
+// body would create a new component identity on every render and cause the
+// entire step UI to unmount/remount on each keystroke.
+
+function StepDot({ i, step, onJump }:
+  { i: number; step: number; onJump: (i: number) => void }) {
+  return (
+    <View style={s.stepRow}>
+      <TouchableOpacity
+        onPress={() => i < step && onJump(i)}
+        style={[s.stepDot, i === step && s.stepDotActive, i < step && s.stepDotDone]}
+      >
+        {i < step ? (
+          <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.stepDotGrad}>
+            <Text style={s.stepCheckmark}>+</Text>
+          </LinearGradient>
+        ) : (
+          <Text style={[s.stepNum, i === step && s.stepNumActive]}>{i + 1}</Text>
+        )}
+      </TouchableOpacity>
+      <Text style={[s.stepLabel, i === step && s.stepLabelActive]}>{STEP_LABELS[i]}</Text>
+      {i < STEP_LABELS.length - 1 && <View style={[s.stepLine, i < step && s.stepLineDone]} />}
+    </View>
+  );
+}
+
+function LabelRow({ label }: { label: string }) {
+  return <Text style={s.fieldLabel}>{label}</Text>;
+}
+
+function Counter({ value, onChange, min = 1, max = 20 }:
+  { value: number; onChange: (v: number) => void; min?: number; max?: number }) {
+  return (
+    <GlassView radius={12} style={s.counter}>
+      <TouchableOpacity onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
+        <Text style={s.counterBtnText}>-</Text>
+      </TouchableOpacity>
+      <Text style={s.counterValue}>{value}</Text>
+      <TouchableOpacity onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
+        <Text style={s.counterBtnText}>+</Text>
+      </TouchableOpacity>
+    </GlassView>
+  );
+}
+
 export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
   const [step,        setStep       ] = useState(0);
   const [name,        setName       ] = useState('');
@@ -44,37 +91,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
   const [barType,     setBarType    ] = useState<BarType>('barbell');
   const [notes,       setNotes      ] = useState('');
 
-  const steps = ['Basics', 'Volume', 'Review'];
   const isFailure = setType === 'toFailure';
-
-  const StepDot = ({ i }: { i: number }) => (
-    <View style={s.stepRow}>
-      <TouchableOpacity onPress={() => i < step && setStep(i)}
-        style={[s.stepDot, i === step && s.stepDotActive, i < step && s.stepDotDone]}>
-        {i < step
-          ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.stepDotGrad}><Text style={s.stepCheckmark}>+</Text></LinearGradient>
-          : <Text style={[s.stepNum, i === step && s.stepNumActive]}>{i + 1}</Text>}
-      </TouchableOpacity>
-      <Text style={[s.stepLabel, i === step && s.stepLabelActive]}>{steps[i]}</Text>
-      {i < steps.length - 1 && <View style={[s.stepLine, i < step && s.stepLineDone]} />}
-    </View>
-  );
-
-  const LabelRow = ({ label }: { label: string }) => (
-    <Text style={s.fieldLabel}>{label}</Text>
-  );
-
-  const Counter = ({ value, onChange, min = 1, max = 20 }: { value: number; onChange: (v: number) => void; min?: number; max?: number }) => (
-    <GlassView radius={12} style={s.counter}>
-      <TouchableOpacity onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
-        <Text style={s.counterBtnText}>-</Text>
-      </TouchableOpacity>
-      <Text style={s.counterValue}>{value}</Text>
-      <TouchableOpacity onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
-        <Text style={s.counterBtnText}>+</Text>
-      </TouchableOpacity>
-    </GlassView>
-  );
 
   const handleSave = () => {
     onSave?.({ name, setType, sets, repsMin, repsMax, weight, weightUnit, barType, notes });
@@ -94,7 +111,9 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
 
         {/* Step indicators */}
         <View style={s.steps}>
-          {steps.map((_, i) => <StepDot key={i} i={i} />)}
+          {STEP_LABELS.map((_, i) => (
+            <StepDot key={i} i={i} step={step} onJump={setStep} />
+          ))}
         </View>
 
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>

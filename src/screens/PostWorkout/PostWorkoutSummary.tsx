@@ -15,6 +15,7 @@ import { TrophyIcon } from '../../components/common/TrophyIcon';
 import { COLORS } from '../../constants';
 import { WorkoutSession, WorkoutDay, Exercise } from '../../types';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { fmtVol } from '../../utils/format';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -254,9 +255,6 @@ function ExercisesPage({ session, width }: { session: WorkoutSession; width: num
   const list        = sortMode === 'volume'
     ? [...exStats].sort((a, b) => b.volume - a.volume)
     : exStats;
-
-  const fmtVol = (v: number) =>
-    v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
 
   return (
     <ScrollView
@@ -553,15 +551,12 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   // first was causing the picker Activity to be dismissed by the lifecycle
   // event before it could present (which is why the promise hung).
   const pickBackground = async () => {
-    console.log('[bg] pickBackground: Pressable tap fired');
     try {
-      console.log('[bg] pickBackground: launching ImagePicker (modal stays open)');
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         quality: 1,
         allowsEditing: false,
       });
-      console.log('[bg] pickBackground result:', res);
       if (res.canceled) {
         setMenuOpen(false);
         return;
@@ -569,7 +564,6 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
       const uri = res.assets?.[0]?.uri;
       if (uri) setBgImage(uri);
     } catch (e) {
-      console.log('[bg] pickBackground error:', e);
       Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
     } finally {
       setMenuOpen(false);
