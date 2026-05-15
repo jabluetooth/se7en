@@ -233,7 +233,42 @@ function SummaryPage({ session, width, bgImage, shotRef }: {
 // ─── Page 2: Exercises ────────────────────────────────────────────────────────
 
 function ExercisesPage({ session, width }: { session: WorkoutSession; width: number }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId,   setOpenId]   = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<'volume' | 'order'>('volume');
+
+  // Per-exercise stats. Color is locked to the exercise's *original* index so
+  // it stays stable regardless of how the list is sorted below.
+  const exStats = session.exercises.map((ex, originalIdx) => {
+    const completed = ex.sets.filter(s => s.isCompleted);
+    const volume    = completed.reduce(
+      (a, s) => a + (s.actualRepsToFailure ?? s.actualReps) * (s.actualWeight ?? 1),
+      0,
+    );
+    const totalReps = completed.reduce(
+      (a, s) => a + (s.actualRepsToFailure ?? s.actualReps),
+      0,
+    );
+    const bestSet = completed.reduce<typeof completed[0] | null>(
+      (b, s) => ((s.actualWeight ?? 0) > (b?.actualWeight ?? 0) ? s : b),
+      null,
+    );
+    return {
+      ex,
+      completed,
+      volume,
+      totalReps,
+      bestSet,
+      color: EX_COLORS[originalIdx % EX_COLORS.length],
+    };
+  });
+
+  const totalVolume = exStats.reduce((a, x) => a + x.volume, 0);
+  const list        = sortMode === 'volume'
+    ? [...exStats].sort((a, b) => b.volume - a.volume)
+    : exStats;
+
+  const fmtVol = (v: number) =>
+    v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
 
   return (
     <ScrollView
@@ -241,47 +276,126 @@ function ExercisesPage({ session, width }: { session: WorkoutSession; width: num
       contentContainerStyle={[pg.page, { paddingBottom: 48 }]}
       showsVerticalScrollIndicator={false}
     >
-      {session.exercises.map((ex, i) => {
-        const color     = EX_COLORS[i % EX_COLORS.length];
-        const completed = ex.sets.filter(s => s.isCompleted);
-        const bestSet   = completed.reduce<typeof completed[0] | null>(
-          (b, s) => (s.actualWeight ?? 0) > (b?.actualWeight ?? 0) ? s : b, null
-        );
-        const open      = openId === ex.id;
-        const isFirst   = i === 0;
-        const isLast    = i === session.exercises.length - 1;
+      {/* ── Section header: title + sort toggle ─────────── */}
+      <View style={ex2.header}>
+        <Text style={ex2.headerTitle}>Volume Breakdown</Text>
+        <View style={ex2.toggle}>
+          {(['volume', 'order'] as const).map(mode => {
+            const active = sortMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => setSortMode(mode)}
+                style={[ex2.togglePill, active && ex2.togglePillActive]}
+              >
+                <Text style={[ex2.toggleTxt, active && ex2.toggleTxtActive]}>
+                  {mode === 'volume' ? 'By volume' : 'By order'}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* ── Stacked volume bar — each exercise's share of total ─ */}
+      {totalVolume > 0 && (
+        <View style={ex2.bar}>
+          {list.map((x, i) => {
+            const pct = x.volume / totalVolume;
+            if (pct <= 0) return null;
+            const isFirst = i === 0;
+            const isLast  = i === list.length - 1;
+            return (
+              <View
+                key={x.ex.id}
+                style={[
+                  ex2.barSeg,
+                  { flex: pct, backgroundColor: x.color },
+                  isFirst && { borderTopLeftRadius: 7, borderBottomLeftRadius: 7 },
+                  isLast  && { borderTopRightRadius: 7, borderBottomRightRadius: 7 },
+                ]}
+              >
+                {pct >= 0.15 && (
+                  <Text style={ex2.barLabel} numberOfLines={1}>
+                    {Math.round(pct * 100)}%
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* ── Exercise rows ─────────────────────────────── */}
+      {list.map((x, i) => {
+        const open       = openId === x.ex.id;
+        const isFirst    = i === 0;
+        const isLast     = i === list.length - 1;
+        const prevOpen   = !isFirst && openId === list[i - 1].ex.id;
+        const nextOpen   = !isLast  && openId === list[i + 1].ex.id;
+        // A "gap" exists above/below the card when it sits next to a boundary,
+        // or when either it or its neighbour is expanded. Round the corner
+        // wherever a gap is present so the card reads as separated.
+        const gapAbove   = isFirst || open || prevOpen;
+        const gapBelow   = isLast  || open || nextOpen;
+        // Big margin around an opened card; 1px hairline between closed pairs.
+        const marginBot  = isLast ? 0 : (open || nextOpen ? 10 : 1);
+        const showWeight = x.ex.weightUnit !== 'bodyweight';
+        const volLabel   = `${fmtVol(x.volume)}${showWeight ? ' ' + x.ex.weightUnit : ' reps'}`;
 
         return (
-          <GlassView key={ex.id} radius={0} style={[
-            ex2.card,
-            { borderTopLeftRadius: isFirst ? 12 : 3, borderTopRightRadius: isFirst ? 12 : 3,
-              borderBottomLeftRadius: isLast ? 12 : 3, borderBottomRightRadius: isLast ? 12 : 3 },
-            !isLast && ex2.gap,
-          ]}>
-            <TouchableOpacity style={ex2.row} onPress={() => setOpenId(open ? null : ex.id)} activeOpacity={0.75}>
-              <View style={[ex2.orb, { backgroundColor: color + '22' }]}>
-                <Text style={[ex2.orbNum, { color }]}>{i + 1}</Text>
-              </View>
+          <GlassView
+            key={x.ex.id}
+            radius={0}
+            style={[
+              ex2.card,
+              { borderTopLeftRadius:    gapAbove ? 12 : 0,
+                borderTopRightRadius:   gapAbove ? 12 : 0,
+                borderBottomLeftRadius: gapBelow ? 12 : 0,
+                borderBottomRightRadius:gapBelow ? 12 : 0,
+                marginBottom: marginBot },
+            ]}
+          >
+            <Pressable
+              onPress={() => setOpenId(open ? null : x.ex.id)}
+              style={({ pressed }) => [ex2.row, pressed && { opacity: 0.75 }]}
+            >
+              {/* Color marker on the left — matches the bar segment */}
+              <View style={[ex2.marker, { backgroundColor: x.color }]} />
+
               <View style={ex2.info}>
-                <View style={ex2.nameRow}>
-                  <Text style={ex2.name} numberOfLines={1}>{ex.exerciseName}</Text>
-                  {ex.isCompleted && <Badge label="Done" variant="completed" size="xs" />}
+                <Text style={ex2.name} numberOfLines={1}>{x.ex.exerciseName}</Text>
+
+                <View style={ex2.chipsRow}>
+                  <View style={ex2.chip}>
+                    <Text style={ex2.chipTxt}>{x.completed.length}/{x.ex.sets.length} sets</Text>
+                  </View>
+                  <View style={[
+                    ex2.chip,
+                    { backgroundColor: x.color + '22', borderColor: x.color + '55' },
+                  ]}>
+                    <Text style={[ex2.chipTxt, { color: x.color, fontWeight: '700' }]}>
+                      {volLabel}
+                    </Text>
+                  </View>
+                  {showWeight && x.bestSet && x.bestSet.actualWeight != null && (
+                    <View style={ex2.chip}>
+                      <Text style={ex2.chipTxt}>
+                        best {x.bestSet.actualWeight}{x.ex.weightUnit} × {x.bestSet.actualRepsToFailure ?? x.bestSet.actualReps}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Text style={ex2.meta}>
-                  {completed.length}/{ex.sets.length} sets
-                  {bestSet ? ` · best ${bestSet.actualWeight ?? '-'}${ex.weightUnit} × ${bestSet.actualRepsToFailure ?? bestSet.actualReps}` : ''}
-                </Text>
               </View>
-              <View style={[ex2.chevron, open && ex2.chevronOpen]}>
-                <Path d="M6 9l6 6 6-6" stroke={COLORS.textMuted} strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round" />
-              </View>
-              <Svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-                style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] } as any}>
+
+              <Svg
+                width={14} height={14} viewBox="0 0 24 24" fill="none"
+                style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] } as any}
+              >
                 <Path d="M6 9l6 6 6-6" stroke={COLORS.textMuted} strokeWidth="2"
                   strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
-            </TouchableOpacity>
+            </Pressable>
 
             {open && (
               <View style={ex2.table}>
@@ -290,14 +404,14 @@ function ExercisesPage({ session, width }: { session: WorkoutSession; width: num
                     <Text key={hi} style={[ex2.th, hi > 0 && ex2.thRight]}>{h}</Text>
                   ))}
                 </View>
-                {completed.map((set, si) => {
+                {x.completed.map((set, si) => {
                   const reps = set.actualRepsToFailure ?? set.actualReps;
                   const vol  = Math.round(reps * (set.actualWeight ?? 1));
                   return (
                     <View key={si} style={ex2.tableRow}>
                       <Text style={ex2.td}>S{set.setNumber}</Text>
                       <Text style={[ex2.td, ex2.tdRight]}>
-                        {set.actualWeight != null ? `${set.actualWeight}${ex.weightUnit}` : '—'}
+                        {set.actualWeight != null ? `${set.actualWeight}${x.ex.weightUnit}` : '—'}
                       </Text>
                       <Text style={[ex2.td, ex2.tdRight]}>{reps}</Text>
                       <Text style={[ex2.td, ex2.tdRight, { color: COLORS.textMuted }]}>{vol}</Text>
@@ -604,24 +718,42 @@ const pg = StyleSheet.create({
 
 // Exercises page
 const ex2 = StyleSheet.create({
-  card:     { overflow: 'hidden' },
-  gap:      { marginBottom: 2 },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  orb:      { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  orbNum:   { fontSize: 14, fontWeight: '800', lineHeight: 16 },
-  info:     { flex: 1, minWidth: 0 },
-  nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' },
-  name:     { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  meta:     { fontSize: 11, color: COLORS.textMuted },
-  chevron:  {},
-  chevronOpen: {},
-  table:    { borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
-  tableHead:{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8 },
-  th:       { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
-  thRight:  { textAlign: 'right' },
-  tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  td:       { fontSize: 13, fontWeight: '600', color: '#fff', flex: 1 },
-  tdRight:  { textAlign: 'right' },
+  // Section header — title + sort toggle
+  header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerTitle:      { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.9 },
+
+  // Sort toggle (By volume / By order)
+  toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 9, padding: 3, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  togglePill:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
+  toggleTxt:        { fontSize: 11, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.2 },
+  toggleTxtActive:  { color: '#fff', fontWeight: '800' },
+
+  // Stacked volume bar — generous height for visibility
+  bar:              { flexDirection: 'row', height: 32, marginBottom: 14, gap: 2 },
+  barSeg:           { justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  barLabel:         { fontSize: 11, fontWeight: '800', color: '#0d0d0f', letterSpacing: 0.3 },
+
+  // Exercise card — cards stack flush with one another for a single-panel feel
+  card:             { overflow: 'hidden' },
+  row:              { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
+  marker:           { width: 5, alignSelf: 'stretch', borderRadius: 3 },
+  info:             { flex: 1, minWidth: 0, gap: 7 },
+  name:             { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+
+  // Chip row (sets / volume / best set)
+  chipsRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  chip:             { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },
+  chipTxt:          { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, letterSpacing: 0.1 },
+
+  // Expanded set table
+  table:            { borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
+  tableHead:        { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9 },
+  th:               { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
+  thRight:          { textAlign: 'right' },
+  tableRow:         { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
+  td:               { fontSize: 14, fontWeight: '600', color: '#fff', flex: 1 },
+  tdRight:          { textAlign: 'right' },
 });
 
 // Options menu (Page 1 settings)
