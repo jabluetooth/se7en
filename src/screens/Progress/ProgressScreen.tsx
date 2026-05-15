@@ -790,7 +790,7 @@ export function ProgressScreen() {
             </View>
           )}
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 80 }} />
         </ScrollView>
       </SafeAreaView>
     </View>

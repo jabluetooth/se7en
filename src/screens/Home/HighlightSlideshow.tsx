@@ -139,7 +139,9 @@ export function HighlightSlideshow({ sessions, currentDay, onNavigate }: Props) 
         : 'Complete a workout to see history',
       grad: ['#062D6B', '#0D5BC4', '#3A94F5'] as const,
       hi:   '#8FCEFF',
-      tab:  'Progress',
+      // Last session lives in the cycle's day timeline — route there so the
+      // user lands on the day card they just completed.
+      tab:  'Cycle',
     },
   ];
 

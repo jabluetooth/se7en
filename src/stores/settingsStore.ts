@@ -17,6 +17,7 @@ const defaults: Settings = {
   activePlanId:    null,
   currentDayPosition: 1,
   cycleStartDate:  null,
+  defaultWeightUnit: 'kg',
   createdAt:       new Date().toISOString(),
 };
 

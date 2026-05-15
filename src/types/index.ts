@@ -12,6 +12,7 @@ export interface Settings {
   activePlanId: string | null;
   currentDayPosition: number;   // 1–7 legacy fallback; prefer cycleStartDate
   cycleStartDate: string | null; // YYYY-MM-DD of when Day 1 of current cycle began
+  defaultWeightUnit: 'kg' | 'lb'; // user's preferred unit for new exercises
   createdAt: string;
 }
 
