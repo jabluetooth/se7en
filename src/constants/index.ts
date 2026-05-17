@@ -104,6 +104,19 @@ export const DAY_STATUS_ICONS = {
   upcoming:  '○',
 };
 
+// Cycle-day colour map — shared by ContributionHeatmap and HighlightSlideshow
+// so the calendar heat-cells and the highlight slideshow ring stay in sync.
+// Day positions are 1-indexed (1–7).
+export const DAY_COLOR: Record<number, string> = {
+  1: '#FF6B6B',  // coral red    Push
+  2: '#4ECDC4',  // teal         Pull
+  3: '#FACC15',  // warm yellow  Legs
+  4: '#FB923C',  // orange       Upper Push
+  5: '#60A5FA',  // sky blue     Upper Pull
+  6: '#F472B6',  // pink         Lower
+  7: '#94A3B8',  // slate        Full Body / misc
+};
+
 export const SKIP_REASONS = ['Sick', 'Travel', 'Rest', 'Other'] as const;
 export const SPLIT_TYPES  = ['PPL', 'Arnold', 'Upper/Lower', 'Bro Split', 'Full Body', 'Custom'];
 

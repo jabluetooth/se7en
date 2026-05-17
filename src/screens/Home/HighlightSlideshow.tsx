@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { usePRStore } from '../../stores/prStore';
 import { WorkoutSession } from '../../types';
-import { COLORS } from '../../constants';
+import { COLORS, DAY_COLOR } from '../../constants';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { fmtVol as fmtNum } from '../../utils/format';
 
@@ -17,17 +17,6 @@ const SIDE   = 16;
 const GAP    = 10;
 const CARD_W = SCREEN_W - SIDE * 2;
 const CARD_H = 236;
-
-// Same color map as ContributionHeatmap — keeps ring tint in sync with cycle day
-const DAY_COLOR: Record<number, string> = {
-  1: '#FF6B6B',
-  2: '#4ECDC4',
-  3: '#FACC15',
-  4: '#FB923C',
-  5: '#60A5FA',
-  6: '#F472B6',
-  7: '#94A3B8',
-};
 
 function toRgba(hex: string, a: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
