@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SvgGrad, Stop, Circle } from 'react-native-svg';
-import { WorkoutSession } from '../../types';
+import { WorkoutSession, WorkoutPlan } from '../../types';
 import { COLORS, GRAD } from '../../constants';
 
 interface Props {
-  currentDay: number; // 1–7
-  sessions:   WorkoutSession[];
-  dayLabel:   string;
+  currentDay:     number; // 1–7
+  sessions:       WorkoutSession[];
+  dayLabel:       string;
+  activePlan?:    WorkoutPlan | null;
+  cycleStartDate: string | null;
 }
 
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -27,14 +29,61 @@ function arcPath(cx: number, cy: number, R: number, ri: number, a0: number, a1: 
   );
 }
 
-export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
+// Date window for the current cycle (7-day rolling, anchored on cycleStartDate).
+// Returns null when no cycle is anchored — caller falls back to "no done arcs"
+// and uses the positional currentDay only for the bright "current" arc.
+function currentCycleWindow(cycleStartDate: string | null): { start: Date; end: Date; cycleNum: number } | null {
+  if (!cycleStartDate) return null;
+  const startDate = new Date(cycleStartDate + 'T00:00:00');
+  startDate.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff  = Math.floor((today.getTime() - startDate.getTime()) / 86_400_000);
+  if (diff < 0) return null;
+  const cyclesPassed = Math.floor(diff / 7);
+  const start = new Date(startDate);
+  start.setDate(start.getDate() + cyclesPassed * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return { start, end, cycleNum: cyclesPassed + 1 };
+}
+
+export function CycleOrbitWidget({ currentDay, sessions, dayLabel, activePlan, cycleStartDate }: Props) {
   const SZ = 200, cx = 100, cy = 100, R = 88, ri = 68;
   const SEG = 360 / 7;
   const GAP = 3.5;
 
-  const completedTotal = sessions.filter(s => s.status === 'completed').length;
-  const cycleNum       = Math.floor(completedTotal / 7) + 1;
-  const pct            = Math.round(((currentDay - 1) / 7) * 100);
+  // Pre-compute which slots have a completed session inside the *current* cycle
+  // window. Previous-cycle sessions are excluded so a fresh cycle shows fresh
+  // arcs even after a full streak last cycle.
+  const { doneSlots, cycleNum, completedThisCycle } = useMemo(() => {
+    const win = currentCycleWindow(cycleStartDate);
+    if (!win || !activePlan) {
+      return { doneSlots: new Set<number>(), cycleNum: 1, completedThisCycle: 0 };
+    }
+    const cycleSessions = sessions.filter(s => {
+      if (s.status !== 'completed' || !s.finishedAt) return false;
+      const d = new Date(s.finishedAt);
+      return d >= win.start && d < win.end;
+    });
+    const done = new Set<number>();
+    for (let slot = 1; slot <= 7; slot++) {
+      // Slot → the day at that index in the user's (possibly reordered) plan.
+      // Match sessions by the day's stable dayPosition so a completed exercise
+      // stays "done" even if the user dragged it elsewhere in the cycle.
+      const day = activePlan.days[slot - 1];
+      if (!day) continue;
+      // Rest days are never "done" — they have their own visual treatment
+      // (dim/upcoming) and shouldn't grab a completion arc even if an old
+      // session happens to share their dayPosition.
+      if (day.isRestDay) continue;
+      if (cycleSessions.some(s => s.dayPosition === day.dayPosition)) {
+        done.add(slot);
+      }
+    }
+    return { doneSlots: done, cycleNum: win.cycleNum, completedThisCycle: done.size };
+  }, [sessions, activePlan, cycleStartDate]);
+
+  const pct = Math.round((completedThisCycle / 7) * 100);
 
   return (
     <View style={s.container}>
@@ -58,15 +107,19 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel }: Props) {
         <Circle cx={cx} cy={cy} r={ri - 1} fill="rgba(8,9,15,0.92)" />
 
         {Array.from({ length: 7 }, (_, i) => {
-          const day = i + 1;
+          const slot = i + 1;
           const a0  = i * SEG + GAP / 2;
           const a1  = a0 + SEG - GAP;
           const d   = arcPath(cx, cy, R, ri, a0, a1);
 
-          if (day < currentDay) {
+          // Priority: actually-completed-this-cycle > current day > upcoming.
+          // The dim "past but not done" slot deliberately renders as upcoming
+          // (faint outline) — there's no visual "missed" state in the orbit so
+          // the user sees real progress, not slot pre-fill.
+          if (doneSlots.has(slot)) {
             return <Path key={i} d={d} fill="url(#done)" />;
           }
-          if (day === currentDay) {
+          if (slot === currentDay) {
             return <Path key={i} d={d} fill="url(#curr)" />;
           }
           return (

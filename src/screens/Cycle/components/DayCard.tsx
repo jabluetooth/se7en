@@ -17,27 +17,30 @@ import { SwipeActions, DoneAction } from './SwipeActions';
 import { ExerciseDragSort } from './ExerciseDragSort';
 
 interface Props {
-  day:        WorkoutDay;
-  planId:     string;
-  status:     DayStatus;
-  isToday:    boolean;
-  currentPos: number;
-  onEdit:     () => void;
-  onClear:    () => void;
-  onDone?:    () => void;
+  day:           WorkoutDay;
+  planId:        string;
+  status:        DayStatus;
+  isToday:       boolean;
+  currentPos:    number;
+  displayDayNum: number;          // 1-indexed slot position in the visible list
+  onEdit:        () => void;
+  onClear:       () => void;
+  onDone?:       () => void;
   dragHandlers?:         object;
   onScrollEnabledChange?: (enabled: boolean) => void;
 }
 
 export function DayCard({
-  day, planId, status, isToday, currentPos,
+  day, planId, status, isToday, currentPos, displayDayNum,
   onEdit, onClear, onDone, dragHandlers, onScrollEnabledChange,
 }: Props) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
   const swipeRef   = useRef<Swipeable>(null);
   const isCurrent  = isToday;
   const isDone     = status === 'completed';
-  const isPastRest = status === 'rest' && day.dayPosition < currentPos;
+  // "Past" is now slot-based so dragging a rest day into a past slot dims
+  // correctly and dragging it into a future slot un-dims it.
+  const isPastRest = status === 'rest' && displayDayNum < currentPos;
   const tags       = topTags(day);
 
   // showList  = tap → read-only exercise list
@@ -149,12 +152,12 @@ export function DayCard({
 
               {isCurrent ? (
                 <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.numBadge}>
-                  <Text style={dc.numActive}>{day.dayPosition}</Text>
+                  <Text style={dc.numActive}>{displayDayNum}</Text>
                 </LinearGradient>
               ) : (
                 <View style={[dc.numBadge, dc.numBadgeMuted]}>
                   <Text style={[dc.num, (isDone || isPastRest) && { color: COLORS.accent }]}>
-                    {isDone || isPastRest ? '✓' : day.dayPosition}
+                    {isDone || isPastRest ? '✓' : displayDayNum}
                   </Text>
                 </View>
               )}
@@ -255,7 +258,7 @@ export function DayCard({
                 // When turning off rest, clear the "Rest" label so the label-based
                 // fallback in dayIsRest() doesn't immediately snap the switch back on.
                 if (!val && day.label?.toLowerCase() === 'rest') {
-                  update.label = `Day ${day.dayPosition}`;
+                  update.label = `Day ${displayDayNum}`;
                 }
                 updateDay(planId, day.id, update);
               }}

@@ -34,7 +34,11 @@ export function HomeScreen({ onNavigate }: Props) {
     settings.currentDayPosition,
   );
 
-  const currentDay   = activePlan?.days.find(d => d.dayPosition === currentDayPos);
+  // Today's workout = the card at slot (currentDayPos - 1) in the user's
+  // visible cycle order. Looking it up by `dayPosition` would point at the
+  // exercise that USED to live at that slot before any drag-reorder on the
+  // Cycle screen, so the two screens would disagree on "today".
+  const currentDay   = activePlan?.days[currentDayPos - 1];
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
 
   const handleStart = () => {
@@ -84,6 +88,8 @@ export function HomeScreen({ onNavigate }: Props) {
             currentDay={currentDayPos}
             sessions={planSessions}
             dayLabel={currentDay?.label ?? 'Workout'}
+            activePlan={activePlan}
+            cycleStartDate={settings.cycleStartDate}
           />
 
           <DaySlider

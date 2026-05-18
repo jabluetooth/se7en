@@ -19,6 +19,7 @@ interface Props {
   planId:                 string;
   sessions:               WorkoutSession[];
   currentPos:             number;
+  cycleStartDate:         string | null;
   onEdit:                 (day: WorkoutDay) => void;
   onClear:                (day: WorkoutDay) => void;
   onDone:                 (day: WorkoutDay) => void;
@@ -29,38 +30,44 @@ interface Props {
 // object (id + dayPosition + content) so each card's session-history-derived
 // badge travels with it instead of staying glued to a slot.
 export function DayListDragSort({
-  days, planId, sessions, currentPos, onEdit, onClear, onDone, onScrollEnabledChange,
+  days, planId, sessions, currentPos, cycleStartDate,
+  onEdit, onClear, onDone, onScrollEnabledChange,
 }: Props) {
-  const { updatePlan }  = usePlanStore();
-  const containerRef    = useRef<View>(null);
-  const containerTopRef = useRef(0);
+  const { updatePlan }      = usePlanStore();
+  const containerRef        = useRef<View>(null);
+  const containerTopRef     = useRef(0);
   const layoutsRef = useRef<{ y: number; height: number }[]>(
     days.map((_, i) => ({ y: i * CARD_EST_H, height: CARD_EST_H })),
   );
-  const dragFromRef   = useRef<number | null>(null);
-  const dropToRef     = useRef<number | null>(null);
-  const floatY        = useRef(new Animated.Value(0)).current;
-  const daysRef       = useRef(days);
-  const snapshotRef   = useRef(days);
-  const onScrollRef   = useRef(onScrollEnabledChange);
-  const updatePlanRef = useRef(updatePlan);
-  const planIdRef     = useRef(planId);
-  const currentPosRef = useRef(currentPos);
-  const sessionsRef   = useRef(sessions);
-  daysRef.current       = days;
-  onScrollRef.current   = onScrollEnabledChange;
-  updatePlanRef.current = updatePlan;
-  planIdRef.current     = planId;
-  currentPosRef.current = currentPos;
-  sessionsRef.current   = sessions;
+  const dragFromRef         = useRef<number | null>(null);
+  const dropToRef           = useRef<number | null>(null);
+  const floatY              = useRef(new Animated.Value(0)).current;
+  const daysRef             = useRef(days);
+  const snapshotRef         = useRef(days);
+  const onScrollRef         = useRef(onScrollEnabledChange);
+  const updatePlanRef       = useRef(updatePlan);
+  const planIdRef           = useRef(planId);
+  const currentPosRef       = useRef(currentPos);
+  const sessionsRef         = useRef(sessions);
+  const cycleStartDateRef   = useRef(cycleStartDate);
+  daysRef.current           = days;
+  onScrollRef.current       = onScrollEnabledChange;
+  updatePlanRef.current     = updatePlan;
+  planIdRef.current         = planId;
+  currentPosRef.current     = currentPos;
+  sessionsRef.current       = sessions;
+  cycleStartDateRef.current = cycleStartDate;
 
   // First index in the sorted list that is not locked (completed or past rest).
-  // Draggable cards cannot be dropped above this boundary.
+  // Draggable cards cannot be dropped above this boundary. "Past" is now
+  // slot-based — a rest day at slot 0 with currentPos=3 is past regardless of
+  // its underlying dayPosition.
   const minDropRef = useRef(0);
   minDropRef.current = (() => {
-    const idx = daysRef.current.findIndex(d => {
-      const st = getStatus(d, currentPosRef.current, sessionsRef.current);
-      return st !== 'completed' && !(st === 'rest' && d.dayPosition < currentPosRef.current);
+    const idx = daysRef.current.findIndex((d, i) => {
+      const slot = i + 1;
+      const st = getStatus(d, slot, currentPosRef.current, sessionsRef.current, cycleStartDateRef.current);
+      return st !== 'completed' && !(st === 'rest' && slot < currentPosRef.current);
     });
     return idx === -1 ? 0 : idx;
   })();
@@ -139,6 +146,11 @@ export function DayListDragSort({
   return (
     <View ref={containerRef}>
       {days.map((day, idx) => {
+        // displayDayNum = the 1-indexed slot the card currently occupies.
+        // Drives the number badge, the "Today" highlight, and the past-vs-
+        // upcoming bucket for status. Session-history badges (Done/Missed
+        // from a real log) still key off the stable dayPosition.
+        const displayDayNum = idx + 1;
         const isActive  = dragFrom === idx;
         const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
         const showBelow = dropTo === idx && dragFrom !== null && dragFrom < idx;
@@ -157,15 +169,16 @@ export function DayListDragSort({
             <DayCard
               day={day}
               planId={planId}
-              status={getStatus(day, currentPos, sessions)}
-              isToday={day.dayPosition === currentPos}
+              status={getStatus(day, displayDayNum, currentPos, sessions, cycleStartDate)}
+              isToday={displayDayNum === currentPos}
               currentPos={currentPos}
+              displayDayNum={displayDayNum}
               onEdit={() => onEdit(day)}
               onClear={() => onClear(day)}
               onDone={() => onDone(day)}
               dragHandlers={(() => {
-                const st = getStatus(day, currentPos, sessions);
-                const locked = st === 'completed' || (st === 'rest' && day.dayPosition < currentPos);
+                const st = getStatus(day, displayDayNum, currentPos, sessions, cycleStartDate);
+                const locked = st === 'completed' || (st === 'rest' && displayDayNum < currentPos);
                 return locked ? undefined : panHandlersRef.current[idx];
               })()}
               onScrollEnabledChange={onScrollEnabledChange}
@@ -179,7 +192,9 @@ export function DayListDragSort({
         <Animated.View style={[dl.float, { transform: [{ translateY: floatY }], opacity: 0.92 }]} pointerEvents="none">
           <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,240,220,0.18)">
             <View style={[dc.numBadge, dc.numBadgeMuted]}>
-              <Text style={dc.num}>{snapshotRef.current[dragFrom]?.dayPosition}</Text>
+              {/* Float preview shows the slot the card was picked up from,
+                  matching the slot-based numbering in the rendered list. */}
+              <Text style={dc.num}>{dragFrom + 1}</Text>
             </View>
             <Text style={dl.floatLabel} numberOfLines={1}>
               {snapshotRef.current[dragFrom]?.label}

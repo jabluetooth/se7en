@@ -51,10 +51,14 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
     activePlan?.days.find(d => d.dayPosition === dayPos)?.isRestDay ?? false;
 
   // Returns the plan day for a calendar date using the cycle anchor.
+  // `pos` (1-7) maps to the visible *slot* in the user's reordered plan, not
+  // to the stable `dayPosition` content-id — same convention as the Cycle
+  // screen so today's calendar cell paints the same exercise that's currently
+  // showing as "Today" on the Cycle tab.
   const planDayForCalDay = (calDay: number): WorkoutDay | null => {
     const pos = dayPositionForDate(cycleStartDate, new Date(year, month, calDay));
     if (pos === null || !activePlan) return null;
-    return activePlan.days.find(d => d.dayPosition === pos) ?? null;
+    return activePlan.days[pos - 1] ?? null;
   };
 
   // planId → splitType — when a user changes plans mid-cycle,

@@ -19,18 +19,26 @@ const SCREEN_W  = Dimensions.get('window').width;
 export function DaySlider({ days, currentDay, sessions }: Props) {
   const scrollRef = useRef<ScrollView>(null);
 
-  // Build 7 items — all day positions 1–7, rest days included.
-  // Sub-label always shows the workout name (PUSH / PULL / LEGS / REST) so the
-  // user reads "what am I training", not "what day of the week is it".
+  // Build 7 items by SLOT (array index + 1), not dayPosition.
+  // After a Cycle-screen drag-reorder a workout may live at a different slot
+  // than its stable dayPosition — slider numbers must follow the visible
+  // order so "1" always means "first card in the user's cycle".
+  // Sub-label shows the workout name (PUSH / PULL / LEGS / REST).
   const items = Array.from({ length: 7 }, (_, i) => {
-    const dp     = i + 1;
-    const day    = days.find(d => d.dayPosition === dp);
+    const slot   = i + 1;
+    const day    = days[i];
     const isRest = day?.isRestDay ?? false;
     const sub    = isRest
       ? 'REST'
-      : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${dp}`);
+      : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${slot}`);
 
-    return { dayNum: dp, label: String(dp), sub, isRest };
+    // Rest days never show the "done" dot — even if an old completed session
+    // happens to share the dayPosition currently parked at this slot.
+    const hasDone = !!day && !isRest && sessions.some(
+      se => se.dayPosition === day.dayPosition && se.status === 'completed',
+    );
+
+    return { dayNum: slot, label: String(slot), sub, isRest, hasDone };
   });
 
   // Auto-scroll to centre current day on mount / change
@@ -56,9 +64,7 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
         {items.map(item => {
           const isCurrent = item.dayNum === currentDay;
           const isPast    = item.dayNum < currentDay;
-          const hasDone   = sessions.some(
-            se => se.dayPosition === item.dayNum && se.status === 'completed',
-          );
+          const hasDone   = item.hasDone;
 
           if (isCurrent) {
             return (

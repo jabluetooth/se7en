@@ -232,6 +232,7 @@ export function CycleScreen() {
             planId={activePlan.id}
             sessions={sessions}
             currentPos={currentDayPos}
+            cycleStartDate={settings.cycleStartDate}
             onEdit={setEditingDay}
             onClear={handleClear}
             onDone={handleQuickDone}

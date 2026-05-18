@@ -12,19 +12,57 @@ export function dayIsRest(day: WorkoutDay): boolean {
 }
 
 export function getStatus(
-  day: WorkoutDay,
-  currentPos: number,
-  sessions: WorkoutSession[],
+  day:            WorkoutDay,
+  displayPos:     number,        // 1-indexed slot position in the visible list
+  currentPos:     number,
+  sessions:       WorkoutSession[],
+  cycleStartDate: string | null,
 ): DayStatus {
   if (dayIsRest(day)) return 'rest';
-  // Check session history first — a completed/missed session takes priority
-  // over the "current" indicator so the badge reflects reality.
-  const last = sessions
+
+  // Filter sessions to the CURRENT cycle's date window so:
+  //   1. Cycle 1's "Done" badge doesn't bleed into Cycle 2 (visual auto-reset)
+  //   2. Past unrecorded days in this cycle can fall through to auto-"missed"
+  // Falls back to "use all sessions, don't auto-miss" when no cycleStartDate
+  // is set (first-run / migrated users).
+  let cycleSessions = sessions;
+  let canAutoMiss   = false;
+
+  if (cycleStartDate) {
+    const startDate = new Date(cycleStartDate + 'T00:00:00');
+    startDate.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff  = Math.floor((today.getTime() - startDate.getTime()) / 86_400_000);
+
+    if (diff >= 0) {
+      // Each cycle is 7 days; figure out which cycle window contains today.
+      const cyclesPassed = Math.floor(diff / 7);
+      const cycleStart = new Date(startDate);
+      cycleStart.setDate(cycleStart.getDate() + cyclesPassed * 7);
+      const cycleEnd   = new Date(cycleStart);
+      cycleEnd.setDate(cycleEnd.getDate() + 7);
+
+      cycleSessions = sessions.filter(s => {
+        if (!s.finishedAt) return false;
+        const d = new Date(s.finishedAt);
+        return d >= cycleStart && d < cycleEnd;
+      });
+      canAutoMiss = true;
+    }
+  }
+
+  // Session lookup uses the stable `dayPosition` (the content's identity) so a
+  // completed exercise keeps its "Done" badge no matter where it's dragged.
+  // Slot-based comparisons (`displayPos`) drive the visual current/past
+  // semantics so the Today highlight and the auto-missed status follow the
+  // card's *position*, not its content.
+  const last = cycleSessions
     .filter(s => s.dayPosition === day.dayPosition && s.finishedAt)
     .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())[0];
   if (last?.status === 'completed') return 'completed';
   if (last?.status === 'missed')    return 'missed';
-  if (day.dayPosition === currentPos) return 'current';
+  if (displayPos === currentPos)    return 'current';
+  if (canAutoMiss && displayPos < currentPos) return 'missed';
   return 'upcoming';
 }
 
