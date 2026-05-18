@@ -32,10 +32,15 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
       ? 'REST'
       : (day?.label?.split(/\s+/)[0]?.toUpperCase() ?? `D${slot}`);
 
-    // Rest days never show the "done" dot — even if an old completed session
-    // happens to share the dayPosition currently parked at this slot.
-    const hasDone = !!day && !isRest && sessions.some(
-      se => se.dayPosition === day.dayPosition && se.status === 'completed',
+    // hasDone drives the small accent dot on past pills.
+    // Workout days  → real completed session (matched by stable dayPosition).
+    // Rest days     → auto-done once the slot has passed (can't be marked manually).
+    const isPast  = slot < currentDay;
+    const hasDone = !!day && (
+      (isRest && isPast) ||
+      (!isRest && sessions.some(
+        se => se.dayPosition === day.dayPosition && se.status === 'completed',
+      ))
     );
 
     return { dayNum: slot, label: String(slot), sub, isRest, hasDone };
@@ -82,29 +87,23 @@ export function DaySlider({ days, currentDay, sessions }: Props) {
             );
           }
 
+          // Styling follows past/today/future regardless of rest-vs-workout.
+          // The "REST" sub-label is what differentiates them visually — a
+          // FUTURE rest day must not look identical to a past/done one, and a
+          // PAST rest day shares the same "done" treatment as a finished workout.
           return (
             <View
               key={item.dayNum}
               style={[
                 s.item,
-                item.isRest ? s.itemRest :
-                isPast      ? s.itemPast :
-                              s.itemFuture,
+                isPast ? s.itemPast : s.itemFuture,
               ]}
             >
-              {!item.isRest && isPast && hasDone && <View style={s.doneDot} />}
-              <Text style={[
-                s.num,
-                item.isRest ? s.numRest :
-                isPast      ? s.numPast  : undefined,
-              ]}>
+              {isPast && hasDone && <View style={s.doneDot} />}
+              <Text style={[s.num, isPast && s.numPast]}>
                 {item.label}
               </Text>
-              <Text style={[
-                s.sub,
-                item.isRest ? s.subRest :
-                isPast      ? s.subPast  : undefined,
-              ]}>
+              <Text style={[s.sub, isPast && s.subPast]}>
                 {item.sub}
               </Text>
             </View>
@@ -136,11 +135,10 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   // Past = dim orange (inverse-opacity of the bright accent today uses).
+  // Future = neutral cream — used for both upcoming workouts AND upcoming
+  // rest days so a future rest never looks "done".
   itemPast:   { backgroundColor: 'rgba(255,140,0,0.10)',  borderColor: 'rgba(255,140,0,0.28)'  },
   itemFuture: { backgroundColor: 'rgba(255,240,220,0.04)', borderColor: 'rgba(255,240,220,0.08)' },
-  // Rest = same orange treatment as past workout days. The label content
-  // ("REST") is what differentiates them, not the palette.
-  itemRest:   { backgroundColor: 'rgba(255,140,0,0.10)',  borderColor: 'rgba(255,140,0,0.28)' },
 
   doneDot: {
     position: 'absolute', top: 6, right: 7,
@@ -149,8 +147,6 @@ const s = StyleSheet.create({
   },
   num:     { fontSize: 18, fontWeight: '800', color: COLORS.textMuted },
   numPast: { color: COLORS.accent },
-  numRest: { color: COLORS.accent },
   sub:     { fontSize: 8, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase' },
   subPast: { color: 'rgba(255,140,0,0.70)' },
-  subRest: { color: 'rgba(255,140,0,0.70)' },
 });

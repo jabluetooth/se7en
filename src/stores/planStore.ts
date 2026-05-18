@@ -205,6 +205,12 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   addExercise: (planId, dayId, exercise) => {
+    // Rest days never hold exercises (Cycle screen invariant). The UI already
+    // hides the add button when isRestDay is true, but enforce it here too so
+    // any other caller (sync, future automation) can't silently break the rule.
+    const targetDay = get().plans.find(p => p.id === planId)?.days.find(d => d.id === dayId);
+    if (targetDay?.isRestDay) return;
+
     const ex: Exercise = { ...exercise, id: generateId(), createdAt: new Date().toISOString() };
     const plans = get().plans.map(p =>
       p.id !== planId ? p : { ...p, days: p.days.map(d => d.id !== dayId ? d : { ...d, exercises: [...d.exercises, ex] }) }

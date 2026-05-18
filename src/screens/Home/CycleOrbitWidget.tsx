@@ -68,14 +68,17 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel, activePlan, c
     const done = new Set<number>();
     for (let slot = 1; slot <= 7; slot++) {
       // Slot → the day at that index in the user's (possibly reordered) plan.
-      // Match sessions by the day's stable dayPosition so a completed exercise
-      // stays "done" even if the user dragged it elsewhere in the cycle.
       const day = activePlan.days[slot - 1];
       if (!day) continue;
-      // Rest days are never "done" — they have their own visual treatment
-      // (dim/upcoming) and shouldn't grab a completion arc even if an old
-      // session happens to share their dayPosition.
-      if (day.isRestDay) continue;
+      if (day.isRestDay) {
+        // Rest days can't be manually marked done (no swipe-Done), but a
+        // PAST rest day in this cycle counts as "successfully rested" and
+        // fills its arc automatically. Future rest days stay dim/upcoming.
+        if (slot < currentDay) done.add(slot);
+        continue;
+      }
+      // Match workout sessions by the day's stable dayPosition so a completed
+      // exercise stays "done" even if the user dragged it elsewhere in the cycle.
       if (cycleSessions.some(s => s.dayPosition === day.dayPosition)) {
         done.add(slot);
       }

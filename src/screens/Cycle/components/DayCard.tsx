@@ -255,9 +255,14 @@ export function DayCard({
               value={isRest}
               onValueChange={val => {
                 const update: Partial<WorkoutDay> = { isRestDay: val };
-                // When turning off rest, clear the "Rest" label so the label-based
-                // fallback in dayIsRest() doesn't immediately snap the switch back on.
-                if (!val && day.label?.toLowerCase() === 'rest') {
+                if (val) {
+                  // Rest = no exercises (Cycle screen rule). Drop them when
+                  // flipping to rest so the day is "empty" by definition;
+                  // it can't be marked Done either (see SwipeActions).
+                  update.exercises = [];
+                } else if (day.label?.toLowerCase() === 'rest') {
+                  // When turning off rest, clear the "Rest" label so the
+                  // label-based fallback in dayIsRest() doesn't snap it back.
                   update.label = `Day ${displayDayNum}`;
                 }
                 updateDay(planId, day.id, update);
