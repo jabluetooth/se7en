@@ -27,9 +27,23 @@ export function AppNavigator() {
   const { activePlan }               = usePlanStore();
   const { signOut, user }            = useAuthStore();
 
-  const nextDay = finishedSession && activePlan
-    ? activePlan.days.find(d => d.dayPosition === finishedSession.dayPosition + 1)
-    : undefined;
+  // "Next Up" must mirror the Cycle screen's slot order — NOT dayPosition+1.
+  // After a drag-reorder on the Cycle screen, slot N+1 holds whatever workout
+  // the user dragged there, which may have any dayPosition. We locate the
+  // finished session by its stable dayPosition, then walk forward through the
+  // slot array (wrapping at 7) and skip rest days so the user sees the next
+  // actual workout — exactly what the Cycle screen shows as "tomorrow".
+  const nextDay = (() => {
+    if (!finishedSession || !activePlan) return undefined;
+    const days = activePlan.days;
+    const currentSlot = days.findIndex(d => d.dayPosition === finishedSession.dayPosition);
+    if (currentSlot === -1) return undefined;
+    for (let offset = 1; offset <= days.length; offset++) {
+      const candidate = days[(currentSlot + offset) % days.length];
+      if (candidate && !candidate.isRestDay) return candidate;
+    }
+    return undefined; // plan is all rest days — NextUpPage shows empty state
+  })();
   const showActiveSession            = activeSession !== null;
 
   const handleSessionFinish = (session: WorkoutSession) => {

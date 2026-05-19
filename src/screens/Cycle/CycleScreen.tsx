@@ -102,10 +102,43 @@ export function CycleScreen() {
   // that order directly. Re-sorting by `dayPosition` here would silently undo
   // every reorder because dayPosition is stable per card (sessions key off it).
   const days   = activePlan.days;
-  const recent = sessions.slice(-14);
-  const done   = recent.filter(ss => ss.status === 'completed').length;
-  const rate   = recent.length === 0 ? 0 : Math.round((done / recent.length) * 100);
-  const bars   = recent.map(ss => ss.status === 'completed' ? 1 : 0);
+
+  // Last-14 completion is per CALENDAR DAY, not per session record.
+  // A day counts as "done" when either:
+  //   • the scheduled workout has a completed session on that date, OR
+  //   • the scheduled day is a rest day (auto-completed once it passes).
+  // Pure session-based counting would silently drop rest days out of the
+  // graph even though the user satisfied the plan that day.
+  const { rate, bars } = (() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const anchor = settings.cycleStartDate
+      ? (() => { const d = new Date(settings.cycleStartDate + 'T00:00:00'); d.setHours(0,0,0,0); return d; })()
+      : null;
+
+    const points: number[] = [];
+    for (let back = 13; back >= 0; back--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - back);
+      if (anchor && d < anchor) continue; // skip pre-cycle days entirely
+      const diff = anchor ? Math.floor((d.getTime() - anchor.getTime()) / 86_400_000) : 0;
+      const slotIdx = anchor ? diff % days.length : 0;
+      const planDay = days[slotIdx];
+      if (!planDay) continue;
+      if (planDay.isRestDay) { points.push(1); continue; }
+      const dateStr = d.toISOString().slice(0, 10);
+      const hit = sessions.some(ss =>
+        ss.status === 'completed' &&
+        ss.dayPosition === planDay.dayPosition &&
+        ss.finishedAt?.slice(0, 10) === dateStr,
+      );
+      points.push(hit ? 1 : 0);
+    }
+    const done = points.filter(v => v === 1).length;
+    return {
+      rate: points.length === 0 ? 0 : Math.round((done / points.length) * 100),
+      bars: points,
+    };
+  })();
 
   const handleClear = (day: WorkoutDay) => {
     Alert.alert(
@@ -194,7 +227,7 @@ export function CycleScreen() {
         <GlassView radius={16} style={s.rateCard}>
           <View style={s.rateRow}>
             <View>
-              <Text style={s.rateLabel}>Last 14 sessions</Text>
+              <Text style={s.rateLabel}>Last 14 days</Text>
               <View style={s.rateNumRow}>
                 <Text style={s.rateVal}>{rate}%</Text>
                 <Text style={s.rateSub}> completion</Text>
