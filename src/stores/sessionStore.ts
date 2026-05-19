@@ -286,7 +286,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   startTimer: () => {
     if (get().timerInterval) return;
-    const interval = setInterval(() => set(s => ({ sessionTimer: s.sessionTimer + 1 })), 1000);
+    const interval = setInterval(() => {
+      const active = get().activeSession;
+      if (active?.startedAt) {
+        set({ sessionTimer: Math.max(0, Math.floor((Date.now() - new Date(active.startedAt).getTime()) / 1000)) });
+      } else {
+        set(s => ({ sessionTimer: s.sessionTimer + 1 }));
+      }
+    }, 1000);
     set({ timerInterval: interval });
   },
 
