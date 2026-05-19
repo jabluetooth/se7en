@@ -29,6 +29,12 @@ export function ProgressScreen() {
   const [expandedId,  setExpandedId]  = useState<string | null>(null);
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAll,     setShowAll]     = useState(false);
+
+  // Initial card limit — keeps the Progress screen scannable for users with
+  // dozens of tracked exercises. Search bypasses the cap (the user is already
+  // narrowing the list themselves).
+  const INITIAL_LIMIT = 5;
 
   // Memoised together so unrelated state updates (sort / search) don't redo
   // these passes over the full sessions list every render.
@@ -69,6 +75,16 @@ export function ProgressScreen() {
     if (!q) return sortedHistories;
     return sortedHistories.filter(h => h.exerciseName.toLowerCase().includes(q));
   }, [sortedHistories, searchQuery]);
+
+  // Apply the initial 5-card cap unless the user has opened search OR has
+  // already expanded the list. Capped list shows the most recent activity
+  // first when the default sort is 'recent'; switching sort changes which
+  // 5 are surfaced.
+  const isSearching = searchQuery.trim().length > 0;
+  const displayedHistories = (showAll || isSearching)
+    ? visibleHistories
+    : visibleHistories.slice(0, INITIAL_LIMIT);
+  const hiddenCount = visibleHistories.length - displayedHistories.length;
 
   // Chart width = window - ScrollView padding (32) - GlassView card padding (24)
   const chartWidth = Math.max(240, windowWidth - 32 - 24);
@@ -188,7 +204,7 @@ export function ProgressScreen() {
             </GlassView>
           ) : (
             <View style={s.cardList}>
-              {visibleHistories.map(h => (
+              {displayedHistories.map(h => (
                 <ExerciseCard
                   key={h.exerciseId}
                   history={h}
@@ -199,10 +215,31 @@ export function ProgressScreen() {
                   chartWidth={chartWidth}
                 />
               ))}
+
+              {/* Show-more / show-less control — only when the cap is actually
+                  hiding something OR when the user already expanded the list. */}
+              {!isSearching && (hiddenCount > 0 || showAll) && (
+                <Pressable
+                  onPress={() => setShowAll(v => !v)}
+                  style={({ pressed }) => [s.seeMoreBtn, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={s.seeMoreTxt}>
+                    {showAll ? 'See less' : `See ${hiddenCount} more`}
+                  </Text>
+                  <Ionicons
+                    name={showAll ? 'chevron-up' : 'chevron-down'}
+                    size={14}
+                    color={COLORS.accent}
+                  />
+                </Pressable>
+              )}
             </View>
           )}
 
-          <View style={{ height: 80 }} />
+          {/* Bottom breathing room — AppNavigator already pads 80px for the
+              floating dock, so this is just the small gap between the last
+              card and the dock's top edge (about half the dock's height). */}
+          <View style={{ height: 24 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -249,4 +286,8 @@ const s = StyleSheet.create({
   cardList:         { gap: 8 },
   emptyCard:        { padding: 20, alignItems: 'center' },
   emptyText:        { fontSize: 13, color: COLORS.textMuted, textAlign: 'center' },
+
+  // See more / less control
+  seeMoreBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, marginTop: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.06)' },
+  seeMoreTxt:       { fontSize: 12, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.4 },
 });

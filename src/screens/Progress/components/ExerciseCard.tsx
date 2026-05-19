@@ -42,6 +42,27 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
     : -Infinity;
   const isRecentPR = sessions.length >= 2 && metric(latest) > priorMax;
 
+  // ── Decline tracking (multi-session) ─────────────────────────────────
+  // The TREND chip above only compares the latest 2 sessions; that misses
+  // sustained regressions. Two extra signals surface those:
+  //   • declineStreak — count of consecutive declining sessions (latest going
+  //     back). 1 = just this session, 2+ = "this isn't a one-off dip".
+  //   • offPeakPct    — how far below the all-time best the latest sits, so
+  //     the user knows the scale of the regression even mid-streak.
+  let declineStreak = 0;
+  for (let i = sessions.length - 1; i > 0; i--) {
+    if (metric(sessions[i]) < metric(sessions[i - 1]) - 0.001) declineStreak++;
+    else break;
+  }
+  const allTimeBest = sessions.reduce((m, x) => Math.max(m, metric(x)), 0);
+  const offPeakPct  = allTimeBest > 0 && lastMetric < allTimeBest
+    ? Math.round(((allTimeBest - lastMetric) / allTimeBest) * 100)
+    : 0;
+  // Surface the line only when there's something worth flagging. A 1-session
+  // dip with <5% off peak is noise; ≥2 consecutive declines OR a meaningful
+  // gap from peak is signal.
+  const showRegression = declineStreak >= 2 || offPeakPct >= 5;
+
   const sparkN    = Math.min(8, sessions.length);
   const sparkData = sessions.slice(-sparkN).map(metric);
 
@@ -127,6 +148,24 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
         )}
       </View>
 
+      {/* Multi-session decline banner — only when there's something to flag.
+          Streak captures sustained regression ("3 in a row"); off-peak captures
+          scale ("currently 8% below your best"). Combined, the user sees both
+          the WHY (streak) and the HOW BAD (off-peak). */}
+      {showRegression && (
+        <View style={s.regressionRow}>
+          <Text style={s.regressionTxt}>
+            {declineStreak >= 2 && (
+              <Text style={s.regressionStrong}>↓ {declineStreak} in a row</Text>
+            )}
+            {declineStreak >= 2 && offPeakPct >= 5 && <Text>  ·  </Text>}
+            {offPeakPct >= 5 && (
+              <Text style={s.regressionStrong}>−{offPeakPct}% off peak</Text>
+            )}
+          </Text>
+        </View>
+      )}
+
       {expanded && (
         <View style={s.expanded}>
           <ExpandedChart sessions={sessions} isBodyweight={isBodyweight} unit={weightUnit} width={chartWidth} />
@@ -174,6 +213,11 @@ const s = StyleSheet.create({
   chip:     { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', flexDirection: 'column', gap: 1 },
   chipLbl:  { fontSize: 8, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 0.8 },
   chipVal:  { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // Regression banner — appears only when a sustained decline exists
+  regressionRow:    { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,80,80,0.28)', backgroundColor: 'rgba(255,80,80,0.06)' },
+  regressionTxt:    { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600', letterSpacing: 0.2 },
+  regressionStrong: { color: DECLINE_RED_TXT, fontWeight: '800' },
 
   expanded: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
 
