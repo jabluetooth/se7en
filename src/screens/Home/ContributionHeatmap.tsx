@@ -335,26 +335,45 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             const isRestCell    = schedRest;
                             const isPastOrToday = isPast || todayD;
 
-                            // Cell bg + border with strict priority. The KEY
-                            // rule: future cells (workout OR rest) MUST get an
-                            // opaque bg to cover any cycle-pill bleed-through —
-                            // otherwise the active cycle's accent paints them
-                            // as if they were "done" / highlighted.
-                            //
-                            //   1. Completed workout         → workout colour
-                            //   2. Past planned, no session  → faint missed tint
-                            //   3. Past/today rest in active cycle → cycle accent (auto-done)
-                            //   4. Past/today rest elsewhere → REST_STONE (auto-done generic)
-                            //   5. Future workout or rest    → cellEmpty (neutral upcoming)
+                            // Rest UI shows only when the cell is either
+                            //   (a) inside the currently-highlighted cycle, or
+                            //   (b) already past/today (auto-completed).
+                            // Future rest days in NON-highlighted cycles (e.g.
+                            // a Sunday three weeks out) read as plain upcoming.
+                            const showAsRest = isRestCell && (pillColor !== null || isPastOrToday);
+
+                            // Upcoming-workout PREVIEW colour — only inside the
+                            // active cycle pill, for workout days that haven't
+                            // been logged yet. This is how the heatmap mirrors
+                            // the Cycle screen: every day inside this week's
+                            // cycle shows what's scheduled, even before there's
+                            // any session data.
+                            const previewColor = !color && !missedColor && !isRestCell && pillColor && planDay && !sess
+                              ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
+                              : null;
+
+                            // Cell bg + border priority — drives "the Cycle screen
+                            // is the truth" for every day inside the active cycle:
+                            //   1. Completed workout                → workout colour (done)
+                            //   2. Past planned, no session         → faint missed tint
+                            //   3. Past/today rest, in active cycle → cycle accent (auto-done)
+                            //   4. Future rest, in active cycle     → faint REST_STONE
+                            //   5. Past/today rest, outside cycle   → REST_STONE (auto-done generic)
+                            //   6. Today/future workout, in cycle   → faint workout colour (preview)
+                            //   7. Everything else (future outside) → cellEmpty (neutral)
                             let bgStyle: object | null = null;
                             if (color) {
                               bgStyle = { backgroundColor: rgba(color, 0.20), borderColor: rgba(color, 0.42) };
                             } else if (missedColor) {
                               bgStyle = { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) };
-                            } else if (isRestCell && isPastOrToday && pillColor) {
+                            } else if (showAsRest && pillColor && isPastOrToday) {
                               bgStyle = { backgroundColor: rgba(pillColor, 0.14), borderColor: rgba(pillColor, 0.30) };
-                            } else if (isRestCell && isPastOrToday) {
+                            } else if (showAsRest && pillColor) {
+                              bgStyle = { backgroundColor: rgba(REST_STONE, 0.10), borderColor: rgba(REST_STONE, 0.22) };
+                            } else if (showAsRest) {
                               bgStyle = { backgroundColor: rgba(REST_STONE, 0.16), borderColor: rgba(REST_STONE, 0.30) };
+                            } else if (previewColor) {
+                              bgStyle = { backgroundColor: rgba(previewColor, 0.06), borderColor: rgba(previewColor, 0.22) };
                             } else {
                               bgStyle = s.cellEmpty;
                             }
@@ -378,11 +397,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                 )}
                                 <Text style={[
                                   s.cellNum,
-                                  !sess && !todayD && !isRestCell && !missedColor && s.cellNumEmpty,
-                                  isRestCell  && s.cellNumRest,
+                                  !sess && !todayD && !showAsRest && !missedColor && !previewColor && s.cellNumEmpty,
+                                  showAsRest && s.cellNumRest,
                                   todayD && !sess && s.cellNumToday,
-                                  !!color     && s.cellNumSess,
+                                  !!color    && s.cellNumSess,
                                   !!missedColor && { color: rgba(missedColor, 0.45) } as any,
+                                  !!previewColor && !todayD && { color: rgba(previewColor, 0.65), fontWeight: '600' } as any,
                                 ]}>
                                   {day}
                                 </Text>
@@ -479,22 +499,39 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                 </View>
               )}
             </View>
-          ) : (
-            // Non-rest, no session → either a planned-but-missed workout or
-            // a future workout day. The "missed" colour on the cell already
-            // signals the past case; copy stays generic.
-            <View style={s.cardEmpty}>
-              <Text style={s.cardEmptyDate}>
-                {new Date(year, month, sel.day)
-                  .toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-              </Text>
-              <Text style={s.cardEmptyTxt}>
-                {selIsPast  ? 'No session logged.' :
-                 selIsToday ? 'No session yet today.' :
-                              'Upcoming — no session yet.'}
-              </Text>
-            </View>
-          )}
+          ) : (() => {
+            // Non-rest, no session. Inside the active cycle we know exactly
+            // what's scheduled for this date (Cycle screen is the truth) —
+            // surface it as a pill so the user sees "PULL · UPCOMING" instead
+            // of an anonymous "no session yet" line.
+            const selCycleIdx  = sel ? cycleForDay(sel.day) : null;
+            const selInCycle   = selCycleIdx !== null && cycleInfo.has(selCycleIdx);
+            const selDayColor  = selPlanDay && !selPlanDay.isRestDay
+              ? (DAY_COLOR[selPlanDay.dayPosition] ?? DEFAULT_COLOR)
+              : null;
+            const showScheduled = selInCycle && selPlanDay && !selPlanDay.isRestDay && !selIsPast;
+            return (
+              <View style={s.cardEmpty}>
+                <Text style={s.cardEmptyDate}>
+                  {new Date(year, month, sel.day)
+                    .toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                </Text>
+                {showScheduled && selDayColor && (
+                  <View style={[s.cardPill, { borderColor: rgba(selDayColor, 0.45), backgroundColor: rgba(selDayColor, 0.14), marginTop: 6 }]}>
+                    <Text style={[s.cardPillTxt, { color: selDayColor }]}>
+                      {selPlanDay!.label.toUpperCase()} · {selIsToday ? 'TODAY' : 'UPCOMING'}
+                    </Text>
+                  </View>
+                )}
+                <Text style={[s.cardEmptyTxt, showScheduled && { marginTop: 8 }]}>
+                  {selIsPast    ? 'No session logged.' :
+                   selIsToday   ? 'No session yet today.' :
+                   showScheduled ? 'Scheduled — no session yet.' :
+                                  'Upcoming — no session yet.'}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
       )}
 
@@ -603,7 +640,9 @@ const s = StyleSheet.create({
   cellNumEmpty: { color: 'rgba(255,240,220,0.20)', fontWeight: '400' },
   cellNumToday: { color: COLORS.accent, fontWeight: '800' },
   cellNumSess:  { color: '#fff', fontWeight: '700' },
-  cellNumRest:  { color: 'rgba(52,211,153,0.50)', fontWeight: '400' },
+  // Rest cell numeral — REST_STONE gray, matching the rest-cell bg palette.
+  // (Was green previously, which leaked the old palette into the orange-only theme.)
+  cellNumRest:  { color: 'rgba(168,162,158,0.65)', fontWeight: '500' },
 
   // Log card
   card: {
