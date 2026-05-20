@@ -18,7 +18,9 @@ const TABS: Tab[] = [
 
 // dock.tsx defaults: 40×40 circular icons (DEFAULT_SIZE). Touch has no cursor-proximity
 // magnification, so all icons stay at base size; active state uses the orange gradient fill.
-const ICON_SIZE = 40;
+const ICON_SIZE   = 48;
+const DOCK_HEIGHT = 72;   // 72 - 2*12 padding = 48 icon content area, fits exactly
+const DOCK_RADIUS = 28;   // softer corners — closer to pill but still rectangular
 
 interface Props { activeTab: TabName; onTabPress: (tab: TabName) => void; }
 
@@ -29,8 +31,8 @@ export function FloatingDock({ activeTab, onTabPress }: Props) {
     <View style={[s.wrapper, { paddingBottom: insets.bottom + 8 }]}>
       <View style={s.shadowWrap}>
         {Platform.OS === 'ios' ? (
-          // Intensity 50 ≈ Tailwind backdrop-blur-md (12px) from dock.tsx
-          <BlurView intensity={50} tint="dark" style={s.dock}>
+          // systemUltraThinMaterialDark = actual Apple system glass (matches GlassView)
+          <BlurView intensity={50} tint="systemUltraThinMaterialDark" style={s.dock}>
             {/* Cool white tint — bg-white/10 */}
             <View style={[StyleSheet.absoluteFill, s.tint]} />
             <DockContent activeTab={activeTab} onTabPress={onTabPress} />
@@ -63,7 +65,7 @@ function DockContent({ activeTab, onTabPress }: Props) {
               onPress={() => onTabPress(tab.name)}
               activeOpacity={0.9}
             >
-              <Ionicons name={tab.iconFocused as any} size={22} color="#fff" />
+              <Ionicons name={tab.iconFocused as any} size={24} color="#fff" />
             </TouchableOpacity>
           </LinearGradient>
         ) : (
@@ -73,7 +75,7 @@ function DockContent({ activeTab, onTabPress }: Props) {
             onPress={() => onTabPress(tab.name)}
             activeOpacity={0.65}
           >
-            <Ionicons name={tab.icon as any} size={20} color={COLORS.textSecondary} />
+            <Ionicons name={tab.icon as any} size={22} color={COLORS.textSecondary} />
           </TouchableOpacity>
         );
       })}
@@ -88,7 +90,7 @@ const s = StyleSheet.create({
   },
   shadowWrap: {
     // w-max equivalent — content-width, centered by parent's alignItems
-    borderRadius: 16,
+    borderRadius: DOCK_RADIUS,
     ...Platform.select({
       ios: {
         shadowColor:   '#000',
@@ -102,18 +104,18 @@ const s = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 58,                                  // h-[58px]
+    height: DOCK_HEIGHT,                         // bigger than reference's h-[58px]
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.20)',       // border-white/20
-    borderRadius: 16,                            // rounded-2xl
-    paddingHorizontal: 8,                        // p-2
-    paddingVertical: 8,
-    gap: 8,                                      // gap-2
+    borderRadius: DOCK_RADIUS,                   // softer than rounded-2xl
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
     overflow: 'hidden',
   },
   tint: {
     backgroundColor: 'rgba(255,255,255,0.10)',   // bg-white/10
-    borderRadius: 16,
+    borderRadius: DOCK_RADIUS,
   },
   androidDock: {
     backgroundColor: 'rgba(20,22,30,0.92)',

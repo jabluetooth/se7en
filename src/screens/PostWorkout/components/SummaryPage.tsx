@@ -39,6 +39,14 @@ export function SummaryPage({ session, width, bgImage, shotRef }: Props) {
   );
   const peak    = setData[peakIdx];
 
+  // Heaviest single set by weight — separate from the volume-based peak so the
+  // line graph keeps highlighting the best-volume set while we also surface the
+  // top weight lifted (more legible at-a-glance than volume).
+  const heaviestIdx = setData.reduce(
+    (mi, d, i) => (d.weight > (setData[mi]?.weight ?? 0) ? i : mi), 0,
+  );
+  const heaviest = setData[heaviestIdx];
+
   const totalReps  = setData.reduce((a, s) => a + s.reps, 0);
   const totalSets  = setData.length;
   const volDisplay = fmtVol(Math.round(session.totalVolume));
@@ -95,15 +103,26 @@ export function SummaryPage({ session, width, bgImage, shotRef }: Props) {
           </View>
           <VolumeLineGraph data={setData} peakIdx={peakIdx} width={graphWidth} />
 
-          {peak && (
-            <View style={s.peakPill}>
-              <TrophyIcon size={11} color={COLORS.accent} />
-              <Text style={s.peakLbl}>Highest set</Text>
-              <Text style={s.peakVal}>
-                {peak.reps} × {peak.weight}{peak.unit} = {Math.round(peak.vol)}
-              </Text>
-            </View>
-          )}
+          <View style={s.pillRow}>
+            {peak && (
+              <View style={s.peakPill}>
+                <TrophyIcon size={11} color={COLORS.accent} />
+                <Text style={s.peakLbl}>Highest set</Text>
+                <Text style={s.peakVal}>
+                  {peak.reps} × {peak.weight}{peak.unit} = {Math.round(peak.vol)}
+                </Text>
+              </View>
+            )}
+            {heaviest && heaviest.weight > 0 && (
+              <View style={s.peakPill}>
+                <TrophyIcon size={11} color={COLORS.accent} />
+                <Text style={s.peakLbl}>Heaviest</Text>
+                <Text style={s.peakVal}>
+                  {heaviest.weight}{heaviest.unit}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* ── Stats: Reps × Sets = Volume ─────────────────── */}
@@ -147,7 +166,8 @@ const s = StyleSheet.create({
   graphTitle:    { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8 },
   graphAxis:     { fontSize: 10, color: COLORS.textMuted, letterSpacing: 0.3 },
 
-  // Peak set pill
+  // Peak set pills — wrap row holds both highest-volume + heaviest-weight callouts
+  pillRow:  { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
   peakPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,140,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.30)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 },
   peakLbl:  { fontSize: 10, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase' },
   peakVal:  { fontSize: 12, fontWeight: '700', color: '#fff' },

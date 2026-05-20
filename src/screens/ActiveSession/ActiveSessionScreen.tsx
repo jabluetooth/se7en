@@ -33,7 +33,11 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 
   const mins      = Math.floor(sessionTimer / 60);
   const secs      = sessionTimer % 60;
-  const timeStr   = `${mins}:${String(secs).padStart(2, '0')}`;
+  // Past 60 min, switch to `h:mm hr` (e.g. 80 min → 1:20hr). Under an hour
+  // keeps the second-precision `m:ss` so short sessions still tick visibly.
+  const timeStr   = mins >= 60
+    ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}hr`
+    : `${mins}:${String(secs).padStart(2, '0')}`;
   const totalSets = activeSession.exercises.reduce((a, e) => a + e.sets.length, 0);
   const doneSets  = activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0);
   const pct       = totalSets > 0 ? doneSets / totalSets : 0;
