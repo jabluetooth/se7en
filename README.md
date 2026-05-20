@@ -1,49 +1,87 @@
-# Se7en — Gym Workout Tracker
+# Se7en
 
-A personal gym companion app built around a **rotating 7-day workout cycle**. Tracks weight, sets, reps, plate combinations, and per-set notes — giving full visibility into progress and clear guidance on what to improve next session.
+A gym workout tracker built around a **rotating 7-day cycle** — not tied to Mon–Sun, just Day 1–7 looping indefinitely. Tracks weight, sets, reps, plate combinations, and per-set notes, with full offline support and Firebase sync.
 
-Built with **Expo + React Native + TypeScript**.
+Built with Expo · React Native · TypeScript · Zustand · Firebase.
+
+---
+
+## Try It
+
+<a href="https://expo.dev/accounts/bonsky/projects/se7en">
+  <img src="docs/qr-expo-go.png" alt="Scan with Expo Go to open Se7en" width="220" align="right" />
+</a>
+
+**Open in Expo Go** → [expo.dev/accounts/bonsky/projects/se7en](https://expo.dev/accounts/bonsky/projects/se7en)
+
+Or scan the QR with the **Expo Go** app — free, no App Store install of Se7en required:
+- [Expo Go for iOS](https://apps.apple.com/app/expo-go/id982107779)
+- [Expo Go for Android](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+> The project page always serves the **latest** published bundle. To pin a specific snapshot, link to the update directly (e.g. `/updates/<update-id>`).
+
+<br clear="right" />
+
+---
+
+## Screenshots
+
+> _Add screenshots / a short GIF here once captured: Home · Cycle · Active Session · Post-Workout Summary · Progress._
+
+---
+
+## Why I Built This
+
+Most gym apps assume a calendar week (Push/Pull/Legs on Mon/Wed/Fri) and break the moment your schedule shifts — travel, illness, or a missed Tuesday cascades into a week of "rest days" that aren't really rest days. Se7en treats the cycle as a **rotating queue** instead of a calendar grid: Day 1–7 advances when you complete (or explicitly skip) a workout, independent of which weekday it falls on. The plate calculator, PR detection, and post-workout analytics were built around the mental model I actually use when training, rather than retrofitting the model to whatever a calendar widget can render.
+
+---
+
+## Engineering Highlights
+
+- **State architecture** — Zustand stores split by domain (`settingsStore`, `planStore`, `sessionStore`, `prStore`) with AsyncStorage persistence and opportunistic Firebase sync. No prop-drilling, no context spaghetti.
+- **Crash-safe session logging** — in-progress workouts persist to local storage after every completed set; relaunch restores the exact state, including timer position.
+- **Offline-first sync** — all writes go to AsyncStorage immediately; Firebase reconciliation happens in the background with conflict resolution favoring the local copy.
+- **Plate calculator** — greedy algorithm finds the closest achievable weight given a configurable plate inventory (kg / lb / fractional). Handles bar weights, manual overrides, and warns when the target weight is unreachable.
+- **Date-resilient history** — the last-14-days completion bar reads from session *dates*, not slot positions, so reordering days doesn't retroactively un-complete past workouts.
+- **Liquid-glass UI** — custom `GlassView` layers `expo-blur` (`systemUltraThinMaterialDark`) + a specular sheen gradient + 1px edge highlights to approximate Apple's liquid-glass material within React Native's constraints.
 
 ---
 
 ## Features
 
-### Core
-- **7-Day Rotating Cycle** — not tied to Mon–Sun calendar; Day 1–7 rotates indefinitely
-- **Rest Day Support** — mark any day as a rest day with a recovery screen
-- **Multiple Plans** — save and switch between plans while retaining all history
-- **Import from JSON** — import full workout plans with field-level validation
+### Cycle & Plans
+- 7-day rotating cycle, drag-to-reorder days
+- Rest day support with auto-completion
+- Multiple plans with isolated history
+- JSON import with field-level validation
 
-### Exercise Tracking
-- **7 Set Types:** Standard · Rep Range · To Failure · Superset · Drop Set · Pyramid · Progressive
-- **Per-exercise config:** bar type, weight unit (kg / lb / plates / bodyweight), target reps/weight
-- **Set-by-set logging** with actual reps, actual weight, and free-text notes per set
+### Workout Logging
+- 7 set types: Standard · Rep Range · To Failure · Superset · Drop Set · Pyramid · Progressive
+- Per-exercise config: bar type, weight unit (kg / lb / plates / bodyweight), target reps/weight
+- Set-by-set actual reps, weight, and free-text notes
+- Live session timer with hour-format rollover past 60 min
 
 ### Plate Calculator
-- Visual plate diagram: `[20][15][5] | BAR | [5][15][20]`
-- Greedy algorithm finds closest achievable weight with available plates
-- Manual plate toggle overrides after auto-calculation
-- Warns when exact target weight isn't achievable
+- Visual plate diagram (`[20][15] | BAR | [15][20]`)
+- Greedy closest-achievable algorithm with configurable inventory
+- Manual override after auto-calc; warns on unreachable targets
 
 ### Progress & Analytics
-- **Weight / Volume / Reps charts** per exercise (2-week default · all-time toggle)
-- **All-time Personal Records** — never filtered by date window
-- **Set notes timeline** — chronological improvement notes per exercise
-- **Missed workout log** with skip reasons
-- PR detection at session end with post-workout badge
+- Weight / Volume / Reps charts per exercise (2-week + all-time toggle)
+- All-time personal records, date-window independent
+- Set-note timeline per exercise, chronological
+- Missed workout log with skip reasons
+- Automatic PR detection at session end
 
-### Post-Workout Summary
-Three-tab screen after every session:
-- **Today** — duration, sets, volume, PR badges
-- **Progress** — weight and reps deltas vs last session
-- **Next Workout** — upcoming day preview + improvement reminders from today's notes
+### Post-Workout
+- Three-page swipe summary: **Summary** (volume hero, highest-volume + heaviest-weight callouts) · **Exercises** (per-set breakdown) · **Next Up** (next day preview + notes carried over)
+- Export the summary page as PNG to the camera roll
+- Custom background image support
 
 ### Data & Backup
-- Full offline support — logs locally, syncs to Firebase on reconnect
-- Crash recovery — in-progress session saved after every completed set
-- Auto-backup daily/weekly to Firebase Storage (last 7 retained)
-- Export as **JSON** or **CSV**
-- Import JSON with validation and error preview
+- Full offline operation; Firebase Firestore sync on reconnect
+- Auto-backup daily / weekly to Firebase Storage (last 7 retained)
+- Export as JSON or CSV; import JSON with validation preview
 
 ---
 
@@ -54,10 +92,11 @@ Three-tab screen after every session:
 | Framework | Expo ~54 · React Native 0.81 |
 | Language | TypeScript |
 | State | Zustand |
-| Local Storage | AsyncStorage |
+| Local storage | AsyncStorage |
 | Cloud | Firebase (Firestore + Storage) |
 | Charts | react-native-svg |
-| Navigation | Custom floating dock (pill bar) |
+| Glass / blur | expo-blur · expo-linear-gradient |
+| Navigation | Custom rounded floating dock |
 | Date utils | date-fns |
 
 ---
@@ -69,55 +108,47 @@ src/
 ├── types/            TypeScript interfaces (Plans, Sessions, Sets, PRs, Settings)
 ├── constants/        Colors, spacing, bar weights, default plates
 ├── config/           Firebase initialization
-├── stores/           Zustand stores
-│   ├── settingsStore.ts
-│   ├── planStore.ts
-│   ├── sessionStore.ts
-│   └── prStore.ts
-├── utils/
-│   ├── plateCalculator.ts   Greedy plate calculation algorithm
-│   ├── volume.ts            Volume formulas per set type
-│   ├── prDetection.ts       PR comparison at session end
-│   ├── importValidator.ts   JSON import schema validation
-│   └── idGen.ts
-├── hooks/
-│   └── useTheme.ts          Dark/light theme colors
-├── navigation/
-│   └── AppNavigator.tsx     Tab-state navigator with FloatingDock
+├── stores/           Zustand stores (settings · plan · session · pr · auth)
+├── utils/            Plate calc · volume formulas · PR detection · import validator · cycle math
+├── hooks/            useTheme
+├── navigation/       AppNavigator with FloatingDock
 ├── components/
-│   ├── FloatingDock/        Pill-shaped floating tab bar
-│   ├── ExerciseCard/        Expandable exercise card with set rows
-│   ├── SetLogger/           Per-set weight/reps/notes input
-│   ├── PlateCalculator/     Visual plate diagram bottom sheet
-│   └── common/              Button, Card, Badge, Modal
+│   ├── FloatingDock/      Rounded glass tab bar
+│   ├── ExerciseCard/      Expandable card with set rows
+│   ├── SetLogger/         Per-set input (reps · weight · notes)
+│   ├── common/            Button · Card · Badge · Modal · GlassView · StatCard
+│   └── ui/                AppBackground (radial-glow)
 └── screens/
-    ├── Onboarding/          First-launch setup (import or start fresh)
-    ├── Home/                Current day workout + session timer
-    ├── Cycle/               7-day cycle overview with status badges
-    ├── Progress/            Analytics, charts, PRs, notes timeline
-    ├── PostWorkout/         3-tab summary after finishing a session
-    └── Settings/            Plans, plates, theme, backup, export/import
+    ├── Onboarding/        First-launch setup
+    ├── Auth/              Sign in / sign up
+    ├── Home/              Today widget + cycle orbit + contribution heatmap
+    ├── Cycle/             7-day overview, drag-to-reorder, plan editor
+    ├── ActiveSession/     Live workout with progress card
+    ├── RestTimer/         Between-set countdown
+    ├── PostWorkout/       3-page swipe summary
+    ├── Progress/          Charts, PRs, notes timeline
+    ├── ExerciseBuilder/   Custom exercise creation
+    └── Settings/          Plans, plates, theme, backup, import/export
 ```
 
 ---
 
-## Getting Started
-
-### 1. Clone and install
+## Run Locally
 
 ```bash
 git clone https://github.com/jabluetooth/se7ven.git
 cd se7ven
 npm install
+npm start
 ```
 
-### 2. Firebase setup (optional for MVP — app works fully offline)
+Scan the QR code with **Expo Go** (iOS: in-app QR scanner; Android: built-in scanner).
 
-Copy `.env.example` to `.env.local` and fill in your Firebase project credentials:
+> Phone and computer must be on the same Wi-Fi. If not, run `npx expo start --tunnel`.
 
-```bash
-cp .env.example .env.local
-```
+### Firebase (optional)
+
+The app runs fully offline without Firebase. To enable cloud backup, copy `.env.example` to `.env.local` and fill in your Firebase project credentials:
 
 ```env
 EXPO_PUBLIC_FIREBASE_API_KEY=...
@@ -128,39 +159,20 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 EXPO_PUBLIC_FIREBASE_APP_ID=...
 ```
 
-### 3. Run
-
-```bash
-npm start
-```
-
-Scan the QR code with the **Expo Go** app (not your phone's native camera):
-- iOS: Open Expo Go → tap "Scan QR code"
-- Android: Open Expo Go → tap the QR icon
-
-> Phone and computer must be on the **same WiFi**. If not, run `npm start -- --tunnel`.
-
 ---
 
-## Supported Platforms
+## Roadmap
 
-- iOS
-- Android
-
----
-
-## Roadmap (Phase 2)
-
-- [ ] AI/Bot — automatic log population based on past patterns
-- [ ] Voice-to-text set logging (hands-free)
-- [ ] Rest timer with audio cues
-- [ ] Performance predictions and weight/rep suggestions
-- [ ] Muscle group tagging + muscle map visualization
-- [ ] Apple Watch / WearOS integration
-- [ ] Community workout plan templates
+- AI suggestions — auto-populate logs based on prior patterns
+- Voice-to-text set logging (hands-free between sets)
+- Rest timer with audio cues
+- Performance predictions and weight / rep suggestions
+- Muscle-map visualization
+- Apple Watch / WearOS integration
+- Community plan templates
 
 ---
 
 ## License
 
-Personal use. Not monetized.
+Personal portfolio project — not monetized.
