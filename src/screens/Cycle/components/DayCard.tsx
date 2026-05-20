@@ -137,7 +137,7 @@ export function DayCard({
               borderColor={
                 isCurrent ? 'rgba(255,140,0,0.45)' :
                 isDone    ? 'rgba(255,140,0,0.20)' :
-                'rgba(255,240,220,0.08)'
+                'rgba(255,255,255,0.10)'
               }
               glow={isCurrent}
             >
@@ -197,7 +197,7 @@ export function DayCard({
 
           {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
-            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,240,220,0.08)">
+            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,255,255,0.10)">
               {isRest ? (
                 <Text style={dc.restTxt}>Recovery day — no exercises scheduled.</Text>
               ) : exercises.length > 0 ? (

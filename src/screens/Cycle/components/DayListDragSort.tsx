@@ -190,7 +190,7 @@ export function DayListDragSort({
 
       {dragFrom !== null && (
         <Animated.View style={[dl.float, { transform: [{ translateY: floatY }], opacity: 0.92 }]} pointerEvents="none">
-          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,240,220,0.18)">
+          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,255,255,0.20)">
             <View style={[dc.numBadge, dc.numBadgeMuted]}>
               {/* Float preview shows the slot the card was picked up from,
                   matching the slot-based numbering in the rendered list. */}

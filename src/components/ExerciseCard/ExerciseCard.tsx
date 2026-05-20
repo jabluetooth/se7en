@@ -45,8 +45,8 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
       borderColor={
         allDone  ? 'rgba(255,140,0,0.30)' :
         isActive ? 'rgba(255,140,0,0.50)' :
-        expanded ? 'rgba(255,240,220,0.18)' :
-                   'rgba(255,240,220,0.08)'
+        expanded ? 'rgba(255,255,255,0.20)' :
+                   'rgba(255,255,255,0.10)'
       }
     >
       <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>

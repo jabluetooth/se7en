@@ -48,11 +48,11 @@ export const COLORS = {
   white:                '#FFF8F0',
   black:                '#0C0A08',
 
-  // ── Glass surfaces — warm-tinted white on obsidian ────────
-  glass06:              'rgba(255,240,220,0.08)',
-  glass09:              'rgba(255,240,220,0.12)',
-  glassBorder:          'rgba(255,240,220,0.16)',
-  glassBorderHi:        'rgba(255,240,220,0.26)',
+  // ── Glass surfaces — cool white, scaled to dock.tsx (bg-white/10, border-white/20)
+  glass06:              'rgba(255,255,255,0.06)',
+  glass09:              'rgba(255,255,255,0.10)',
+  glassBorder:          'rgba(255,255,255,0.14)',
+  glassBorderHi:        'rgba(255,255,255,0.20)',
   accentGlow:           'rgba(255,140,0,0.28)',
 
   // ── Light theme (unchanged) ───────────────────────────────

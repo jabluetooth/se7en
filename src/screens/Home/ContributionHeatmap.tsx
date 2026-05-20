@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
 import { dayPositionForDate } from '../../utils/cycleUtils';
@@ -429,7 +430,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
       {/* ── Log card — shown on day tap ── */}
       {sel && (
-        <View style={[s.card, { borderColor: rgba(selColor, 0.28) }]}>
+        <GlassView radius={14} style={s.card} borderColor={rgba(selColor, 0.28)}>
           {selIsRest ? (
             <View style={s.cardEmpty}>
               <Text style={s.cardEmptyDate}>
@@ -532,7 +533,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               </View>
             );
           })()}
-        </View>
+        </GlassView>
       )}
 
       {/* ── Legend — only what's on the calendar ── */}
@@ -644,11 +645,9 @@ const s = StyleSheet.create({
   // (Was green previously, which leaked the old palette into the orange-only theme.)
   cellNumRest:  { color: 'rgba(168,162,158,0.65)', fontWeight: '500' },
 
-  // Log card
+  // Log card — backgroundColor/borderWidth/overflow now come from GlassView
   card: {
-    marginTop: 10, borderRadius: 14,
-    backgroundColor: 'rgba(255,240,220,0.04)',
-    borderWidth: 1, overflow: 'hidden',
+    marginTop: 10,
   },
   cardBody:    { padding: 14, gap: 5 },
   cardTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },

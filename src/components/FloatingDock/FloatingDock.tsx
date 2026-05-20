@@ -1,20 +1,24 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { GRAD, COLORS, SPACING, BORDER_RADIUS } from '../../constants';
+import { GRAD, COLORS } from '../../constants';
 
 export type TabName = 'Home' | 'Cycle' | 'Progress' | 'Settings';
 
-interface Tab { name: TabName; icon: string; iconFocused: string; label: string; }
+interface Tab { name: TabName; icon: string; iconFocused: string; }
 const TABS: Tab[] = [
-  { name: 'Home',     icon: 'home-outline',    iconFocused: 'home',      label: 'Home'     },
-  { name: 'Cycle',    icon: 'calendar-outline', iconFocused: 'calendar',  label: 'Cycle'    },
-  { name: 'Progress', icon: 'pulse-outline',    iconFocused: 'pulse',     label: 'Progress' },
-  { name: 'Settings', icon: 'settings-outline', iconFocused: 'settings',  label: 'Settings' },
+  { name: 'Home',     icon: 'home-outline',     iconFocused: 'home'     },
+  { name: 'Cycle',    icon: 'calendar-outline', iconFocused: 'calendar' },
+  { name: 'Progress', icon: 'pulse-outline',    iconFocused: 'pulse'    },
+  { name: 'Settings', icon: 'settings-outline', iconFocused: 'settings' },
 ];
+
+// dock.tsx defaults: 40×40 circular icons (DEFAULT_SIZE). Touch has no cursor-proximity
+// magnification, so all icons stay at base size; active state uses the orange gradient fill.
+const ICON_SIZE = 40;
 
 interface Props { activeTab: TabName; onTabPress: (tab: TabName) => void; }
 
@@ -23,11 +27,11 @@ export function FloatingDock({ activeTab, onTabPress }: Props) {
 
   return (
     <View style={[s.wrapper, { paddingBottom: insets.bottom + 8 }]}>
-      {/* Shadow sits on the outer view so overflow:hidden doesn't clip it */}
       <View style={s.shadowWrap}>
         {Platform.OS === 'ios' ? (
-          <BlurView intensity={78} tint="dark" style={s.dock}>
-            {/* Frosted white tint over the blur */}
+          // Intensity 50 ≈ Tailwind backdrop-blur-md (12px) from dock.tsx
+          <BlurView intensity={50} tint="dark" style={s.dock}>
+            {/* Cool white tint — bg-white/10 */}
             <View style={[StyleSheet.absoluteFill, s.tint]} />
             <DockContent activeTab={activeTab} onTabPress={onTabPress} />
           </BlurView>
@@ -52,21 +56,20 @@ function DockContent({ activeTab, onTabPress }: Props) {
             colors={GRAD.accent}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={s.activePill}
+            style={s.iconCircle}
           >
             <TouchableOpacity
-              style={s.activeInner}
+              style={s.iconInner}
               onPress={() => onTabPress(tab.name)}
               activeOpacity={0.9}
             >
-              <Ionicons name={tab.iconFocused as any} size={19} color="#fff" />
-              <Text style={s.activeLabel}>{tab.label}</Text>
+              <Ionicons name={tab.iconFocused as any} size={22} color="#fff" />
             </TouchableOpacity>
           </LinearGradient>
         ) : (
           <TouchableOpacity
             key={tab.name}
-            style={s.inactiveTab}
+            style={s.iconCircle}
             onPress={() => onTabPress(tab.name)}
             activeOpacity={0.65}
           >
@@ -80,12 +83,12 @@ function DockContent({ activeTab, onTabPress }: Props) {
 
 const s = StyleSheet.create({
   wrapper: {
-    position: 'absolute', bottom: 0, left: SPACING.md, right: SPACING.md,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     alignItems: 'center',
   },
   shadowWrap: {
-    width: '100%',
-    borderRadius: BORDER_RADIUS.full,
+    // w-max equivalent — content-width, centered by parent's alignItems
+    borderRadius: 16,
     ...Platform.select({
       ios: {
         shadowColor:   '#000',
@@ -99,26 +102,32 @@ const s = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 58,                                  // h-[58px]
     borderWidth: 1,
-    borderColor: 'rgba(255,240,220,0.22)',
-    borderRadius: BORDER_RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    gap: 4,
+    borderColor: 'rgba(255,255,255,0.20)',       // border-white/20
+    borderRadius: 16,                            // rounded-2xl
+    paddingHorizontal: 8,                        // p-2
+    paddingVertical: 8,
+    gap: 8,                                      // gap-2
     overflow: 'hidden',
   },
   tint: {
-    backgroundColor: 'rgba(255,240,220,0.10)',
-    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: 'rgba(255,255,255,0.10)',   // bg-white/10
+    borderRadius: 16,
   },
   androidDock: {
-    backgroundColor: 'rgba(22,22,30,0.92)',
+    backgroundColor: 'rgba(20,22,30,0.92)',
   },
-  activePill:  { borderRadius: BORDER_RADIUS.full, overflow: 'hidden' },
-  activeInner: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 9, gap: 7,
+  iconCircle: {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    borderRadius: ICON_SIZE / 2,                 // aspect-square rounded-full
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',                          // clips the active gradient
   },
-  activeLabel: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
-  inactiveTab: { flex: 1, alignItems: 'center', paddingVertical: 9 },
+  iconInner: {
+    width: '100%', height: '100%',
+    alignItems: 'center', justifyContent: 'center',
+  },
 });
