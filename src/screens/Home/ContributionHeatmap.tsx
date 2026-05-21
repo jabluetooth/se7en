@@ -574,10 +574,20 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
       {/* ── Legend — only what's on the calendar ── */}
       <View style={s.legend}>
         {/* Rest / recovery legend entry — always shown */}
-        {(
+        <View style={s.legendWorkout}>
+          <View style={[s.legendCell, { backgroundColor: rgba(REST_STONE, 0.18) }]} />
+          <Text style={[s.legendWorkoutTxt, { color: REST_STONE }]}>Rest</Text>
+        </View>
+
+        {/* Missed — only shown when a real cycleStartDate is set */}
+        {!!cycleStartDate && (
           <View style={s.legendWorkout}>
-            <View style={[s.legendCell, { backgroundColor: rgba(REST_STONE, 0.18) }]} />
-            <Text style={[s.legendWorkoutTxt, { color: REST_STONE }]}>Rest</Text>
+            <View style={[s.legendCell, {
+              backgroundColor: rgba(MISSED_RED, 0.06),
+              borderWidth: 1.5,
+              borderColor: rgba(MISSED_RED, 0.75),
+            }]} />
+            <Text style={[s.legendWorkoutTxt, { color: rgba(MISSED_RED, 0.80) }]}>Missed</Text>
           </View>
         )}
 
