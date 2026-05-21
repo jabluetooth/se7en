@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Alert, TextInput,
@@ -11,10 +11,12 @@ import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { usePresetStore } from '../../stores/presetStore';
 import { computeDayPosition } from '../../utils/cycleUtils';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { WorkoutDay } from '../../types';
+import { WorkoutDay, PlanPreset } from '../../types';
+import { generateId } from '../../utils/idGen';
 import { DayEditScreen } from './DayEditScreen';
 import { SplitTypeSheet } from './SplitTypeSheet';
 import { DayListDragSort } from './components/DayListDragSort';
@@ -30,9 +32,12 @@ export function CycleScreen() {
   const { activePlan, updateDay, updatePlan } = usePlanStore();
   const { sessions, quickCompleteDay }        = useSessionStore();
   const { settings, shiftCycle }              = useSettingsStore();
+  const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
 
   const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition);
   const dockClearance = useDockClearance();
+
+  useEffect(() => { loadPresets(); }, []);
 
   const [editingDay,    setEditingDay   ] = useState<WorkoutDay | null>(null);
   const [planExpanded,  setPlanExpanded ] = useState(false);
@@ -52,6 +57,39 @@ export function CycleScreen() {
     if (!activePlan || !editName.trim()) return;
     updatePlan(activePlan.id, { name: editName.trim(), splitType: editSplit });
     setPlanExpanded(false);
+  };
+
+  const handleSaveAsPreset = () => {
+    if (!activePlan) return;
+    savePreset(activePlan);
+    Alert.alert('Preset Saved', `"${activePlan.name}" has been saved as a preset. You can load it from the Split Type sheet.`);
+  };
+
+  // Applies a saved preset to the active plan — keeps day IDs stable so
+  // session history stays linked, but replaces labels, rest flags, and exercises.
+  const handleSelectPreset = (preset: PlanPreset) => {
+    if (!activePlan) return;
+    const newDays = activePlan.days.map((activeDay, idx) => {
+      const presetDay = preset.days[idx];
+      if (!presetDay) return activeDay;
+      return {
+        ...activeDay,
+        label:     presetDay.label,
+        isRestDay: presetDay.isRestDay,
+        exercises: presetDay.exercises.map(ex => ({
+          ...ex,
+          id:        generateId(),
+          createdAt: new Date().toISOString(),
+        })),
+      };
+    });
+    updatePlan(activePlan.id, {
+      name:      preset.name,
+      splitType: preset.splitType,
+      days:      newDays,
+    });
+    setEditName(preset.name);
+    setEditSplit(preset.splitType);
   };
 
   const handleSplitSelect = (sp: string) => {
@@ -232,6 +270,10 @@ export function CycleScreen() {
 
             {/* Actions row */}
             <View style={s.cabinetActions}>
+              <TouchableOpacity onPress={handleSaveAsPreset} style={s.presetBtn} activeOpacity={0.8}>
+                <Ionicons name="bookmark-outline" size={14} color={COLORS.accent} />
+                <Text style={s.presetBtnTxt}>Save as Preset</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={savePlan} style={s.saveBtn} activeOpacity={0.85} disabled={!editName.trim()}>
                 <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveGrad}>
                   <Text style={s.saveTxt}>Save</Text>
@@ -297,7 +339,10 @@ export function CycleScreen() {
       <SplitTypeSheet
         visible={splitSheetOpen}
         current={editSplit}
+        presets={presets}
         onSelect={sp => handleSplitSelect(sp)}
+        onSelectPreset={handleSelectPreset}
+        onDeletePreset={deletePreset}
         onClose={() => setSplitSheetOpen(false)}
       />
     </View>
@@ -325,7 +370,9 @@ const s = StyleSheet.create({
   splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   splitDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
   splitBtnTxt:    { fontSize: 15, fontWeight: '600', color: '#fff' },
-  cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14 },
+  cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
+  presetBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.08)' },
+  presetBtnTxt:   { fontSize: 13, fontWeight: '700', color: COLORS.accent },
   saveBtn:        { borderRadius: 10, overflow: 'hidden' },
   saveGrad:       { paddingHorizontal: 22, paddingVertical: 9 },
   saveTxt:        { fontSize: 14, fontWeight: '700', color: '#fff' },

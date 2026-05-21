@@ -33,7 +33,7 @@ export function SwipeActions({
 
 const sw = StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  rowRight: { paddingRight: 16 },
+  rowRight: { paddingLeft: 10, paddingRight: 16 },
   editBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.accent, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, marginRight: 6 },
   editTxt:  { fontSize: 13, fontWeight: '700', color: '#fff' },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.danger, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },

@@ -243,6 +243,15 @@ export interface ImportPlan {
   days: ImportDay[];
 }
 
+// ─── Plan Presets ─────────────────────────────────────────────────────────────
+export interface PlanPreset {
+  id:        string;
+  name:      string;
+  splitType: string;
+  days:      WorkoutDay[];
+  savedAt:   string;
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 export interface ExerciseHistoryPoint {
   date: string;
