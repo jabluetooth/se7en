@@ -153,37 +153,45 @@ export function CycleScreen() {
   // un-do every past Monday-completed Push session, because the session's
   // dayPosition (1) no longer matches what's parked at slot 1 today.
   // History is what HAPPENED on a date, not what's scheduled there now.
+  type BarState = 'done' | 'rest' | 'missed' | 'pending';
   const { rate, bars } = (() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const anchor = settings.cycleStartDate
       ? (() => { const d = new Date(settings.cycleStartDate + 'T00:00:00'); d.setHours(0,0,0,0); return d; })()
       : null;
 
-    const points: number[] = [];
+    const points: BarState[] = [];
     for (let back = 13; back >= 0; back--) {
       const d = new Date(today);
       d.setDate(d.getDate() - back);
-      if (anchor && d < anchor) continue; // skip pre-cycle days entirely
+      if (anchor && d < anchor) continue;
       const dateStr = d.toISOString().slice(0, 10);
+      const isToday = back === 0;
 
-      // 1. Date-based session check — survives any plan reorder.
+      // 1. Completed session — date-based, survives any plan reorder.
       const hit = sessions.some(ss =>
         ss.status === 'completed' && ss.finishedAt?.slice(0, 10) === dateStr,
       );
-      if (hit) { points.push(1); continue; }
+      if (hit) { points.push('done'); continue; }
 
-      // 2. Fall back to "is this slot currently rest" so rest days still
-      //    auto-count even though they leave no session record.
-      const diff = anchor ? Math.floor((d.getTime() - anchor.getTime()) / 86_400_000) : 0;
+      // 2. Rest day — auto-complete, no session record needed.
+      const diff    = anchor ? Math.floor((d.getTime() - anchor.getTime()) / 86_400_000) : 0;
       const slotIdx = anchor ? diff % days.length : 0;
       const planDay = days[slotIdx];
-      if (planDay?.isRestDay) { points.push(1); continue; }
+      if (planDay?.isRestDay) { points.push('rest'); continue; }
 
-      points.push(0);
+      // 3. Today with no session yet — not missed, just pending.
+      if (isToday) { points.push('pending'); continue; }
+
+      // 4. Past workout slot with no session = missed.
+      points.push('missed');
     }
-    const done = points.filter(v => v === 1).length;
+    // pending (today) is excluded from the rate denominator so it doesn't
+    // penalise completion before the day is over.
+    const counted = points.filter(v => v !== 'pending');
+    const done    = counted.filter(v => v === 'done' || v === 'rest').length;
     return {
-      rate: points.length === 0 ? 0 : Math.round((done / points.length) * 100),
+      rate: counted.length === 0 ? 0 : Math.round((done / counted.length) * 100),
       bars: points,
     };
   })();
@@ -294,9 +302,11 @@ export function CycleScreen() {
               </View>
             </View>
             <View style={s.bars}>
-              {(bars.length === 0 ? Array(7).fill(0) : bars).map((v, i) => (
-                <View key={i} style={[s.barBg, { height: v ? 22 : 8 }]}>
-                  {!!v && (
+              {(bars.length === 0 ? Array(7).fill('pending') : bars).map((v, i) => (
+                <View key={i} style={[s.barBg, {
+                  height: v === 'done' ? 22 : v === 'rest' ? 14 : 8,
+                }]}>
+                  {v === 'done' && (
                     <LinearGradient
                       colors={GRAD.accent}
                       start={{ x: 0, y: 0 }}
@@ -304,6 +314,8 @@ export function CycleScreen() {
                       style={{ flex: 1, borderRadius: 3 }}
                     />
                   )}
+                  {v === 'rest'    && <View style={[s.barFill, { backgroundColor: '#A8A29E' }]} />}
+                  {v === 'missed'  && <View style={[s.barFill, { backgroundColor: '#EF4444' }]} />}
                 </View>
               ))}
             </View>
@@ -386,6 +398,7 @@ const s = StyleSheet.create({
   rateSub:    { fontSize: 13, color: COLORS.textSecondary },
   bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
   barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
+  barFill:    { flex: 1, borderRadius: 3 },
 
   hint:       { fontSize: 11, color: COLORS.textLabel, textAlign: 'center', marginBottom: 8, letterSpacing: 0.2 },
   list:       { paddingHorizontal: 16 },
