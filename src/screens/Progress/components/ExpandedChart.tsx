@@ -18,8 +18,8 @@ interface Props {
 // session has the same value (avoids the "40 / 40 / 40" axis triplicate).
 export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
   const W = Math.max(width, 240);
-  const H = 130;
-  const padL = 36, padR = 12, padTop = 18, padBottom = 24;
+  const H = 140;
+  const padL = 50, padR = 14, padTop = 18, padBottom = 30;
   const innerW = W - padL - padR;
   const innerH = H - padTop - padBottom;
 
@@ -58,14 +58,21 @@ export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
   const peakIdx = data.reduce((mi, v, i) => (v > data[mi] ? i : mi), 0);
   const peak    = pts[peakIdx];
 
+  // Word-based units (plates) need a space; symbol units (kg, lb) do not.
+  const unitSuffix = (unit === 'kg' || unit === 'lb') ? unit : ` ${unit}`;
   const fmtAxis = (n: number) =>
-    isBodyweight ? `${Math.round(n)}` : `${Math.round(n)}${unit}`;
+    isBodyweight ? `${Math.round(n)}` : `${Math.round(n)}${unitSuffix}`;
+
+  // Suppress mid label when rounding makes it identical to max or min —
+  // common when the range is narrow (e.g. max=8, mid=7.5→8, min=7).
+  const midRounded = Math.round(mid);
+  const showMid    = midRounded !== Math.round(max) && midRounded !== Math.round(min);
 
   const firstDate = fmtDate(sessions[0].finishedAt);
   const lastDate  = fmtDate(sessions[sessions.length - 1].finishedAt);
 
   return (
-    <View>
+    <View style={{ overflow: 'hidden' }}>
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {/* Grid lines */}
         <Path d={`M${padL},${padTop} L${W - padR},${padTop}`}
@@ -87,10 +94,12 @@ export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
               fill={COLORS.textMuted} textAnchor="end">
               {fmtAxis(max)}
             </SvgText>
-            <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="600"
-              fill={COLORS.textMuted} textAnchor="end">
-              {fmtAxis(mid)}
-            </SvgText>
+            {showMid && (
+              <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="600"
+                fill={COLORS.textMuted} textAnchor="end">
+                {fmtAxis(mid)}
+              </SvgText>
+            )}
             <SvgText x={padL - 6} y={baseY + 3} fontSize={9} fontWeight="600"
               fill={COLORS.textMuted} textAnchor="end">
               {fmtAxis(min)}

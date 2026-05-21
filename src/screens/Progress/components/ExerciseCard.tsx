@@ -13,6 +13,10 @@ import { ExpandedChart } from './ExpandedChart';
 const PROGRESS_GREEN_TXT = '#34D399';
 const DECLINE_RED_TXT    = '#FF8E8E';
 
+// 'kg' and 'lb' glue directly to the number ("40kg"); word-based units like
+// 'plates' or 'bodyweight' need a separating space ("7 plates").
+const unitSuffix = (u: string) => (u === 'kg' || u === 'lb') ? u : ` ${u}`;
+
 interface Props {
   history:     ExerciseHistory;
   expanded:    boolean;
@@ -70,10 +74,10 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
 
   const bestLabel = isBodyweight
     ? `${bestSession.topReps} reps`
-    : `${bestSession.topWeight}${weightUnit} × ${bestSession.topReps}`;
+    : `${bestSession.topWeight}${unitSuffix(weightUnit)} × ${bestSession.topReps}`;
   const lastLabel = isBodyweight
     ? `${latest.topReps} reps`
-    : `${latest.topWeight}${weightUnit} × ${latest.topReps}`;
+    : `${latest.topWeight}${unitSuffix(weightUnit)} × ${latest.topReps}`;
 
   return (
     <GlassView radius={12} style={s.wrap}>
@@ -142,7 +146,7 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
               {Math.abs(delta) % 1 === 0
                 ? Math.abs(delta).toFixed(0)
                 : Math.abs(delta).toFixed(1)}
-              {!isBodyweight ? weightUnit : ' reps'}
+              {!isBodyweight ? unitSuffix(weightUnit) : ' reps'}
             </Text>
           </View>
         )}
@@ -179,7 +183,7 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
             <View key={sess.sessionId} style={s.logRow}>
               <Text style={[s.logCell, { flex: 1 }]}>{fmtDate(sess.finishedAt)}</Text>
               <Text style={[s.logCell, s.logRight, { flex: 1.2 }]}>
-                {isBodyweight ? `${sess.topReps} reps` : `${sess.topWeight}${weightUnit} × ${sess.topReps}`}
+                {isBodyweight ? `${sess.topReps} reps` : `${sess.topWeight}${unitSuffix(weightUnit)} × ${sess.topReps}`}
               </Text>
               <Text style={[s.logCell, s.logRight, { width: 56, color: COLORS.textMuted }]}>
                 {fmtVol(sess.topVolume)}

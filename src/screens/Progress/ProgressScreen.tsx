@@ -88,8 +88,8 @@ export function ProgressScreen() {
     : visibleHistories.slice(0, INITIAL_LIMIT);
   const hiddenCount = visibleHistories.length - displayedHistories.length;
 
-  // Chart width = window - ScrollView padding (32) - GlassView card padding (24)
-  const chartWidth = Math.max(240, windowWidth - 32 - 24);
+  // Chart width = window - ScrollView padding (32) - card padding (24) - border (2) - safety margin (4)
+  const chartWidth = Math.max(240, windowWidth - 32 - 24 - 6);
 
   const closeSearch = () => { setSearchOpen(false); setSearchQuery(''); };
 

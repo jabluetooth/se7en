@@ -7,8 +7,9 @@ import { dayPositionForDate } from '../../utils/cycleUtils';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
-const REST_STONE    = '#A8A29E';  // warm stone — past days with no session logged
+const REST_STONE    = '#A8A29E';  // warm stone — rest days
 const DEFAULT_COLOR = '#636366';  // fallback gray
+const MISSED_RED    = '#EF4444';  // pure red outline for missed workout days
 
 const MONTH_FULL = [
   'January','February','March','April','May','June',
@@ -334,10 +335,11 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                               ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
                               : null;
 
-                            // Faint planned-but-missed colour for past workout days with no session
-                            const missedColor = !sess && isPast && !todayD && planDay && !planDay.isRestDay
-                              ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
-                              : null;
+                            // Past workout days with no logged session → red outline.
+                            // Only applies when the cycle was actively anchored
+                            // (cycleStartDate is set) so synthesized fallback dates
+                            // don't retroactively mark days as missed.
+                            const missed = !sess && isPast && !todayD && planDay && !planDay.isRestDay && !!cycleStartDate;
 
                             const isRestCell    = schedRest;
                             const isPastOrToday = isPast || todayD;
@@ -349,30 +351,25 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             // a Sunday three weeks out) read as plain upcoming.
                             const showAsRest = isRestCell && (pillColor !== null || isPastOrToday);
 
-                            // Upcoming-workout PREVIEW colour — only inside the
-                            // active cycle pill, for workout days that haven't
-                            // been logged yet. This is how the heatmap mirrors
-                            // the Cycle screen: every day inside this week's
-                            // cycle shows what's scheduled, even before there's
-                            // any session data.
-                            const previewColor = !color && !missedColor && !isRestCell && pillColor && planDay && !sess
+                            // Upcoming-workout PREVIEW colour — only inside the active
+                            // cycle, for today or future workout days not yet logged.
+                            const previewColor = !color && !missed && !isRestCell && pillColor && planDay && !sess && !isPast
                               ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
                               : null;
 
-                            // Cell bg + border priority — drives "the Cycle screen
-                            // is the truth" for every day inside the active cycle:
+                            // Cell bg + border priority:
                             //   1. Completed workout                → workout colour (done)
-                            //   2. Past planned, no session         → faint missed tint
+                            //   2. Missed workout (past, no sess)   → red outline
                             //   3. Past/today rest, in active cycle → cycle accent (auto-done)
                             //   4. Future rest, in active cycle     → faint REST_STONE
                             //   5. Past/today rest, outside cycle   → REST_STONE (auto-done generic)
                             //   6. Today/future workout, in cycle   → faint workout colour (preview)
-                            //   7. Everything else (future outside) → cellEmpty (neutral)
+                            //   7. Everything else                  → cellEmpty (neutral)
                             let bgStyle: object | null = null;
                             if (color) {
                               bgStyle = { backgroundColor: rgba(color, 0.20), borderColor: rgba(color, 0.42) };
-                            } else if (missedColor) {
-                              bgStyle = { backgroundColor: rgba(missedColor, 0.07), borderColor: rgba(missedColor, 0.18) };
+                            } else if (missed) {
+                              bgStyle = { backgroundColor: rgba(MISSED_RED, 0.06), borderColor: rgba(MISSED_RED, 0.75) };
                             } else if (showAsRest && pillColor && isPastOrToday) {
                               bgStyle = { backgroundColor: rgba(pillColor, 0.14), borderColor: rgba(pillColor, 0.30) };
                             } else if (showAsRest && pillColor) {
@@ -410,11 +407,11 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                 )}
                                 <Text style={[
                                   s.cellNum,
-                                  !sess && !todayD && !showAsRest && !missedColor && !previewColor && s.cellNumEmpty,
+                                  !sess && !todayD && !showAsRest && !missed && !previewColor && s.cellNumEmpty,
                                   showAsRest && s.cellNumRest,
                                   todayD && !sess && s.cellNumToday,
                                   !!color    && s.cellNumSess,
-                                  !!missedColor && { color: rgba(missedColor, 0.45) } as any,
+                                  missed && { color: rgba(MISSED_RED, 0.70), fontWeight: '600' } as any,
                                   !!previewColor && !todayD && { color: rgba(previewColor, 0.65), fontWeight: '600' } as any,
                                 ]}>
                                   {day}
