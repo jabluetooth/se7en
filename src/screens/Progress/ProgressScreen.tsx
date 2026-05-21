@@ -14,6 +14,7 @@ import { fmtVol } from '../../utils/format';
 import { aggregateExercises } from '../../utils/exerciseHistory';
 import { ContributionHeatmap } from './components/ContributionHeatmap';
 import { ExerciseCard } from './components/ExerciseCard';
+import { useDockClearance } from '../../hooks/useDockClearance';
 
 // Progress signal text colour — applied to font only.
 const PROGRESS_GREEN_TXT = '#34D399';
@@ -24,6 +25,7 @@ export function ProgressScreen() {
   const { sessions }   = useSessionStore();
   const { activePlan } = usePlanStore();
   const { width: windowWidth } = useWindowDimensions();
+  const dockClearance  = useDockClearance();
 
   const [sortMode,    setSortMode]    = useState<SortMode>('recent');
   const [expandedId,  setExpandedId]  = useState<string | null>(null);
@@ -100,7 +102,7 @@ export function ProgressScreen() {
           {activePlan && <Text style={s.sub}>{activePlan.name}</Text>}
         </View>
 
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
           {/* Summary stats */}
           <View style={s.statsRow}>
             <GlassView radius={14} style={s.statCard}>

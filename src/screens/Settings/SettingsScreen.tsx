@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { useDockClearance } from '../../hooks/useDockClearance';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 // All hoisted to module scope. Previously these lived inside SettingsScreen,
@@ -113,6 +114,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
   const { activePlan }       = usePlanStore();
   const { settings, save }   = useSettingsStore();
   const { clearAllSessions } = useSessionStore();
+  const dockClearance        = useDockClearance();
 
   const handleClearHistory = () =>
     Alert.alert(
@@ -131,7 +133,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
         <View style={s.header}>
           <Text style={s.title}>Settings</Text>
         </View>
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
 
           {/* Active plan card */}
           {activePlan && (

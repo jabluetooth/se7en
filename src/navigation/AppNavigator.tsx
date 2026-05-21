@@ -13,8 +13,12 @@ import { ExerciseBuilderScreen }    from '../screens/ExerciseBuilder/ExerciseBui
 import { useSessionStore }          from '../stores/sessionStore';
 import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
-import { SPACING }                  from '../constants';
 import { WorkoutSession }           from '../types';
+
+// The floating dock is an overlay — it sits ON TOP of screen content so the
+// page background extends edge-to-edge (including behind the dock + home
+// indicator). Individual screens that scroll should add a bottom padding of
+// roughly DOCK_RESERVE so the user can scroll the last item above the dock.   // gap between content and dock
 
 export function AppNavigator() {
   const [activeTab,       setActiveTab      ] = useState<TabName>('Home');
@@ -69,37 +73,84 @@ export function AppNavigator() {
 
   return (
     <SafeAreaProvider>
-      <View style={s.container}>
-        <View style={s.content}>{renderTab()}</View>
-        <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
-
-        <Modal visible={showActiveSession} animationType="slide" presentationStyle="fullScreen">
-          <ActiveSessionScreen onFinish={handleSessionFinish} />
-        </Modal>
-
-        <Modal visible={showPostWorkout} animationType="slide" presentationStyle="fullScreen">
-          {finishedSession && (
-            <PostWorkoutSummary
-              session={finishedSession}
-              nextDay={nextDay}
-              onDone={() => { setShowPostWorkout(false); setFinishedSession(null); setActiveTab('Home'); }}
-            />
-          )}
-        </Modal>
-
-        <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
-          <RestTimerScreen onClose={() => setShowRestTimer(false)} />
-        </Modal>
-
-        <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
-          <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
-        </Modal>
-      </View>
+      <AppShell
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        renderTab={renderTab}
+        showActiveSession={showActiveSession}
+        handleSessionFinish={handleSessionFinish}
+        showPostWorkout={showPostWorkout}
+        finishedSession={finishedSession}
+        nextDay={nextDay}
+        onPostWorkoutDone={() => { setShowPostWorkout(false); setFinishedSession(null); setActiveTab('Home'); }}
+        showRestTimer={showRestTimer}
+        setShowRestTimer={setShowRestTimer}
+        showBuilder={showBuilder}
+        setShowBuilder={setShowBuilder}
+      />
     </SafeAreaProvider>
+  );
+}
+
+// Split out so we can call `useSafeAreaInsets` (must be inside SafeAreaProvider).
+// Content paddingBottom = dock + safe area + breathing room so screen content
+// never gets hidden behind the floating dock or the home indicator.
+interface ShellProps {
+  activeTab: TabName;
+  setActiveTab: (t: TabName) => void;
+  renderTab: () => React.ReactNode;
+  showActiveSession: boolean;
+  handleSessionFinish: (session: WorkoutSession) => void;
+  showPostWorkout: boolean;
+  finishedSession: WorkoutSession | null;
+  nextDay: ReturnType<typeof Object> | any;
+  onPostWorkoutDone: () => void;
+  showRestTimer: boolean;
+  setShowRestTimer: (v: boolean) => void;
+  showBuilder: boolean;
+  setShowBuilder: (v: boolean) => void;
+}
+
+function AppShell({
+  activeTab, setActiveTab, renderTab,
+  showActiveSession, handleSessionFinish,
+  showPostWorkout, finishedSession, nextDay, onPostWorkoutDone,
+  showRestTimer, setShowRestTimer,
+  showBuilder, setShowBuilder,
+}: ShellProps) {
+  return (
+    <View style={s.container}>
+      {/* Content fills the FULL screen — dock overlays on top of it so the
+          page background and tiles extend behind the dock + home indicator. */}
+      <View style={s.content}>{renderTab()}</View>
+      <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
+
+      <Modal visible={showActiveSession} animationType="slide" presentationStyle="fullScreen">
+        <ActiveSessionScreen onFinish={handleSessionFinish} />
+      </Modal>
+
+      <Modal visible={showPostWorkout} animationType="slide" presentationStyle="fullScreen">
+        {finishedSession && (
+          <PostWorkoutSummary
+            session={finishedSession}
+            nextDay={nextDay}
+            onDone={onPostWorkoutDone}
+          />
+        )}
+      </Modal>
+
+      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
+        <RestTimerScreen onClose={() => setShowRestTimer(false)} />
+      </Modal>
+
+      <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
+        <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
+      </Modal>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  content:   { flex: 1, paddingBottom: 72 + SPACING.sm },
+  content:   { flex: 1 },
 });

@@ -201,7 +201,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   const cycleStyleFor = (segDays: number[]): { color: string; title: string } | null => {
     if (!segDays.length) return null;
     const idx = cycleForDay(segDays[0]);
-    return idx !== null ? (cycleInfo.get(idx) ?? null) : null;
+    if (idx === null) return null;
+    // Only active cycle + past cycles with session history get a pill. Future
+    // cycles are intentionally not previewed — the user may swap the plan or
+    // edit it before getting there, so anything past this week's cycle is
+    // treated as unknown territory.
+    return cycleInfo.get(idx) ?? null;
   };
 
   const onPress = (day: number) =>
@@ -301,11 +306,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                       <View key={`seg-${si}`} style={[s.pillWrap, { flex: segDays.length }]}>
                         <View style={[
                           s.weekPill,
-                          // Uniform opacity so the whole 7-day cycle (including
-                          // rest days inside it) reads as one band — no text
-                          // labels, just colour.
+                          // Faint pill bg so the 7 cycle days still read as one
+                          // grouped band, but each day's individual color (Push
+                          // red, Pull teal, etc.) inside it stays dominant —
+                          // mirrors what the Cycle screen shows.
                           pillColor
-                            ? { backgroundColor: rgba(pillColor, 0.18) }
+                            ? { backgroundColor: rgba(pillColor, 0.08) }
                             : s.weekPillEmpty,
                           continuesLeft  && { borderTopLeftRadius: 4,  borderBottomLeftRadius: 4 },
                           continuesRight && { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
@@ -374,7 +380,13 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             } else if (showAsRest) {
                               bgStyle = { backgroundColor: rgba(REST_STONE, 0.16), borderColor: rgba(REST_STONE, 0.30) };
                             } else if (previewColor) {
-                              bgStyle = { backgroundColor: rgba(previewColor, 0.06), borderColor: rgba(previewColor, 0.22) };
+                              // Upcoming workout inside an active/future cycle.
+                              // The day color needs to read clearly through the
+                              // accent-orange pill bg (0.18), so the fill is
+                              // boosted and the border is heavy enough to hold
+                              // its own visually. Still distinct from completed
+                              // cells (bg 0.20 + volume fill bar).
+                              bgStyle = { backgroundColor: rgba(previewColor, 0.14), borderColor: rgba(previewColor, 0.55) };
                             } else {
                               bgStyle = s.cellEmpty;
                             }
@@ -420,6 +432,32 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                     <View key={`post-${i}`} style={s.weekSlot} />
                   ))}
                 </View>
+
+                {/* Active-cycle caption — just the cycle title, centered under
+                    the columns the active cycle's segment occupies in this row.
+                    Renders on every row the cycle touches (1 or 2 rows depending
+                    on whether the cycle straddles a Sat→Sun boundary). */}
+                {activePlan && (() => {
+                  // Find the active cycle segment in this row + its column span
+                  let preFlex   = preCount;
+                  let activeSeg: number[] | null = null;
+                  for (const seg of segments) {
+                    if (cycleForDay(seg[0]) === todayCycleIdx) { activeSeg = seg; break; }
+                    preFlex += seg.length;
+                  }
+                  if (!activeSeg) return null;
+                  const activeFlex = activeSeg.length;
+                  const postFlex   = 7 - preFlex - activeFlex;
+                  return (
+                    <View style={s.activeCycleRow}>
+                      {preFlex > 0  && <View style={{ flex: preFlex }} />}
+                      <View style={[s.activeCycleBanner, { flex: activeFlex }]}>
+                        <Text style={s.activeCycleName} numberOfLines={1}>{splitName}</Text>
+                      </View>
+                      {postFlex > 0 && <View style={{ flex: postFlex }} />}
+                    </View>
+                  );
+                })()}
 
               </View>
             );
@@ -606,6 +644,11 @@ const s = StyleSheet.create({
   dayNameRow: { flexDirection: 'row', marginBottom: 4 },
   dayName:    { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', color: 'rgba(255,240,220,0.22)', letterSpacing: 0.8 },
 
+  // Active-cycle caption — sits under the active cycle's pill, column-aligned
+  activeCycleRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
+  activeCycleBanner: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  activeCycleName:   { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase', textAlign: 'center' },
+
   // Grid
   grid:     { gap: GAP },
 
@@ -616,7 +659,7 @@ const s = StyleSheet.create({
   weekPill:      { flexDirection: 'row', borderRadius: 999, height: CELL + 8, paddingHorizontal: PILL_PAD, gap: CELL_GAP, alignItems: 'center', alignSelf: 'stretch' },
   weekPillEmpty: { backgroundColor: 'rgba(255,240,220,0.04)' },
 
-  // pillWrap: occupies flex: pillDays.length in weekRow; centers title below pill
+  // pillWrap: occupies flex: pillDays.length in weekRow
   pillWrap:     { alignItems: 'center' },
 
   // Day circle — flex: 1 + aspectRatio: 1 inside fixed-height pill = circle

@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert,
+  View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert, Image,
   useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import ViewShot, { captureRef } from 'react-native-view-shot';
@@ -109,7 +110,22 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppBackground />
+      {/* Background — bgImage takes over the WHOLE screen (including status bar
+          + home-indicator area) when set, so it reads as an edge-to-edge poster.
+          The same image is also rendered inside SummaryPage's ViewShot so the
+          captured PNG keeps the background. */}
+      {bgImage ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Image source={{ uri: bgImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.30)', 'rgba(0,0,0,0.60)']}
+            locations={[0, 0.55, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      ) : (
+        <AppBackground />
+      )}
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
 
         {/* ── Persistent header ─────────────────────────── */}

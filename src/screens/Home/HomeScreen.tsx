@@ -14,6 +14,7 @@ import { ContributionHeatmap } from './ContributionHeatmap';
 import { HighlightSlideshow } from './HighlightSlideshow';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { computeDayPosition } from '../../utils/cycleUtils';
+import { useDockClearance } from '../../hooks/useDockClearance';
 
 // HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
 // (shown as a modal in AppNavigator whenever activeSession !== null).
@@ -26,6 +27,7 @@ export function HomeScreen({ onNavigate }: Props) {
   const { activePlan }             = usePlanStore();
   const { sessions, startSession } = useSessionStore();
   const { settings }               = useSettingsStore();
+  const dockClearance              = useDockClearance();
 
   // Derive the current day position from the cycle anchor date.
   // Falls back to the stored position for users who haven't set cycleStartDate yet.
@@ -34,16 +36,60 @@ export function HomeScreen({ onNavigate }: Props) {
     settings.currentDayPosition,
   );
 
+  // Effective cycle anchor — synthesizes one from today + currentDayPosition when
+  // cycleStartDate is null (older accounts / imported plans). Without this the
+  // ContributionHeatmap can't compute cycle indices and renders nothing cycle-
+  // related, even when an active plan is set.
+  const effectiveCycleStartDate = settings.cycleStartDate ?? (() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (settings.currentDayPosition - 1));
+    return d.toISOString().slice(0, 10);
+  })();
+
   // Today's workout = the card at slot (currentDayPos - 1) in the user's
   // visible cycle order. Looking it up by `dayPosition` would point at the
   // exercise that USED to live at that slot before any drag-reorder on the
   // Cycle screen, so the two screens would disagree on "today".
+  // Used by CycleOrbitWidget for the orbit label; MissionCard receives
+  // `nextMission` instead (computed below — skips today-if-done and rest days).
   const currentDay   = activePlan?.days[currentDayPos - 1];
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
 
+  // "Today done" lookup — date-based (not slot-based) so it survives any
+  // drag-reorder on Cycle. If a completed session exists for today's calendar
+  // date, MissionCard flips to its done state and the start button targets
+  // the NEXT mission instead of re-offering today's work.
+  const todayStr        = new Date().toISOString().slice(0, 10);
+  const todayDoneSess   = planSessions.find(s => s.status === 'completed' && s.finishedAt?.slice(0, 10) === todayStr);
+  const completedToday  = todayDoneSess ? { dayLabel: todayDoneSess.dayLabel } : null;
+
+  // Next mission resolution — finds the next non-rest workout, walking forward
+  // from today's slot (or the slot AFTER today if today's session is done).
+  // This avoids two redundancies the user reported:
+  //   1. After completing today, MissionCard pointing back at the same workout
+  //      because the cycle hadn't shifted yet.
+  //   2. MissionCard showing "Recovery Day" when today's slot happens to be
+  //      rest — the user wants to see the next actual WORKOUT to plan ahead.
+  const { nextMission, nextMissionNum } = (() => {
+    if (!activePlan) return { nextMission: undefined, nextMissionNum: currentDayPos };
+    const days = activePlan.days;
+    const startOffset = completedToday ? 1 : 0;  // skip today if already done
+    for (let offset = startOffset; offset < days.length; offset++) {
+      const slot = ((currentDayPos - 1) + offset) % days.length;
+      const candidate = days[slot];
+      if (candidate && !candidate.isRestDay) {
+        return { nextMission: candidate, nextMissionNum: slot + 1 };
+      }
+    }
+    // All rest days — fall back to whatever's at today's slot so MissionCard
+    // still has something to display (will render as Recovery Day).
+    return { nextMission: days[currentDayPos - 1], nextMissionNum: currentDayPos };
+  })();
+
   const handleStart = () => {
-    if (!activePlan || !currentDay) return;
-    startSession(activePlan.id, currentDay);
+    if (!activePlan || !nextMission) return;
+    startSession(activePlan.id, nextMission);
     // AppNavigator detects activeSession !== null and opens ActiveSessionScreen
   };
 
@@ -100,8 +146,9 @@ export function HomeScreen({ onNavigate }: Props) {
 
           {/* ── Mission card ── */}
           <MissionCard
-            currentDay={currentDay}
-            currentDayNum={currentDayPos}
+            currentDay={nextMission}
+            currentDayNum={nextMissionNum}
+            completedToday={completedToday}
             onStart={handleStart}
           />
 
@@ -112,7 +159,7 @@ export function HomeScreen({ onNavigate }: Props) {
           <ContributionHeatmap
             sessions={planSessions}
             activePlan={activePlan}
-            cycleStartDate={settings.cycleStartDate}
+            cycleStartDate={effectiveCycleStartDate}
           />
 
           {/* ── Highlight slideshow ── */}
@@ -122,7 +169,7 @@ export function HomeScreen({ onNavigate }: Props) {
             onNavigate={onNavigate}
           />
 
-          <View style={s.bottomPad} />
+          <View style={{ height: dockClearance }} />
         </ScrollView>
       </SafeAreaView>
     </View>

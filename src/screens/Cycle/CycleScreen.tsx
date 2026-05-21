@@ -18,6 +18,7 @@ import { WorkoutDay } from '../../types';
 import { DayEditScreen } from './DayEditScreen';
 import { SplitTypeSheet } from './SplitTypeSheet';
 import { DayListDragSort } from './components/DayListDragSort';
+import { useDockClearance } from '../../hooks/useDockClearance';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -31,6 +32,7 @@ export function CycleScreen() {
   const { settings, shiftCycle }              = useSettingsStore();
 
   const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition);
+  const dockClearance = useDockClearance();
 
   const [editingDay,    setEditingDay   ] = useState<WorkoutDay | null>(null);
   const [planExpanded,  setPlanExpanded ] = useState(false);
@@ -160,10 +162,18 @@ export function CycleScreen() {
   };
 
   const handleQuickDone = (day: WorkoutDay) => {
+    // Compare by SLOT index (not dayPosition). After drag-reorder the day's
+    // stable dayPosition no longer matches its visual slot, but `currentDayPos`
+    // is a slot index (1–7) derived from cycleStartDate — same convention as
+    // HomeScreen's `activePlan.days[currentDayPos - 1]`. Matching slot↔slot
+    // ensures marking today's workout done on the Cycle tab actually advances
+    // the Home MissionCard / Start Session to tomorrow's slot.
+    const dayIdx       = days.findIndex(d => d.id === day.id);
+    const todaySlotIdx = currentDayPos - 1;
+
     quickCompleteDay(activePlan.id, day, settings.cycleStartDate)
       .then(() => {
-        // Completing today's day advances the cycle so the next day becomes "Today"
-        if (day.dayPosition === currentDayPos) shiftCycle(-1);
+        if (dayIdx === todaySlotIdx) shiftCycle(-1);
       })
       .catch(() => Alert.alert('Error', 'Could not log the session. Please try again.'));
   };
@@ -279,7 +289,7 @@ export function CycleScreen() {
             onDone={handleQuickDone}
             onScrollEnabledChange={setScrollEnabled}
           />
-          <View style={{ height: 24 }} />
+          <View style={{ height: dockClearance }} />
         </ScrollView>
       </SafeAreaView>
 
