@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fsSessions, fsActiveSession } from '../services/firestoreService';
+import { storeNoteEmbedding } from '../services/embeddingService';
 import {
   WorkoutSession, SessionExercise, SetLog,
   WorkoutDay, Exercise, SessionStatus, SkipReason,
@@ -27,11 +28,14 @@ interface SessionStore {
   startSession:           (planId: string, day: WorkoutDay) => void;
   completeSet:            (exerciseId: string, setId: string, data: Partial<SetLog>) => void;
   addSetNote:             (exerciseId: string, setId: string, note: string) => void;
+  setExerciseRPE:         (exerciseId: string, rpe: number, note: string) => void;
   finishSession:          (sessionNote?: string) => Promise<WorkoutSession>;
   skipDay:                (planId: string, dayPosition: number, dayLabel: string, reason?: SkipReason) => Promise<WorkoutSession>;
   acknowledgeRestDay:     (planId: string, dayPosition: number, dayLabel: string) => Promise<void>;
-  /** Log a day as fully completed at its scheduled calendar date (uses cycleStartDate to derive the date). */
-  quickCompleteDay:       (planId: string, day: WorkoutDay, cycleStartDate: string | null) => Promise<WorkoutSession>;
+  /** Log a day as fully completed at its scheduled calendar date (uses cycleStartDate to derive the date).
+   *  Pass slotIndex (0-based position in plan.days) so the calendar date is computed correctly even
+   *  after drag-and-drop reordering where day.dayPosition ≠ slot offset. */
+  quickCompleteDay:       (planId: string, day: WorkoutDay, cycleStartDate: string | null, slotIndex?: number) => Promise<WorkoutSession>;
   /** Wipe all session history locally and from Firestore. */
   clearAllSessions:       () => Promise<void>;
   getSessionsForExercise: (exerciseName: string) => WorkoutSession[];
@@ -46,6 +50,7 @@ function buildExercises(day: WorkoutDay): SessionExercise[] {
     id: generateId(), exerciseId: ex.id, exerciseName: ex.name, order: ex.order,
     setType: ex.setType, weightUnit: ex.weightUnit, barType: ex.barType,
     barWeight: ex.barWeight, isCompleted: false,
+    muscleTags: ex.muscleTags ?? [],
     sets: Array.from({ length: ex.targetSets }, (_, i) => {
       const per = ex.perSetTargets?.find(p => p.setNumber === i + 1);
       return {
@@ -167,6 +172,43 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     });
   },
 
+  setExerciseRPE: (exerciseId, rpe, note) => {
+    // 1. Update local state + persist to AsyncStorage + Firestore
+    set(s => {
+      if (!s.activeSession) return s;
+      const exercises = s.activeSession.exercises.map(ex =>
+        ex.id === exerciseId ? { ...ex, rpe, exerciseNote: note } : ex
+      );
+      const updated = { ...s.activeSession, exercises };
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
+      return { activeSession: updated };
+    });
+
+    // 2. Fire-and-forget: embed the note and store it in Neon
+    // Only runs when there is a non-trivial note and a valid RPE score.
+    if (!note.trim() || rpe <= 0) return;
+
+    const session = get().activeSession;
+    if (!session) return;
+    const exercise = session.exercises.find(ex => ex.id === exerciseId);
+    if (!exercise) return;
+
+    getUid().then(uid => {
+      if (!uid) return;
+      storeNoteEmbedding({
+        userId:       uid,
+        sessionId:    session.id,
+        exerciseId:   exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        muscleTags:   exercise.muscleTags,
+        rpe,
+        note,
+        workoutDate:  session.startedAt?.slice(0, 10) ?? null,
+      }).catch(e => __DEV__ && console.warn('[se7en/embed]', e));
+    });
+  },
+
   finishSession: async (sessionNote) => {
     get().stopTimer();
     const session  = get().activeSession!;
@@ -189,6 +231,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         fsSessions.set(uid, finished).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
       ]);
     }
+    // Invalidate coach cache so the widget regenerates with fresh post-workout insight
+    AsyncStorage.removeItem('@se7en_coach_cache').catch(() => {});
     return finished;
   },
 
@@ -209,24 +253,35 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   acknowledgeRestDay: async () => {},
 
-  quickCompleteDay: async (planId, day, cycleStartDate) => {
-    // Derive the calendar date for this day position from the cycle anchor.
+  quickCompleteDay: async (planId, day, cycleStartDate, slotIndex) => {
+    // Derive the calendar date from the SLOT INDEX (0-based position in plan.days),
+    // not day.dayPosition. After drag-and-drop reordering, dayPosition is a stable
+    // content-id; the actual calendar offset from cycleStartDate is the slot index.
+    // Fall back to dayPosition - 1 only when slotIndex is not provided (legacy callers).
+    const offset = slotIndex !== undefined ? slotIndex : (day.dayPosition - 1);
     let finishedAt: string;
     if (cycleStartDate) {
       const d = new Date(cycleStartDate + 'T00:00:00');
-      d.setDate(d.getDate() + (day.dayPosition - 1));
+      d.setDate(d.getDate() + offset);
       d.setHours(18, 0, 0, 0); // log at 6 PM on the scheduled date
       finishedAt = d.toISOString();
     } else {
       finishedAt = new Date().toISOString();
     }
 
-    // Skip if already logged as completed on this calendar date
-    const targetDate = finishedAt.slice(0, 10);
+    // Skip if already logged as completed on this calendar date.
+    // Use local-date comparison so UTC± offsets don't cause UTC-midnight sessions
+    // to land on the "wrong" UTC day and slip past deduplication.
+    const localDate = (iso: string) => {
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    };
+    const targetLocalDate = localDate(finishedAt);
     const existing = get().sessions.find(s =>
       s.planId === planId &&
       s.dayPosition === day.dayPosition &&
-      s.finishedAt?.slice(0, 10) === targetDate &&
+      s.finishedAt != null &&
+      localDate(s.finishedAt) === targetLocalDate &&
       s.status === 'completed',
     );
     if (existing) return existing;

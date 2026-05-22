@@ -1,14 +1,22 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GlassView } from '../common/GlassView';
 import { ProgressRing } from '../common/ProgressRing';
 import { SetTypeBadge } from '../common/SetTypeBadge';
 import { SetLogger } from '../SetLogger/SetLogger';
+import { RPEInput } from '../RPEInput/RPEInput';
 import { COLORS, SPACING, MUSCLE_TAG_COLOR } from '../../constants';
 import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { findExercise } from '../../data/exercises';
+
+function rpeColor(n: number): string {
+  if (n <= 4) return '#30D158';
+  if (n <= 6) return '#FFD60A';
+  if (n <= 8) return '#FF8C00';
+  return '#FF453A';
+}
 
 interface Props {
   exercise:         SessionExercise;
@@ -18,19 +26,33 @@ interface Props {
 }
 
 export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplete }: Props) {
-  const { completeSet } = useSessionStore();
+  const { completeSet, setExerciseRPE } = useSessionStore();
   const { activePlan }  = usePlanStore();
   const [expanded, setExpanded] = useState(
     defaultExpanded !== undefined ? defaultExpanded : !exercise.isCompleted,
   );
-  const done  = exercise.sets.filter(s => s.isCompleted).length;
-  const total = exercise.sets.length;
-  const allDone = done === total;
+  const prevAllDone = useRef(false);
+  const done    = exercise.sets.filter(s => s.isCompleted).length;
+  const total   = exercise.sets.length;
+  const allDone = done === total && total > 0;
 
   // Auto-expand when this exercise becomes the active one
   useEffect(() => {
     if (isActive && !allDone) setExpanded(true);
   }, [isActive]);
+
+  const [rpeSkipped,  setRpeSkipped ] = useState(false);
+  const [editingRpe,  setEditingRpe ] = useState(false);
+
+  // Auto-expand RPE section when last set is just completed
+  useEffect(() => {
+    if (allDone && !prevAllDone.current) {
+      setExpanded(true);
+      setRpeSkipped(false);
+      setEditingRpe(false);
+    }
+    prevAllDone.current = allDone;
+  }, [allDone]);
 
   // Library tags take precedence (specific); fall back to plan exercise tags for custom exercises
   const libEx      = findExercise(exercise.exerciseId);
@@ -77,6 +99,11 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                 </View>
               );
             })}
+            {exercise.rpe != null && (
+              <View style={[s.rpePill, { backgroundColor: rpeColor(exercise.rpe) + '22', borderColor: rpeColor(exercise.rpe) + '55' }]}>
+                <Text style={[s.rpePillText, { color: rpeColor(exercise.rpe) }]}>RPE {exercise.rpe}</Text>
+              </View>
+            )}
           </View>
         </View>
         <View style={[s.chevron, expanded && s.chevronUp]}>
@@ -96,6 +123,44 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
               onSetComplete={onSetComplete}
             />
           ))}
+
+          {/* RPE capture — shown once all sets are done */}
+          {allDone && (() => {
+            const rpeLogged = exercise.rpe != null && exercise.rpe > 0;
+
+            // Already logged + not editing → show saved summary
+            if (rpeLogged && !editingRpe) {
+              return (
+                <View style={s.rpeSaved}>
+                  <View style={[s.rpeSavedBadge, { borderColor: rpeColor(exercise.rpe!) + '55', backgroundColor: rpeColor(exercise.rpe!) + '18' }]}>
+                    <Text style={[s.rpeSavedNum, { color: rpeColor(exercise.rpe!) }]}>RPE {exercise.rpe}</Text>
+                  </View>
+                  {exercise.exerciseNote ? (
+                    <Text style={s.rpeSavedNote} numberOfLines={2}>{exercise.exerciseNote}</Text>
+                  ) : null}
+                  <TouchableOpacity onPress={() => setEditingRpe(true)} activeOpacity={0.7} style={s.rpeEditBtn}>
+                    <Text style={s.rpeEditTxt}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            // Skipped and not editing → nothing (already past this exercise)
+            if (rpeSkipped && !editingRpe) return null;
+
+            // Show input (first time or editing)
+            return (
+              <RPEInput
+                initialRpe={editingRpe ? exercise.rpe : undefined}
+                initialNote={editingRpe ? (exercise.exerciseNote ?? '') : ''}
+                onSave={(rpe, note) => {
+                  setExerciseRPE(exercise.id, rpe, note);
+                  setEditingRpe(false);
+                }}
+                onSkip={editingRpe ? undefined : () => setRpeSkipped(true)}
+              />
+            );
+          })()}
         </View>
       )}
     </GlassView>
@@ -103,20 +168,29 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
 }
 
 const s = StyleSheet.create({
-  card:         { marginBottom: SPACING.sm, overflow: 'hidden' },
-  cardDone:     {},
-  cardExpanded: {},
-  header:       { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, gap: SPACING.sm },
-  info:         { flex: 1, minWidth: 0 },
-  nameRow:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  name:         { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  nameDone:     { color: COLORS.accent },
-  metaRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  meta:         { fontSize: 12, color: COLORS.textMuted },
-  musclePill:   { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
+  card:          { marginBottom: SPACING.sm, overflow: 'hidden' },
+  cardDone:      {},
+  cardExpanded:  {},
+  header:        { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, gap: SPACING.sm },
+  info:          { flex: 1, minWidth: 0 },
+  nameRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
+  name:          { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  nameDone:      { color: COLORS.accent },
+  metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  meta:          { fontSize: 12, color: COLORS.textMuted },
+  musclePill:    { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
   musclePillText:{ fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
-  chevron:      { transform: [{ rotate: '90deg' }] },
-  chevronUp:    { transform: [{ rotate: '270deg' }] },
-  chevronText:  { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
-  sets:         { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
+  rpePill:       { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
+  rpePillText:   { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  chevron:       { transform: [{ rotate: '90deg' }] },
+  chevronUp:     { transform: [{ rotate: '270deg' }] },
+  chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
+  sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
+  // RPE saved summary
+  rpeSaved:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)', marginTop: SPACING.xs },
+  rpeSavedBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
+  rpeSavedNum:   { fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  rpeSavedNote:  { flex: 1, fontSize: 12, color: COLORS.textMuted, fontStyle: 'italic' },
+  rpeEditBtn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.05)' },
+  rpeEditTxt:    { fontSize: 11, fontWeight: '700', color: COLORS.textLabel },
 });

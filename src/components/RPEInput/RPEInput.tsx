@@ -1,0 +1,119 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, GRAD, SPACING } from '../../constants';
+
+// RPE color bands: 1-4 easy, 5-6 moderate, 7-8 hard, 9-10 max
+function rpeColor(n: number): string {
+  if (n <= 4) return '#30D158';
+  if (n <= 6) return '#FFD60A';
+  if (n <= 8) return '#FF8C00';
+  return '#FF453A';
+}
+
+const RPE_LABELS: Record<number, string> = {
+  1:  'Very easy',
+  2:  'Easy',
+  3:  'Moderate',
+  4:  'Comfortable',
+  5:  'Challenging',
+  6:  'Hard',
+  7:  'Very hard',
+  8:  'Could do 2 more',
+  9:  'Could do 1 more',
+  10: 'Max effort',
+};
+
+interface Props {
+  initialRpe?:  number;
+  initialNote?: string;
+  onSave:       (rpe: number, note: string) => void;
+  onSkip?:      () => void;
+}
+
+export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props) {
+  const [selected, setSelected] = useState<number | null>(initialRpe ?? null);
+  const [note, setNote]         = useState(initialNote);
+
+  const handleSave = () => {
+    if (selected === null) return;
+    onSave(selected, note.trim());
+  };
+
+  return (
+    <View style={s.container}>
+      <View style={s.headerRow}>
+        <Text style={s.title}>How did that feel?</Text>
+        {onSkip && (
+          <TouchableOpacity onPress={onSkip} activeOpacity={0.7}>
+            <Text style={s.skip}>Skip</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Number selector */}
+      <View style={s.grid}>
+        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+          const color    = rpeColor(n);
+          const isActive = selected === n;
+          return (
+            <TouchableOpacity
+              key={n}
+              onPress={() => setSelected(n)}
+              activeOpacity={0.75}
+              style={[s.cell, isActive && { backgroundColor: color + '22', borderColor: color }]}
+            >
+              <Text style={[s.cellNum, { color: isActive ? color : COLORS.textMuted }]}>{n}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Description label */}
+      {selected !== null && (
+        <Text style={[s.rpeLabel, { color: rpeColor(selected) }]}>
+          RPE {selected} — {RPE_LABELS[selected]}
+        </Text>
+      )}
+
+      {/* Note input */}
+      <TextInput
+        style={s.noteInput}
+        placeholder="Add a note… (optional)"
+        placeholderTextColor={COLORS.textLabel}
+        value={note}
+        onChangeText={setNote}
+        multiline
+        maxLength={200}
+      />
+
+      {/* Save button */}
+      <TouchableOpacity
+        onPress={handleSave}
+        activeOpacity={selected !== null ? 0.85 : 1}
+        style={[s.saveWrap, selected === null && s.saveDisabled]}
+        disabled={selected === null}
+      >
+        <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.saveBtn}>
+          <Text style={s.saveTxt}>Log RPE</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  container:   { paddingTop: SPACING.md, paddingBottom: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
+  title:       { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.2 },
+  skip:        { fontSize: 12, color: COLORS.textLabel, fontWeight: '600' },
+  grid:        { flexDirection: 'row', gap: 5, marginBottom: SPACING.sm },
+  cell:        { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.04)' },
+  cellNum:     { fontSize: 14, fontWeight: '800' },
+  rpeLabel:    { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, marginBottom: SPACING.sm, textAlign: 'center' },
+  noteInput:   { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 10, padding: 10, fontSize: 13, color: COLORS.text, minHeight: 52, textAlignVertical: 'top', marginBottom: SPACING.sm },
+  saveWrap:    { borderRadius: 10, overflow: 'hidden' },
+  saveDisabled:{ opacity: 0.35 },
+  saveBtn:     { height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  saveTxt:     { fontSize: 14, fontWeight: '800', color: '#000', letterSpacing: 0.3 },
+});

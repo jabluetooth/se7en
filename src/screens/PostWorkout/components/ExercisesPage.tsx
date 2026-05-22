@@ -10,6 +10,13 @@ import { fmtVol } from '../../../utils/format';
 // the same exercise keeps its hue regardless of how the list is sorted.
 const EX_COLORS = [COLORS.accent, COLORS.rest, COLORS.warning, '#A78BFA'];
 
+function rpeColor(n: number): string {
+  if (n <= 4) return '#30D158';
+  if (n <= 6) return '#FFD60A';
+  if (n <= 8) return '#FF8C00';
+  return '#FF453A';
+}
+
 interface Props {
   session: WorkoutSession;
   width:   number;
@@ -151,6 +158,11 @@ export function ExercisesPage({ session, width }: Props) {
                       </Text>
                     </View>
                   )}
+                  {x.ex.rpe != null && x.ex.rpe > 0 && (
+                    <View style={[s.chip, { backgroundColor: rpeColor(x.ex.rpe) + '22', borderColor: rpeColor(x.ex.rpe) + '55' }]}>
+                      <Text style={[s.chipTxt, { color: rpeColor(x.ex.rpe), fontWeight: '800' }]}>RPE {x.ex.rpe}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -184,6 +196,12 @@ export function ExercisesPage({ session, width }: Props) {
                     </View>
                   );
                 })}
+                {x.ex.exerciseNote ? (
+                  <View style={s.noteRow}>
+                    <Text style={s.noteLabel}>Note</Text>
+                    <Text style={s.noteTxt}>{x.ex.exerciseNote}</Text>
+                  </View>
+                ) : null}
               </View>
             )}
           </GlassView>
@@ -231,4 +249,8 @@ const s = StyleSheet.create({
   tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
   td:        { fontSize: 14, fontWeight: '600', color: '#fff', flex: 1 },
   tdRight:   { textAlign: 'right' },
+  // Exercise note
+  noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
+  noteLabel: { fontSize: 10, fontWeight: '800', color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2, width: 34 },
+  noteTxt:   { flex: 1, fontSize: 13, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
 });

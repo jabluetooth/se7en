@@ -10,6 +10,7 @@ import { PostWorkoutSummary }       from '../screens/PostWorkout/PostWorkoutSumm
 import { ActiveSessionScreen }      from '../screens/ActiveSession/ActiveSessionScreen';
 import { RestTimerScreen }          from '../screens/RestTimer/RestTimerScreen';
 import { ExerciseBuilderScreen }    from '../screens/ExerciseBuilder/ExerciseBuilderScreen';
+import { CoachScreen }              from '../screens/Coach/CoachScreen';
 import { useSessionStore }          from '../stores/sessionStore';
 import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
@@ -22,10 +23,12 @@ import { WorkoutSession }           from '../types';
 
 export function AppNavigator() {
   const [activeTab,       setActiveTab      ] = useState<TabName>('Home');
-  const [showPostWorkout, setShowPostWorkout ] = useState(false);
-  const [showRestTimer,   setShowRestTimer   ] = useState(false);
-  const [showBuilder,     setShowBuilder     ] = useState(false);
-  const [finishedSession, setFinishedSession ] = useState<WorkoutSession | null>(null);
+  const [showPostWorkout,    setShowPostWorkout   ] = useState(false);
+  const [showRestTimer,      setShowRestTimer     ] = useState(false);
+  const [showBuilder,        setShowBuilder       ] = useState(false);
+  const [showCoach,          setShowCoach         ] = useState(false);
+  const [coachInitialMsg,    setCoachInitialMsg   ] = useState<string | undefined>();
+  const [finishedSession,    setFinishedSession   ] = useState<WorkoutSession | null>(null);
 
   const { activeSession }            = useSessionStore();
   const { activePlan }               = usePlanStore();
@@ -55,9 +58,14 @@ export function AppNavigator() {
     setShowPostWorkout(true);
   };
 
+  const handleOpenCoach = (initialMessage?: string) => {
+    setCoachInitialMsg(initialMessage);
+    setShowCoach(true);
+  };
+
   const renderTab = () => {
     switch (activeTab) {
-      case 'Home':     return <HomeScreen onNavigate={setActiveTab} />;
+      case 'Home':     return <HomeScreen onNavigate={setActiveTab} onOpenCoach={handleOpenCoach} />;
       case 'Cycle':    return <CycleScreen />;
       case 'Progress': return <ProgressScreen />;
       case 'Settings': return (
@@ -87,6 +95,9 @@ export function AppNavigator() {
         setShowRestTimer={setShowRestTimer}
         showBuilder={showBuilder}
         setShowBuilder={setShowBuilder}
+        showCoach={showCoach}
+        coachInitialMsg={coachInitialMsg}
+        onCloseCoach={() => { setShowCoach(false); setCoachInitialMsg(undefined); }}
       />
     </SafeAreaProvider>
   );
@@ -109,6 +120,9 @@ interface ShellProps {
   setShowRestTimer: (v: boolean) => void;
   showBuilder: boolean;
   setShowBuilder: (v: boolean) => void;
+  showCoach: boolean;
+  coachInitialMsg: string | undefined;
+  onCloseCoach: () => void;
 }
 
 function AppShell({
@@ -117,6 +131,7 @@ function AppShell({
   showPostWorkout, finishedSession, nextDay, onPostWorkoutDone,
   showRestTimer, setShowRestTimer,
   showBuilder, setShowBuilder,
+  showCoach, coachInitialMsg, onCloseCoach,
 }: ShellProps) {
   return (
     <View style={s.container}>
@@ -145,6 +160,13 @@ function AppShell({
 
       <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
         <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
+      </Modal>
+
+      <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen">
+        <CoachScreen
+          onClose={onCloseCoach}
+          initialMessage={coachInitialMsg}
+        />
       </Modal>
     </View>
   );

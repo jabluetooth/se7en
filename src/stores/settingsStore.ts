@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fsSettings } from '../services/firestoreService';
 import { Settings } from '../types';
 import { DEFAULT_METRIC_PLATES } from '../constants';
-import { computeDayPosition, shiftDate } from '../utils/cycleUtils';
+import { computeDayPosition, shiftDate, localDateStr } from '../utils/cycleUtils';
 import type { Unsubscribe } from 'firebase/firestore';
 
 const CACHE_KEY = '@se7en_settings';
@@ -19,6 +19,9 @@ const defaults: Settings = {
   cycleStartDate:  null,
   defaultWeightUnit: 'kg',
   createdAt:       new Date().toISOString(),
+  coachNotificationsEnabled: false,
+  coachNotificationHour:     8,
+  coachNotificationMinute:   0,
 };
 
 interface SettingsStore {
@@ -78,18 +81,18 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   setActivePlan: async (planId) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr(new Date());
     return get().save({ activePlanId: planId, currentDayPosition: 1, cycleStartDate: today });
   },
 
   startCycle: async (startDate) => {
-    const date   = startDate ?? new Date().toISOString().slice(0, 10);
+    const date   = startDate ?? localDateStr(new Date());
     const dayPos = computeDayPosition(date);
     return get().save({ cycleStartDate: date, currentDayPosition: dayPos });
   },
 
   shiftCycle: async (days) => {
-    const current = get().settings.cycleStartDate ?? new Date().toISOString().slice(0, 10);
+    const current = get().settings.cycleStartDate ?? localDateStr(new Date());
     const shifted = shiftDate(current, days);
     const dayPos  = computeDayPosition(shifted);
     return get().save({ cycleStartDate: shifted, currentDayPosition: dayPos });

@@ -11,6 +11,10 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { useDockClearance } from '../../hooks/useDockClearance';
+import {
+  scheduleDailyCoachReminder,
+  cancelDailyCoachReminder,
+} from '../../services/notificationService';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 // All hoisted to module scope. Previously these lived inside SettingsScreen,
@@ -186,6 +190,42 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
                 />
               }
               last
+            />
+          </Section>
+
+          {/* AI Coach */}
+          <Section title="AI Coach">
+            <Row
+              label="Daily Reminder"
+              sub={
+                settings.coachNotificationsEnabled
+                  ? `Notifies you at ${String(settings.coachNotificationHour).padStart(2, '0')}:${String(settings.coachNotificationMinute).padStart(2, '0')} every day`
+                  : 'Get a daily coaching tip notification'
+              }
+              right={
+                <Toggle
+                  on={settings.coachNotificationsEnabled}
+                  onToggle={async () => {
+                    const next = !settings.coachNotificationsEnabled;
+                    await save({ coachNotificationsEnabled: next });
+                    if (next) {
+                      const ok = await scheduleDailyCoachReminder(
+                        settings.coachNotificationHour,
+                        settings.coachNotificationMinute,
+                      );
+                      if (!ok) {
+                        Alert.alert(
+                          'Permission needed',
+                          'Allow notifications in your device settings to receive daily coaching tips.',
+                        );
+                        await save({ coachNotificationsEnabled: false });
+                      }
+                    } else {
+                      await cancelDailyCoachReminder();
+                    }
+                  }}
+                />
+              }
             />
           </Section>
 

@@ -14,6 +14,10 @@ export interface Settings {
   cycleStartDate: string | null; // YYYY-MM-DD of when Day 1 of current cycle began
   defaultWeightUnit: 'kg' | 'lb'; // user's preferred unit for new exercises
   createdAt: string;
+  // AI Coach notifications
+  coachNotificationsEnabled: boolean;
+  coachNotificationHour: number;   // 0–23
+  coachNotificationMinute: number; // 0–59
 }
 
 // ─── Onboarding Profile ───────────────────────────────────────────────────────
@@ -166,6 +170,9 @@ export interface SessionExercise {
   barWeight: number;
   isCompleted: boolean;
   sets: SetLog[];
+  muscleTags?: string[];  // Carried from plan for downstream use (RPE context, AI coach)
+  rpe?: number;           // 1–10 Rate of Perceived Exertion, logged after all sets
+  exerciseNote?: string;  // Free-form note logged alongside RPE
 }
 
 export interface WorkoutSession {

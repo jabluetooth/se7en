@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
@@ -7,5 +8,14 @@ const config = getDefaultConfig(__dirname);
 // which causes "Component auth has not been registered yet" at runtime.
 config.resolver.unstable_enablePackageExports = true;
 config.resolver.unstable_conditionNames = ['react-native', 'require', 'default'];
+
+// @neondatabase/serverless optionally imports the Node.js `ws` package for
+// WebSocket pool connections. We only use the HTTP-mode neon() function, so
+// we shim `ws` to an empty module so Metro doesn't try to bundle Node.js
+// internals (net, tls, etc.) that don't exist in React Native.
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  ws: path.resolve(__dirname, 'shims/ws.js'),
+};
 
 module.exports = config;

@@ -12,18 +12,20 @@ import { DaySlider } from './DaySlider';
 import { MissionCard } from './MissionCard';
 import { ContributionHeatmap } from './ContributionHeatmap';
 import { HighlightSlideshow } from './HighlightSlideshow';
+import { CoachWidget } from '../../components/CoachWidget/CoachWidget';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
-import { computeDayPosition } from '../../utils/cycleUtils';
+import { computeDayPosition, localDateStr } from '../../utils/cycleUtils';
 import { useDockClearance } from '../../hooks/useDockClearance';
 
 // HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
 // (shown as a modal in AppNavigator whenever activeSession !== null).
 
 interface Props {
-  onNavigate: (tab: TabName) => void;
+  onNavigate:    (tab: TabName) => void;
+  onOpenCoach?:  (initialMessage?: string) => void;
 }
 
-export function HomeScreen({ onNavigate }: Props) {
+export function HomeScreen({ onNavigate, onOpenCoach }: Props) {
   const { activePlan }             = usePlanStore();
   const { sessions, startSession } = useSessionStore();
   const { settings }               = useSettingsStore();
@@ -34,6 +36,7 @@ export function HomeScreen({ onNavigate }: Props) {
   const currentDayPos = computeDayPosition(
     settings.cycleStartDate,
     settings.currentDayPosition,
+    activePlan?.days.length ?? 7,
   );
 
   // Effective cycle anchor — synthesizes one from today + currentDayPosition when
@@ -44,7 +47,7 @@ export function HomeScreen({ onNavigate }: Props) {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - (settings.currentDayPosition - 1));
-    return d.toISOString().slice(0, 10);
+    return localDateStr(d);
   })();
 
   // Today's workout = the card at slot (currentDayPos - 1) in the user's
@@ -151,6 +154,9 @@ export function HomeScreen({ onNavigate }: Props) {
             completedToday={completedToday}
             onStart={handleStart}
           />
+
+          {/* ── AI Coach widget ── */}
+          <CoachWidget onAskMore={onOpenCoach} />
 
           {/* ── Divider ── */}
           <View style={s.sectionGap} />

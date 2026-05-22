@@ -3,13 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
-import { dayPositionForDate } from '../../utils/cycleUtils';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
-const REST_STONE    = '#A8A29E';  // warm stone — rest days
-const DEFAULT_COLOR = '#636366';  // fallback gray
-const MISSED_RED    = '#EF4444';  // pure red outline for missed workout days
+const REST_STONE    = '#A8A29E';
+const DEFAULT_COLOR = '#636366';
+const MISSED_RED    = '#EF4444';
 
 const MONTH_FULL = [
   'January','February','March','April','May','June',
@@ -24,6 +23,12 @@ function rgba(hex: string, a: number) {
   const g = parseInt(hex.slice(3,5),16);
   const b = parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+// Same as CycleScreen — converts a Date to YYYY-MM-DD in LOCAL time so
+// UTC± offsets never shift a session onto the wrong calendar day.
+function toLocalDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,61 +49,67 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
   const year  = view.getFullYear();
   const month = view.getMonth();
-
-  const all = sessions;
+  const all   = sessions;
 
   const splitName = activePlan?.name ?? 'Workout';
 
+  // ── Anchor — cycle start at local midnight (mirrors CycleScreen) ─────────────
+  const anchor = useMemo((): Date | null => {
+    if (!cycleStartDate) return null;
+    const d = new Date(cycleStartDate + 'T00:00:00');
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [cycleStartDate]);
+
+  // ── Slot helpers — identical algorithm to CycleScreen ────────────────────────
+  // Returns the 0-based slot index for any calendar date, or null if the date
+  // is before the cycle anchor. diff % days.length mirrors the CycleScreen bars.
+
+  const daysLen = activePlan?.days.length ?? 7;
+
+  const diffFromAnchor = (d: Date): number | null => {
+    if (!anchor) return null;
+    const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    midnight.setHours(0, 0, 0, 0);
+    const diff = Math.floor((midnight.getTime() - anchor.getTime()) / 86_400_000);
+    return diff < 0 ? null : diff;
+  };
+
+  const slotForCalDay = (calDay: number): number | null => {
+    const diff = diffFromAnchor(new Date(year, month, calDay));
+    return diff !== null ? diff % daysLen : null;
+  };
+
+  const planDayForCalDay = (calDay: number): WorkoutDay | null => {
+    if (!activePlan) return null;
+    const slot = slotForCalDay(calDay);
+    return slot !== null ? (activePlan.days[slot] ?? null) : null;
+  };
+
+  // Cycle index (0, 1, 2 …) for a calendar day — used for pill grouping.
+  const cycleForCalDay = (calDay: number): number | null => {
+    const diff = diffFromAnchor(new Date(year, month, calDay));
+    return diff !== null ? Math.floor(diff / daysLen) : null;
+  };
+
+  // Cycle index that contains today.
+  const todayCycleIdx = useMemo((): number | null => {
+    const diff = diffFromAnchor(today);
+    return diff !== null ? Math.floor(diff / daysLen) : null;
+  }, [anchor, daysLen]);
+
+  // ── Session lookup by day position (content-id) ───────────────────────────────
+  // Used for legend / cycle-info where sessions store their stable dayPosition.
   const isRestDay = (dayPos: number) =>
     activePlan?.days.find(d => d.dayPosition === dayPos)?.isRestDay ?? false;
 
-  // Returns the plan day for a calendar date using the cycle anchor.
-  // `pos` (1-7) maps to the visible *slot* in the user's reordered plan, not
-  // to the stable `dayPosition` content-id — same convention as the Cycle
-  // screen so today's calendar cell paints the same exercise that's currently
-  // showing as "Today" on the Cycle tab.
-  const planDayForCalDay = (calDay: number): WorkoutDay | null => {
-    const pos = dayPositionForDate(cycleStartDate, new Date(year, month, calDay));
-    if (pos === null || !activePlan) return null;
-    return activePlan.days[pos - 1] ?? null;
-  };
-
-  // planId → splitType — when a user changes plans mid-cycle,
-  // each week row will show the correct split for that week.
-  const planSplitMap = useMemo(() => {
-    const m = new Map<string, string>();
-    if (activePlan) m.set(activePlan.id, activePlan.name);
-    return m;
-  }, [activePlan]);
-
-  // ── Cycle-index helpers ──
-  // A "cycle" is one 7-day window since cycleStartDate, indexed from 0.
-  // Used to key per-cycle pill colour/title so a cycle that spans a Sat→Sun
-  // row boundary gets the SAME highlight on both rows (cross-row continuity).
-  const cycleForDay = (calDay: number): number | null => {
-    if (!cycleStartDate) return null;
-    const start = new Date(cycleStartDate + 'T00:00:00'); start.setHours(0,0,0,0);
-    const target = new Date(year, month, calDay);       target.setHours(0,0,0,0);
-    const diff = Math.floor((target.getTime() - start.getTime()) / 86_400_000);
-    return diff < 0 ? null : Math.floor(diff / 7);
-  };
-
-  // Index of the cycle that contains today — always rendered, even with zero
-  // sessions, so the user sees "what's currently on the Cycle screen".
-  const todayCycleIdx: number | null = useMemo(() => {
-    if (!cycleStartDate) return null;
-    const start = new Date(cycleStartDate + 'T00:00:00'); start.setHours(0,0,0,0);
-    const t = new Date(); t.setHours(0,0,0,0);
-    const diff = Math.floor((t.getTime() - start.getTime()) / 86_400_000);
-    return diff < 0 ? null : Math.floor(diff / 7);
-  }, [cycleStartDate]);
-
-  // day-of-month → best session (highest volume)
+  // ── dayMap — local-date string → best session for that calendar day ──────────
   const dayMap = useMemo(() => {
     const m = new Map<number, WorkoutSession>();
     all.forEach(s => {
       if (s.status !== 'completed' || !s.finishedAt) return;
       const d = new Date(s.finishedAt);
+      // Use local year/month/date — same as CycleScreen toLocalDate approach.
       if (d.getFullYear() !== year || d.getMonth() !== month) return;
       const day = d.getDate();
       const cur = m.get(day);
@@ -110,73 +121,59 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   const maxVol     = useMemo(() => Math.max(...all.map(s => s.totalVolume), 1), [all]);
   const monthCount = dayMap.size;
 
-  // Unique non-rest workout day positions; deduplicate legend entries by label
+  // ── First session date — no day before this can be "Missed" ──────────────────
+  // Prevents retroactive red markers for periods before the user started training.
+  const firstSessionDate = useMemo((): Date | null => {
+    const completed = all.filter(s => s.status === 'completed' && s.finishedAt);
+    if (!completed.length) return null;
+    return completed.reduce<Date | null>((earliest, s) => {
+      const d = new Date(s.finishedAt!);
+      const midnight = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      return !earliest || midnight < earliest ? midnight : earliest;
+    }, null);
+  }, [all]);
+
+  // ── Unique workout day positions for the legend ───────────────────────────────
   const usedPos = useMemo(() => {
     const positions = [...new Set(
       [...dayMap.values()]
         .filter(s => !isRestDay(s.dayPosition))
         .map(s => s.dayPosition),
     )].sort();
-    const seenLabels = new Set<string>();
+    const seen = new Set<string>();
     return positions.filter(dp => {
       const label = activePlan?.days.find(d => d.dayPosition === dp)?.label ?? `Day ${dp}`;
       if (label.toLowerCase().trim() === 'rest') return false;
-      if (seenLabels.has(label)) return false;
-      seenLabels.add(label);
+      if (seen.has(label)) return false;
+      seen.add(label);
       return true;
     });
   }, [dayMap, activePlan]);
 
-  // Build grid — standard Sun→Sat calendar.
-  const firstDow  = new Date(year, month, 1).getDay();
-  const daysInMon = new Date(year, month + 1, 0).getDate();
-  const cells: (number|null)[] = [
-    ...Array(firstDow).fill(null),
-    ...Array.from({ length: daysInMon }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7) cells.push(null);
-  const weeks = Array.from({ length: cells.length/7 }, (_, i) => cells.slice(i*7, i*7+7));
+  // ── planId → name map for cycle pills ────────────────────────────────────────
+  const planSplitMap = useMemo(() => {
+    const m = new Map<string, string>();
+    if (activePlan) m.set(activePlan.id, activePlan.name);
+    return m;
+  }, [activePlan]);
 
-  const isTodayFn = (d: number) =>
-    today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
-
-  // Split a row's days into cycle-aligned segments. A new segment starts on any
-  // day whose cycle position is 1 (the user's cycle start day-of-week). This
-  // keeps pills bound to the user's cycle (e.g. Tue→Mon) instead of Sun→Sat.
-  const cycleSegments = (days: number[]): number[][] => {
-    if (!cycleStartDate) return days.length ? [days] : [];
-    const out: number[][] = [];
-    let cur: number[] = [];
-    for (const day of days) {
-      const pos = dayPositionForDate(cycleStartDate, new Date(year, month, day));
-      if (pos === 1 && cur.length > 0) { out.push(cur); cur = []; }
-      cur.push(day);
-    }
-    if (cur.length) out.push(cur);
-    return out;
-  };
-
-  // Per-cycle pill style — keyed by cycle index so a cycle that spans rows
-  // shares one colour and one title across all its segments. Past cycles
-  // derive style from their own sessions; the active cycle always renders
-  // with the active plan's accent + name so "what's on the Cycle screen"
-  // is always reflected, even with zero sessions yet.
+  // ── Per-cycle pill style ──────────────────────────────────────────────────────
   const cycleInfo = useMemo(() => {
     const info = new Map<number, { color: string; title: string }>();
-    if (!cycleStartDate) return info;
+    if (!anchor) return info;
 
-    const sessionsByCycle = new Map<number, WorkoutSession[]>();
+    const byIdx = new Map<number, WorkoutSession[]>();
     all.forEach(s => {
       if (s.status !== 'completed' || !s.finishedAt) return;
       const d = new Date(s.finishedAt);
       if (d.getFullYear() !== year || d.getMonth() !== month) return;
-      const idx = cycleForDay(d.getDate());
+      const idx = cycleForCalDay(d.getDate());
       if (idx === null) return;
-      const arr = sessionsByCycle.get(idx);
-      if (arr) arr.push(s); else sessionsByCycle.set(idx, [s]);
+      const arr = byIdx.get(idx);
+      if (arr) arr.push(s); else byIdx.set(idx, [s]);
     });
 
-    sessionsByCycle.forEach((sess, idx) => {
+    byIdx.forEach((sess, idx) => {
       const counts = new Map<string, number>();
       sess.forEach(s => {
         if (isRestDay(s.dayPosition)) return;
@@ -184,47 +181,67 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
         counts.set(c, (counts.get(c) ?? 0) + 1);
       });
       const color = counts.size
-        ? [...counts.entries()].sort((a,b) => b[1] - a[1])[0][0]
+        ? [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0]
         : DEFAULT_COLOR;
       const title = planSplitMap.get(sess[0].planId) ?? splitName;
       info.set(idx, { color, title });
     });
 
-    // Active cycle: always present, always uses the active plan's name +
-    // accent. Overrides any session-derived style so changing the active
-    // plan mid-cycle "cuts" the highlight and re-labels this week.
+    // Active cycle always uses the live plan's accent so renaming mid-cycle is reflected.
     if (todayCycleIdx !== null) {
       info.set(todayCycleIdx, { color: COLORS.accent, title: splitName });
     }
     return info;
-  }, [all, planSplitMap, splitName, year, month, cycleStartDate, todayCycleIdx, activePlan]);
+  }, [all, planSplitMap, splitName, year, month, anchor, todayCycleIdx, activePlan]);
 
   const cycleStyleFor = (segDays: number[]): { color: string; title: string } | null => {
     if (!segDays.length) return null;
-    const idx = cycleForDay(segDays[0]);
-    if (idx === null) return null;
-    // Only active cycle + past cycles with session history get a pill. Future
-    // cycles are intentionally not previewed — the user may swap the plan or
-    // edit it before getting there, so anything past this week's cycle is
-    // treated as unknown territory.
-    return cycleInfo.get(idx) ?? null;
+    const idx = cycleForCalDay(segDays[0]);
+    return idx !== null ? (cycleInfo.get(idx) ?? null) : null;
   };
 
-  const onPress = (day: number) =>
+  // ── Cycle segments — split a week row at slot-0 boundaries ───────────────────
+  // A new cycle pill begins when the slot wraps back to 0 (start of the next
+  // daysLen-day cycle window), mirroring CycleScreen's slot calculation.
+  const cycleSegments = (rowDays: number[]): number[][] => {
+    if (!anchor || !activePlan) return rowDays.length ? [rowDays] : [];
+    const out: number[][] = [];
+    let cur: number[] = [];
+    for (const day of rowDays) {
+      const slot = slotForCalDay(day);
+      // slot === 0 means this day is the start of a new cycle window.
+      if (slot === 0 && cur.length > 0) { out.push(cur); cur = []; }
+      cur.push(day);
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+
+  // ── Calendar grid ─────────────────────────────────────────────────────────────
+  const firstDow  = new Date(year, month, 1).getDay();
+  const daysInMon = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMon }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7) cells.push(null);
+  const weeks = Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+
+  const isTodayFn = (d: number) =>
+    today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+
+  const onPress  = (day: number) =>
     setSel(prev => prev?.day === day ? null : { day, session: dayMap.get(day) ?? null });
+  const navMonth = (delta: number) => { setView(new Date(year, month + delta, 1)); setSel(null); };
 
-  const navMonth = (delta: number) => { setView(new Date(year, month+delta, 1)); setSel(null); };
-
+  // ── Detail-card state ─────────────────────────────────────────────────────────
   const selSess    = sel?.session ?? null;
-  // Rest-day status comes from the plan schedule for the tapped date — NOT
-  // from the session — because rest days have no session record.
-  // Falls back to the session's dayPosition only when no cycle is anchored.
   const selPlanDay = sel ? planDayForCalDay(sel.day) : null;
   const selIsRest  = selPlanDay
     ? selPlanDay.isRestDay
     : (selSess ? isRestDay(selSess.dayPosition) : false);
-  const selIsPast  = sel ? new Date(year, month, sel.day) <  today : false;
-  const selIsToday = sel ? isTodayFn(sel.day)                       : false;
+  const selIsPast  = sel ? new Date(year, month, sel.day) < today : false;
+  const selIsToday = sel ? isTodayFn(sel.day) : false;
   const selColor   = selIsRest
     ? REST_STONE
     : (selSess ? (DAY_COLOR[selSess.dayPosition] ?? DEFAULT_COLOR) : DEFAULT_COLOR);
@@ -252,20 +269,14 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
         </View>
       </View>
 
-      {/* ── Calendar enclosure ── */}
+      {/* ── Calendar ── */}
       <View style={s.enclosure}>
-
-        {/* Day-name header */}
         <View style={s.dayNameRow}>
-          {DAY_ABBR.map((d, i) => (
-            <Text key={i} style={s.dayName}>{d}</Text>
-          ))}
+          {DAY_ABBR.map((d, i) => <Text key={i} style={s.dayName}>{d}</Text>)}
         </View>
 
-        {/* Grid */}
         <View style={s.grid}>
           {weeks.map((week, wi) => {
-            // Pill trims null-padding: spans only the actual calendar days
             const firstReal = week.findIndex(d => d !== null);
             const lastReal  = week.reduce<number>((l, d, i) => (d !== null ? i : l), -1);
             if (firstReal === -1) return null;
@@ -273,49 +284,35 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
             const preCount  = firstReal;
             const postCount = week.length - 1 - lastReal;
             const pillDays  = week.slice(firstReal, lastReal + 1).filter((d): d is number => d !== null);
-
-            // Split the row at cycle boundaries → one pill per cycle slice
-            const segments = cycleSegments(pillDays);
+            const segments  = cycleSegments(pillDays);
 
             return (
               <View key={wi} style={s.weekWrap}>
-
-                {/* Row: pre-spacers + one pill-wrapper per cycle segment + post-spacers */}
                 <View style={s.weekRow}>
                   {Array.from({ length: preCount }).map((_, i) => (
                     <View key={`pre-${i}`} style={s.weekSlot} />
                   ))}
 
                   {segments.map((segDays, si) => {
-                    const style     = cycleStyleFor(segDays);
-                    const pillColor = style?.color ?? null;
+                    const style      = cycleStyleFor(segDays);
+                    const pillColor  = style?.color ?? null;
 
-                    // Cycle continuity across rows — when a cycle spans a
-                    // Sat→Sun (or any other) boundary, flatten the pill edges
-                    // where it joins its sibling slice on the previous/next
-                    // row so the 7 cycle days read as ONE continuous band.
-                    const firstPos = cycleStartDate
-                      ? dayPositionForDate(cycleStartDate, new Date(year, month, segDays[0]))
-                      : null;
-                    const lastPos  = cycleStartDate
-                      ? dayPositionForDate(cycleStartDate, new Date(year, month, segDays[segDays.length - 1]))
-                      : null;
-                    const continuesLeft  = firstPos !== null && firstPos > 1;
-                    const continuesRight = lastPos  !== null && lastPos  < 7;
+                    // Pill edge rounding — flatten where a cycle continues across
+                    // a row boundary so the 7-day band reads as one continuous strip.
+                    const firstSlot = slotForCalDay(segDays[0]);
+                    const lastSlot  = slotForCalDay(segDays[segDays.length - 1]);
+                    const continuesLeft  = firstSlot !== null && firstSlot > 0;
+                    const continuesRight = lastSlot  !== null && lastSlot  < daysLen - 1;
 
                     return (
                       <View key={`seg-${si}`} style={[s.pillWrap, { flex: segDays.length }]}>
                         <View style={[
                           s.weekPill,
-                          // Faint pill bg so the 7 cycle days still read as one
-                          // grouped band, but each day's individual color (Push
-                          // red, Pull teal, etc.) inside it stays dominant —
-                          // mirrors what the Cycle screen shows.
                           pillColor
                             ? { backgroundColor: rgba(pillColor, 0.08) }
                             : s.weekPillEmpty,
-                          continuesLeft  && { borderTopLeftRadius: 4,  borderBottomLeftRadius: 4 },
-                          continuesRight && { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+                          continuesLeft  && { borderTopLeftRadius:    4, borderBottomLeftRadius:    4 },
+                          continuesRight && { borderTopRightRadius:   4, borderBottomRightRadius:   4 },
                         ]}>
                           {segDays.map((day, di) => {
                             const sess      = dayMap.get(day) ?? null;
@@ -323,48 +320,32 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             const active    = sel?.day === day;
                             const isPast    = new Date(year, month, day) < today;
 
-                            // Use cycle schedule to determine if this date is a rest day.
-                            // Falls back to session's own dayPosition when no cycle is anchored.
                             const planDay   = planDayForCalDay(day);
                             const schedRest = planDay
                               ? planDay.isRestDay
                               : (!!sess && isRestDay(sess.dayPosition));
 
-                            // Workout color — suppressed when schedule says rest
                             const color = sess && !schedRest
                               ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
                               : null;
 
-                            // Past workout days with no logged session → red outline.
-                            // Only applies when the cycle was actively anchored
-                            // (cycleStartDate is set) so synthesized fallback dates
-                            // don't retroactively mark days as missed.
-                            const missed = !sess && isPast && !todayD && planDay && !planDay.isRestDay && !!cycleStartDate;
+                            // Missed: past workout slot with no session —
+                            // but only on or after the user's first ever session
+                            // so pre-activity cycle iterations aren't penalised.
+                            const cellDate   = new Date(year, month, day);
+                            const afterStart = !firstSessionDate || cellDate >= firstSessionDate;
+                            const missed     = !sess && isPast && !todayD
+                              && !!planDay && !planDay.isRestDay
+                              && !!cycleStartDate && afterStart;
 
                             const isRestCell    = schedRest;
                             const isPastOrToday = isPast || todayD;
 
-                            // Rest UI shows only when the cell is either
-                            //   (a) inside the currently-highlighted cycle, or
-                            //   (b) already past/today (auto-completed).
-                            // Future rest days in NON-highlighted cycles (e.g.
-                            // a Sunday three weeks out) read as plain upcoming.
-                            const showAsRest = isRestCell && (pillColor !== null || isPastOrToday);
-
-                            // Upcoming-workout PREVIEW colour — only inside the active
-                            // cycle, for today or future workout days not yet logged.
+                            const showAsRest   = isRestCell && (pillColor !== null || isPastOrToday);
                             const previewColor = !color && !missed && !isRestCell && pillColor && planDay && !sess && !isPast
                               ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
                               : null;
 
-                            // Cell bg + border priority:
-                            //   1. Completed workout                → workout colour (done)
-                            //   2. Missed workout (past, no sess)   → red outline
-                            //   3. Past/today rest, in active cycle → cycle accent (auto-done)
-                            //   4. Future rest, in active cycle     → faint REST_STONE
-                            //   5. Past/today rest, outside cycle   → REST_STONE (auto-done generic)
-                            //   6. Today/future workout, in cycle   → faint workout colour (preview)
-                            //   7. Everything else                  → cellEmpty (neutral)
                             let bgStyle: object | null = null;
                             if (color) {
                               bgStyle = { backgroundColor: rgba(color, 0.20), borderColor: rgba(color, 0.42) };
@@ -377,12 +358,6 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             } else if (showAsRest) {
                               bgStyle = { backgroundColor: rgba(REST_STONE, 0.16), borderColor: rgba(REST_STONE, 0.30) };
                             } else if (previewColor) {
-                              // Upcoming workout inside an active/future cycle.
-                              // The day color needs to read clearly through the
-                              // accent-orange pill bg (0.18), so the fill is
-                              // boosted and the border is heavy enough to hold
-                              // its own visually. Still distinct from completed
-                              // cells (bg 0.20 + volume fill bar).
                               bgStyle = { backgroundColor: rgba(previewColor, 0.14), borderColor: rgba(previewColor, 0.55) };
                             } else {
                               bgStyle = s.cellEmpty;
@@ -395,12 +370,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                 key={di}
                                 onPress={() => onPress(day)}
                                 activeOpacity={0.75}
-                                style={[
-                                  s.cell,
-                                  bgStyle,
-                                  todayD && s.cellToday,
-                                  active && s.cellActive,
-                                ]}
+                                style={[s.cell, bgStyle, todayD && s.cellToday, active && s.cellActive]}
                               >
                                 {color && fh > 0 && (
                                   <View style={[s.fillBar, { height: fh, backgroundColor: rgba(color, 0.88) }]} />
@@ -410,8 +380,8 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                   !sess && !todayD && !showAsRest && !missed && !previewColor && s.cellNumEmpty,
                                   showAsRest && s.cellNumRest,
                                   todayD && !sess && s.cellNumToday,
-                                  !!color    && s.cellNumSess,
-                                  missed && { color: rgba(MISSED_RED, 0.70), fontWeight: '600' } as any,
+                                  !!color && s.cellNumSess,
+                                  missed       && { color: rgba(MISSED_RED, 0.70),    fontWeight: '600' } as any,
                                   !!previewColor && !todayD && { color: rgba(previewColor, 0.65), fontWeight: '600' } as any,
                                 ]}>
                                   {day}
@@ -420,7 +390,6 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             );
                           })}
                         </View>
-
                       </View>
                     );
                   })}
@@ -430,16 +399,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                   ))}
                 </View>
 
-                {/* Active-cycle caption — just the cycle title, centered under
-                    the columns the active cycle's segment occupies in this row.
-                    Renders on every row the cycle touches (1 or 2 rows depending
-                    on whether the cycle straddles a Sat→Sun boundary). */}
+                {/* Active-cycle label — centred under this week's active segment */}
                 {activePlan && (() => {
-                  // Find the active cycle segment in this row + its column span
-                  let preFlex   = preCount;
+                  let preFlex  = preCount;
                   let activeSeg: number[] | null = null;
                   for (const seg of segments) {
-                    if (cycleForDay(seg[0]) === todayCycleIdx) { activeSeg = seg; break; }
+                    if (cycleForCalDay(seg[0]) === todayCycleIdx) { activeSeg = seg; break; }
                     preFlex += seg.length;
                   }
                   if (!activeSeg) return null;
@@ -447,7 +412,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                   const postFlex   = 7 - preFlex - activeFlex;
                   return (
                     <View style={s.activeCycleRow}>
-                      {preFlex > 0  && <View style={{ flex: preFlex }} />}
+                      {preFlex  > 0 && <View style={{ flex: preFlex }} />}
                       <View style={[s.activeCycleBanner, { flex: activeFlex }]}>
                         <Text style={s.activeCycleName} numberOfLines={1}>{splitName}</Text>
                       </View>
@@ -455,15 +420,13 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                     </View>
                   );
                 })()}
-
               </View>
             );
           })}
         </View>
+      </View>
 
-      </View>{/* end enclosure */}
-
-      {/* ── Log card — shown on day tap ── */}
+      {/* ── Detail card — shown on day tap ── */}
       {sel && (
         <GlassView radius={14} style={s.card} borderColor={rgba(selColor, 0.28)}>
           {selIsRest ? (
@@ -474,17 +437,11 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               </Text>
               <View style={[s.cardPill, { borderColor: rgba(REST_STONE, 0.45), backgroundColor: rgba(REST_STONE, 0.14), marginTop: 6 }]}>
                 <Text style={[s.cardPillTxt, { color: REST_STONE }]}>
-                  {selIsPast  ? 'REST · COMPLETED' :
-                   selIsToday ? 'REST · TODAY'      :
-                                'REST · SCHEDULED'}
+                  {selIsToday ? 'REST · TODAY' : selIsPast ? 'REST · COMPLETED' : 'REST · SCHEDULED'}
                 </Text>
               </View>
               <Text style={[s.cardEmptyTxt, { marginTop: 8 }]}>
-                {selIsPast
-                  ? 'Recovery day — auto-completed.'
-                  : selIsToday
-                    ? 'Take it easy today — no workout scheduled.'
-                    : 'Recovery day — no workout scheduled.'}
+                {selIsToday ? 'Take it easy today — no workout scheduled.' : selIsPast ? 'Recovery day — auto-completed.' : 'Recovery day — no workout scheduled.'}
               </Text>
             </View>
           ) : selSess ? (
@@ -499,8 +456,6 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                   <Text style={[s.cardPillTxt, { color: selColor }]}>{selSess.dayLabel}</Text>
                 </View>
               </View>
-
-              {/* Volume */}
               <View style={s.cardVolRow}>
                 <Text style={[s.cardVolNum, { color: selColor }]}>
                   {Math.round(selSess.totalVolume).toLocaleString()}
@@ -508,22 +463,20 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                 <Text style={s.cardVolUnit}> kg</Text>
               </View>
               <Text style={s.cardMeta}>
-                {selSess.exercises.reduce((a,e)=>a+e.sets.filter(st=>st.isCompleted).length,0)} sets
+                {selSess.exercises.reduce((a, e) => a + e.sets.filter(st => st.isCompleted).length, 0)} sets
                 {'  ·  '}{selSess.exercises.length} exercises
                 {selSess.duration > 0 ? `  ·  ${selSess.duration} min` : ''}
               </Text>
-
-              {/* Exercises */}
               {selSess.exercises.length > 0 && (
                 <View style={s.cardExWrap}>
-                  {selSess.exercises.slice(0,4).map((ex, i) => {
+                  {selSess.exercises.slice(0, 4).map((ex, i) => {
                     const reps = ex.sets[0]?.targetReps ?? null;
                     const wt   = ex.sets[0]?.targetWeight;
                     return (
                       <View key={i} style={s.cardExRow}>
                         <Text style={s.cardExName} numberOfLines={1}>{ex.exerciseName}</Text>
                         <Text style={s.cardExDetail}>
-                          {ex.sets.filter(st=>st.isCompleted).length}×{reps ?? '–'}
+                          {ex.sets.filter(st => st.isCompleted).length}×{reps ?? '–'}
                           {wt ? `  @${wt}kg` : ''}
                         </Text>
                       </View>
@@ -536,16 +489,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               )}
             </View>
           ) : (() => {
-            // Non-rest, no session. Inside the active cycle we know exactly
-            // what's scheduled for this date (Cycle screen is the truth) —
-            // surface it as a pill so the user sees "PULL · UPCOMING" instead
-            // of an anonymous "no session yet" line.
-            const selCycleIdx  = sel ? cycleForDay(sel.day) : null;
-            const selInCycle   = selCycleIdx !== null && cycleInfo.has(selCycleIdx);
-            const selDayColor  = selPlanDay && !selPlanDay.isRestDay
+            const selCycleIdx   = sel ? cycleForCalDay(sel.day) : null;
+            const selInCycle    = selCycleIdx !== null && cycleInfo.has(selCycleIdx);
+            const selDayColor   = selPlanDay && !selPlanDay.isRestDay
               ? (DAY_COLOR[selPlanDay.dayPosition] ?? DEFAULT_COLOR)
               : null;
-            const showScheduled = selInCycle && selPlanDay && !selPlanDay.isRestDay && !selIsPast;
+            const showScheduled = selInCycle && selPlanDay && !selPlanDay.isRestDay && (selIsToday || !selIsPast);
             return (
               <View style={s.cardEmpty}>
                 <Text style={s.cardEmptyDate}>
@@ -560,10 +509,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                   </View>
                 )}
                 <Text style={[s.cardEmptyTxt, showScheduled && { marginTop: 8 }]}>
-                  {selIsPast    ? 'No session logged.' :
-                   selIsToday   ? 'No session yet today.' :
-                   showScheduled ? 'Scheduled — no session yet.' :
-                                  'Upcoming — no session yet.'}
+                  {selIsToday ? 'No session yet today.' : selIsPast ? 'No session logged.' : showScheduled ? 'Scheduled — no session yet.' : 'Upcoming — no session yet.'}
                 </Text>
               </View>
             );
@@ -571,27 +517,18 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
         </GlassView>
       )}
 
-      {/* ── Legend — only what's on the calendar ── */}
+      {/* ── Legend ── */}
       <View style={s.legend}>
-        {/* Rest / recovery legend entry — always shown */}
         <View style={s.legendWorkout}>
           <View style={[s.legendCell, { backgroundColor: rgba(REST_STONE, 0.18) }]} />
           <Text style={[s.legendWorkoutTxt, { color: REST_STONE }]}>Rest</Text>
         </View>
-
-        {/* Missed — only shown when a real cycleStartDate is set */}
         {!!cycleStartDate && (
           <View style={s.legendWorkout}>
-            <View style={[s.legendCell, {
-              backgroundColor: rgba(MISSED_RED, 0.06),
-              borderWidth: 1.5,
-              borderColor: rgba(MISSED_RED, 0.75),
-            }]} />
+            <View style={[s.legendCell, { backgroundColor: rgba(MISSED_RED, 0.06), borderWidth: 1.5, borderColor: rgba(MISSED_RED, 0.75) }]} />
             <Text style={[s.legendWorkoutTxt, { color: rgba(MISSED_RED, 0.80) }]}>Missed</Text>
           </View>
         )}
-
-        {/* Workout types seen this month */}
         {usedPos.map(dp => {
           const color  = DAY_COLOR[dp] ?? DEFAULT_COLOR;
           const dayObj = activePlan?.days.find(d => d.dayPosition === dp);
@@ -605,7 +542,6 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
             </View>
           );
         })}
-
         <Text style={s.legendNote}>bar height = volume</Text>
       </View>
 
@@ -615,21 +551,19 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const CELL = 40;
-const GAP  = 4;          // vertical gap between calendar rows
-const CELL_GAP = 4;      // horizontal gap between day cells
-const PILL_PAD = CELL_GAP / 2;  // 2*pad === gap keeps cell size uniform across segments
+const CELL     = 40;
+const GAP      = 4;
+const CELL_GAP = 4;
+const PILL_PAD = CELL_GAP / 2;
 
 function fillHeight(vol: number, max: number): number {
   if (!vol || !max) return 0;
-  const t = Math.min(vol / max, 1);
-  return Math.round(4 + t * (CELL - 4));
+  return Math.round(4 + Math.min(vol / max, 1) * (CELL - 4));
 }
 
 const s = StyleSheet.create({
   root: { marginHorizontal: 20, marginBottom: 8 },
 
-  // Header
   header:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
   title:     { fontSize: 17, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4, marginBottom: 3 },
   sub:       { fontSize: 11, color: COLORS.textMuted },
@@ -638,94 +572,58 @@ const s = StyleSheet.create({
   navArrow:  { fontSize: 22, color: COLORS.textSecondary, lineHeight: 26, fontWeight: '300' },
   navLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1, minWidth: 68, textAlign: 'center' },
 
-  // Calendar enclosure — outer border wrapping the whole grid
-  enclosure: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,240,220,0.10)',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-  },
+  enclosure: { borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 16, padding: 12, marginBottom: 10 },
 
-  // Day name row
   dayNameRow: { flexDirection: 'row', marginBottom: 4 },
   dayName:    { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', color: 'rgba(255,240,220,0.22)', letterSpacing: 0.8 },
 
-  // Active-cycle caption — sits under the active cycle's pill, column-aligned
   activeCycleRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
   activeCycleBanner: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   activeCycleName:   { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase', textAlign: 'center' },
 
-  // Grid
-  grid:     { gap: GAP },
-
-  // Week row
-  weekWrap:      {},  // column wrapper — one per week
-  weekRow:       { flexDirection: 'row', alignItems: 'center' },  // pre-spacers + pill + post-spacers
-  weekSlot:      { flex: 1 },  // transparent placeholder for null-padding days
+  grid:          { gap: GAP },
+  weekWrap:      {},
+  weekRow:       { flexDirection: 'row', alignItems: 'center' },
+  weekSlot:      { flex: 1 },
   weekPill:      { flexDirection: 'row', borderRadius: 999, height: CELL + 8, paddingHorizontal: PILL_PAD, gap: CELL_GAP, alignItems: 'center', alignSelf: 'stretch' },
   weekPillEmpty: { backgroundColor: 'rgba(255,240,220,0.04)' },
+  pillWrap:      { alignItems: 'center' },
 
-  // pillWrap: occupies flex: pillDays.length in weekRow
-  pillWrap:     { alignItems: 'center' },
-
-  // Day circle — flex: 1 + aspectRatio: 1 inside fixed-height pill = circle
-  emptyCell: { flex: 1, aspectRatio: 1 },
-  cell: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,240,220,0.08)',
-  },
-  cellEmpty: { backgroundColor: 'rgba(255,240,220,0.04)' },
-  cellToday: { borderWidth: 2, borderColor: 'rgba(255,140,0,0.70)' },
-  cellActive:{ borderWidth: 2, borderColor: 'rgba(255,255,255,0.65)' },
-
-  // Volume arc fill — clipped to circle shape by overflow:hidden on parent
-  fillBar: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  cell:       { flex: 1, aspectRatio: 1, borderRadius: 999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  cellEmpty:  { backgroundColor: 'rgba(255,240,220,0.04)' },
+  cellToday:  { borderWidth: 2, borderColor: 'rgba(255,140,0,0.70)' },
+  cellActive: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.65)' },
+  fillBar:    { position: 'absolute', bottom: 0, left: 0, right: 0 },
 
   cellNum:      { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
   cellNumEmpty: { color: 'rgba(255,240,220,0.20)', fontWeight: '400' },
   cellNumToday: { color: COLORS.accent, fontWeight: '800' },
   cellNumSess:  { color: '#fff', fontWeight: '700' },
-  // Rest cell numeral — REST_STONE gray, matching the rest-cell bg palette.
-  // (Was green previously, which leaked the old palette into the orange-only theme.)
   cellNumRest:  { color: 'rgba(168,162,158,0.65)', fontWeight: '500' },
 
-  // Log card — backgroundColor/borderWidth/overflow now come from GlassView
-  card: {
-    marginTop: 10,
-  },
+  card:        { marginTop: 10 },
   cardBody:    { padding: 14, gap: 5 },
   cardTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   cardDateTxt: { fontSize: 10, fontWeight: '700', color: COLORS.textLabel, letterSpacing: 1.2 },
   cardPill:    { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
   cardPillTxt: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
-
   cardVolRow:  { flexDirection: 'row', alignItems: 'baseline' },
   cardVolNum:  { fontSize: 30, fontWeight: '900', letterSpacing: -1 },
   cardVolUnit: { fontSize: 14, fontWeight: '500', color: COLORS.textMuted },
   cardMeta:    { fontSize: 12, color: COLORS.textLabel },
-
-  cardExWrap:   { marginTop: 8, gap: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingTop: 10 },
-  cardExRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardExName:   { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, flex: 1 },
-  cardExDetail: { fontSize: 12, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
-  cardExMore:   { fontSize: 11, color: COLORS.textLabel },
-
+  cardExWrap:  { marginTop: 8, gap: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingTop: 10 },
+  cardExRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardExName:  { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, flex: 1 },
+  cardExDetail:{ fontSize: 12, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
+  cardExMore:  { fontSize: 11, color: COLORS.textLabel },
   cardEmpty:     { padding: 16, alignItems: 'center' },
   cardEmptyDate: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 4 },
   cardEmptyTxt:  { fontSize: 12, color: COLORS.textLabel },
 
-  // Legend
-  legend:        { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
-  legendWorkout: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendCell:      { width: 16, height: 16, borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
-  legendFill:      { width: '100%' },
+  legend:         { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
+  legendWorkout:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendCell:     { width: 16, height: 16, borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
+  legendFill:     { width: '100%' },
   legendWorkoutTxt:{ fontSize: 10, fontWeight: '700', maxWidth: 70 },
-
-  legendNote:      { fontSize: 9, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
+  legendNote:     { fontSize: 9, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
 });

@@ -34,7 +34,7 @@ export function CycleScreen() {
   const { settings, shiftCycle }              = useSettingsStore();
   const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
 
-  const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition);
+  const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition, activePlan?.days.length ?? 7);
   const dockClearance = useDockClearance();
 
   useEffect(() => { loadPresets(); }, []);
@@ -153,6 +153,17 @@ export function CycleScreen() {
   // un-do every past Monday-completed Push session, because the session's
   // dayPosition (1) no longer matches what's parked at slot 1 today.
   // History is what HAPPENED on a date, not what's scheduled there now.
+  // Convert any Date (or ISO string) to a YYYY-MM-DD string in LOCAL time so
+  // that bar and heatmap comparisons survive UTC± offsets.
+  // Using toISOString() on local-midnight dates gives the previous UTC day in
+  // UTC+ zones (e.g. Philippines UTC+8), causing session lookups to silently fail.
+  const toLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   type BarState = 'done' | 'rest' | 'missed' | 'pending';
   const { rate, bars } = (() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -165,12 +176,15 @@ export function CycleScreen() {
       const d = new Date(today);
       d.setDate(d.getDate() - back);
       if (anchor && d < anchor) continue;
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalDate(d);   // local date — no UTC-offset drift
       const isToday = back === 0;
 
-      // 1. Completed session — date-based, survives any plan reorder.
+      // 1. Completed session — compare local dates on both sides so UTC± zones
+      //    don't shift the session onto the wrong calendar day.
       const hit = sessions.some(ss =>
-        ss.status === 'completed' && ss.finishedAt?.slice(0, 10) === dateStr,
+        ss.status === 'completed' &&
+        ss.finishedAt &&
+        toLocalDate(new Date(ss.finishedAt)) === dateStr,
       );
       if (hit) { points.push('done'); continue; }
 
@@ -208,16 +222,15 @@ export function CycleScreen() {
   };
 
   const handleQuickDone = (day: WorkoutDay) => {
-    // Compare by SLOT index (not dayPosition). After drag-reorder the day's
-    // stable dayPosition no longer matches its visual slot, but `currentDayPos`
-    // is a slot index (1–7) derived from cycleStartDate — same convention as
-    // HomeScreen's `activePlan.days[currentDayPos - 1]`. Matching slot↔slot
-    // ensures marking today's workout done on the Cycle tab actually advances
-    // the Home MissionCard / Start Session to tomorrow's slot.
+    // Use SLOT INDEX (position in the days array) not day.dayPosition.
+    // After drag-and-drop reordering, dayPosition is a stable content-id that
+    // no longer matches the calendar offset from cycleStartDate. The slot index
+    // is the correct offset: cycleStartDate + slotIdx = the calendar date for
+    // that slot's workout.
     const dayIdx       = days.findIndex(d => d.id === day.id);
     const todaySlotIdx = currentDayPos - 1;
 
-    quickCompleteDay(activePlan.id, day, settings.cycleStartDate)
+    quickCompleteDay(activePlan.id, day, settings.cycleStartDate, dayIdx)
       .then(() => {
         if (dayIdx === todaySlotIdx) shiftCycle(-1);
       })
