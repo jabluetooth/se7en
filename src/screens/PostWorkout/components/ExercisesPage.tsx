@@ -57,6 +57,7 @@ export function ExercisesPage({ session, width }: Props) {
       style={{ width }}
       contentContainerStyle={[s.page, { paddingBottom: 48 }]}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
     >
       {/* ── Section header: title + sort toggle ─────────── */}
       <View style={s.header}>
@@ -212,7 +213,7 @@ export function ExercisesPage({ session, width }: Props) {
 }
 
 const s = StyleSheet.create({
-  page:             { flex: 1, paddingHorizontal: 16, paddingTop: 8, justifyContent: 'space-between' },
+  page:             { paddingHorizontal: 16, paddingTop: 8 },
 
   // Section header
   header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },

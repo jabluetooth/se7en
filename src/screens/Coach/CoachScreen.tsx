@@ -147,7 +147,6 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
   );
   const [input,     setInput    ] = useState('');
   const [loading,   setLoading  ] = useState(false);
-  const [exchanges, setExchanges] = useState(0);
   const [sendError, setSendError] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
 
@@ -181,7 +180,6 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
       const res = await continueConversation(user.uid, history, trimmed);
       const coachMsg: ChatMessage = { id: generateId(), role: 'coach', text: res.text };
       setMessages(prev => [...prev, coachMsg]);
-      setExchanges(e => e + 1);
       if (res.error === 'rate_limit') setSendError('rate_limit');
     } catch (e: any) {
       const errMsg: string = e?.message ?? '';
@@ -220,10 +218,7 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
             </View>
           </View>
 
-          {/* Exchange counter */}
-          <View style={s.counterBadge}>
-            <Text style={s.counterTxt}>{exchanges} sent</Text>
-          </View>
+
         </View>
 
         <KeyboardAvoidingView
@@ -351,8 +346,6 @@ const s = StyleSheet.create({
   headerTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   titleText:   { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
   subtitleText:{ fontSize: 10, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
-  counterBadge:{ backgroundColor: 'rgba(255,240,220,0.07)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', paddingHorizontal: 8, paddingVertical: 4 },
-  counterTxt:  { fontSize: 10, color: COLORS.textLabel, fontWeight: '700' },
 
   // Messages list
   listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },
