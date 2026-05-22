@@ -9,6 +9,8 @@ import {
 import { generateId } from '../utils/idGen';
 import { sessionTotalVolume } from '../utils/volume';
 import type { Unsubscribe } from 'firebase/firestore';
+// Lazy import to avoid circular dependencies — resolved at call time.
+const getWidgetService = () => import('../services/widgetService').then(m => m.widgetService);
 
 const ACTIVE_KEY  = '@se7en_active_session';
 const HISTORY_KEY = '@se7en_session_history';
@@ -139,6 +141,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
     getUid().then(uid => { if (uid) fsActiveSession.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
     get().startTimer();
+    // Notify widget of new session
+    getWidgetService().then(ws => ws.updateSession(session, 0)).catch(() => {});
   },
 
   completeSet: (exerciseId, setId, data) => {
@@ -154,6 +158,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const updated = { ...s.activeSession, exercises };
       AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
       getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
+      // Notify widget of updated session stats
+      getWidgetService().then(ws => ws.updateSession(updated, s.sessionTimer)).catch(() => {});
       return { activeSession: updated };
     });
   },
@@ -233,6 +239,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
     // Invalidate coach cache so the widget regenerates with fresh post-workout insight
     AsyncStorage.removeItem('@se7en_coach_cache').catch(() => {});
+    // Transition widget to idle state
+    getWidgetService().then(ws => ws.endSession()).catch(() => {});
     return finished;
   },
 

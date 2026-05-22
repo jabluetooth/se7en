@@ -7,6 +7,7 @@ import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { widgetService } from '../../services/widgetService';
 
 interface Props {
   exerciseName?:     string;
@@ -53,9 +54,12 @@ export function RestTimerScreen({
           endTimeRef.current = null;
           setRunning(false);
           setDone(true);
+          widgetService.clearRestTimer();
           return 0;
         }
-        return s - 1;
+        const next = s - 1;
+        widgetService.setRestTimer(next, total, exerciseName);
+        return next;
       });
     }, 1000);
   };
@@ -98,7 +102,7 @@ export function RestTimerScreen({
   // Auto-return to session screen 1.5 s after timer completes
   useEffect(() => {
     if (!done) return;
-    const t = setTimeout(onClose, 1500);
+    const t = setTimeout(() => { widgetService.clearRestTimer(); onClose(); }, 1500);
     return () => clearTimeout(t);
   }, [done]);
 
@@ -122,13 +126,14 @@ export function RestTimerScreen({
   }, [running, done]);
 
   const toggle = () => {
-    if (done) { onClose(); return; }
+    if (done) { widgetService.clearRestTimer(); onClose(); return; }
     setRunning(r => !r);
   };
 
   const skip = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setSeconds(0); setRunning(false); setDone(true);
+    widgetService.clearRestTimer();
   };
 
   const pct     = seconds / total;

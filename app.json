@@ -45,6 +45,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withWidgets",
       "expo-document-picker",
       [
         "expo-image-picker",
