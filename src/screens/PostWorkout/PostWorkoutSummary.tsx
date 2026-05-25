@@ -109,7 +109,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   });
 
   return (
-    <View style={{ flex: 1 }}>
+    <ViewShot ref={shotRef} style={{ flex: 1 }}>
       {/* Background — bgImage takes over the WHOLE screen (including status bar
           + home-indicator area) when set, so it reads as an edge-to-edge poster.
           The same image is also rendered inside SummaryPage's ViewShot so the
@@ -157,7 +157,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
           style={{ flex: 1 }}
           decelerationRate="fast"
         >
-          <SummaryPage   session={session}  width={width} bgImage={bgImage} shotRef={shotRef} />
+          <SummaryPage   session={session}  width={width} />
           <ExercisesPage session={session}  width={width} />
           <NextUpPage    nextDay={nextDay}  width={width} visible={page === 2} />
         </ScrollView>
@@ -210,7 +210,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+    </ViewShot>
   );
 }
 

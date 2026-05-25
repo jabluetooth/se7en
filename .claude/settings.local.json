@@ -18,7 +18,12 @@
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(node -e \"require\\('@neondatabase/serverless'\\); console.log\\('ok'\\)\")",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\\\\shims\")",
-      "Bash(dir plugins *)"
+      "Bash(dir plugins *)",
+      "Bash(npx eas *)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\" -Force | Select-Object Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"Folder\"}else{\"File\"}}} | Sort-Object Type, Name)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\\\\src\" -Directory | ForEach-Object { $_ | Select-Object Name })",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\" -Force -File)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

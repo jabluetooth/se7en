@@ -1,7 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import ViewShot from 'react-native-view-shot';
+import { View, Text, StyleSheet } from 'react-native';
 import { GlassView } from '../../../components/common/GlassView';
 import { TrophyIcon } from '../../../components/common/TrophyIcon';
 import { COLORS } from '../../../constants';
@@ -12,13 +10,10 @@ import { VolumeLineGraph, SetPoint } from './VolumeLineGraph';
 interface Props {
   session: WorkoutSession;
   width:   number;
-  bgImage: string | null;
-  shotRef: React.RefObject<ViewShot | null>;
 }
 
 // Page 1 — workout-complete identity, line-graph hero, reps × sets = volume.
-// Wrapped in ViewShot so the parent can capture this page as a PNG.
-export function SummaryPage({ session, width, bgImage, shotRef }: Props) {
+export function SummaryPage({ session, width }: Props) {
   // Build per-set data points for the line graph
   const setData: SetPoint[] = session.exercises.flatMap(ex =>
     ex.sets.filter(s => s.isCompleted).map(s => {
@@ -58,29 +53,7 @@ export function SummaryPage({ session, width, bgImage, shotRef }: Props) {
   const graphWidth = Math.min(width - 32, 360);
 
   return (
-    <ViewShot
-      ref={shotRef}
-      options={{ format: 'png', quality: 1, result: 'tmpfile' }}
-      style={{ width, flex: 1, backgroundColor: bgImage ? '#000' : '#0d0d0f' }}
-    >
-      {/* User-picked background image (only rendered when set) */}
-      {bgImage && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Image
-            source={{ uri: bgImage }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={e => Alert.alert('Image failed to load', e.nativeEvent?.error ?? 'Unknown error')}
-          />
-          {/* Light overlay — keeps text legible without hiding the image */}
-          <LinearGradient
-            colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.30)', 'rgba(0,0,0,0.60)']}
-            locations={[0, 0.55, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-      )}
-
+    <View style={{ width, flex: 1 }}>
       <View style={[s.page, { width }]}>
 
         {/* ── Workout identity — centered ─────────────────── */}
@@ -144,7 +117,7 @@ export function SummaryPage({ session, width, bgImage, shotRef }: Props) {
         </GlassView>
 
       </View>
-    </ViewShot>
+    </View>
   );
 }
 
