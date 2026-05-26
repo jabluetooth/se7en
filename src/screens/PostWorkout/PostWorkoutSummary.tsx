@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import ViewShot, { captureRef } from 'react-native-view-shot';
+import { ViewShot, captureRef, isViewShotAvailable } from '../../compat/viewShot';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { COLORS } from '../../constants';
@@ -88,9 +88,17 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
     }
   };
 
-  // Capture the Summary page as a PNG and save it to the device's photo library
+  // Capture the Summary page as a PNG and save it to the device's photo library.
+  // Shows a friendly message in Expo Go where the native capture module is absent.
   const saveAsImage = () => afterMenuClose(async () => {
     if (busy) return;
+    if (!isViewShotAvailable) {
+      Alert.alert(
+        'Not available in Expo Go',
+        'Screenshot export requires a development build. Run `expo run:ios` or `expo run:android` to enable it.',
+      );
+      return;
+    }
     try {
       setBusy(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
