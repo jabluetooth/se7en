@@ -653,38 +653,8 @@ private struct StatCell: View {
 
 // MARK: - Widget definitions
 
-struct Se7enSessionWidget: Widget {
-    let kind: String = "Se7enSessionWidget"
-
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: Se7enProvider()) { entry in
-            Group {
-                switch entry.configuration {
-                case .systemSmall:
-                    SmallWidgetView(entry: entry)
-                case .systemMedium:
-                    MediumWidgetView(entry: entry)
-                case .systemLarge:
-                    LargeWidgetView(entry: entry)
-                default:
-                    SmallWidgetView(entry: entry)
-                }
-            }
-            .containerBackground(.clear, for: .widget)
-        }
-        .configurationDisplayName("Se7en Workout")
-        .description("Track your active workout session from your home screen.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-    }
-}
-
-// Private extension to get the widget family from an entry.
-// WidgetEntry doesn't carry context so we read from the SwiftUI environment.
-private extension WidgetEntry {
-    // Placeholder — families are resolved in the view via @Environment(\.widgetFamily)
-    var configuration: WidgetFamily { .systemSmall }
-}
-
+// Se7enSessionWidget_SmallView dispatches to the right layout based on
+// the WidgetFamily injected by the system at render time.
 struct Se7enSessionWidget_SmallView: View {
     @Environment(\.widgetFamily) var family
     let entry: WidgetEntry
@@ -745,9 +715,14 @@ struct Se7enNextWorkoutWidget: Widget {
 
 @main
 struct Se7enWidgetBundle: WidgetBundle {
+    @WidgetBundleBuilder
     var body: some Widget {
         Se7enSessionWidgetV2()
         Se7enCoachWidget()
         Se7enNextWorkoutWidget()
+        // Live Activity / Dynamic Island — requires iOS 16.1+
+        if #available(iOSApplicationExtension 16.1, *) {
+            Se7enLiveActivityWidget()
+        }
     }
 }

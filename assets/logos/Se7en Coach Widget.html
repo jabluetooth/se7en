@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Se7en — Coach AI Widget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: oklch(7% 0.020 36); overflow: hidden; }
+    body { font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; }
+    button { font-family: 'DM Sans', sans-serif; }
+    input, textarea { font-family: 'DM Sans', sans-serif; }
+    textarea { resize: none; }
+    ::-webkit-scrollbar { width: 0px; }
+
+    @keyframes orb-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 oklch(78% 0.20 68 / 0.40), 0 8px 32px oklch(0% 0 0 / 0.50); }
+      50%       { box-shadow: 0 0 0 10px oklch(78% 0.20 68 / 0.00), 0 8px 32px oklch(0% 0 0 / 0.50); }
+    }
+    @keyframes slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes typing-dot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%            { transform: scale(1.0); opacity: 1.0; }
+    }
+    .typing-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:oklch(78% 0.20 68); animation: typing-dot 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    .msg-in  { animation: fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+    .sheet   { animation: slide-up 0.42s cubic-bezier(0.16,1,0.3,1) both; }
+    .shimmer-text {
+      background: linear-gradient(90deg, oklch(78% 0.20 68 / 0.5), oklch(90% 0.14 72 / 0.9), oklch(78% 0.20 68 / 0.5));
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 1.8s linear infinite;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── Colors ──────────────────────────────────────────────────
+const GOLD   = 'oklch(78% 0.20 68)';
+const GOLD_H = 'oklch(86% 0.17 74)';
+const FIRE   = 'oklch(70% 0.24 42)';
+const COOL   = 'oklch(64% 0.14 220)';
+const BG     = 'oklch(7% 0.020 36)';
+
+// ── Workout context (this would come from app state in production)
+const SESSION = {
+  day: 3, cycle: 4, name: 'Push Day',
+  elapsed: '32:17', volume: 2100, setsTotal: 11, setsDone: 7,
+  currentExercise: 'Bench Press',
+  currentSet: 3, totalSets: 4,
+  targetWeight: 100, targetReps: '8–12',
+  lastSets: [{ reps: 9, weight: 100 }, { reps: 8, weight: 100 }],
+  nextExercise: 'Incline DB Press',
+  exercises: [
+    { name: 'Bench Press',       done: true,  sets: '2/4', weight: '100 kg', note: 'Rep 9, 8' },
+    { name: 'Incline DB Press',  done: false, sets: '0/3', weight: '32 kg',  note: '' },
+    { name: 'Cable Fly',         done: false, sets: '0/4', weight: '22.5 kg', note: '' },
+  ],
+};
+
+// ── System prompt for coach
+function buildSystemPrompt() {
+  return `You are the Se7en Coach — a sharp, concise strength training AI embedded in a workout tracker app. You know the user's current session intimately.
+
+Current session context:
+- Workout: ${SESSION.name}, Day ${SESSION.day}, Cycle ${SESSION.cycle}
+- Current exercise: ${SESSION.currentExercise}, Set ${SESSION.currentSet}/${SESSION.totalSets}
+- Target: ${SESSION.targetWeight} kg × ${SESSION.targetReps} reps
+- Sets completed so far: ${SESSION.lastSets.map((s,i)=>`Set ${i+1}: ${s.reps} reps @ ${s.weight}kg`).join(', ')}
+- Session volume: ${SESSION.volume} kg total, ${SESSION.setsDone}/${SESSION.setsTotal} sets done, ${SESSION.elapsed} elapsed
+- Upcoming: ${SESSION.nextExercise}
+
+Your style:
+- Brief, direct, coach-like. No fluff. Max 2–3 sentences per reply.
+- Use specific numbers from their session. Don't be generic.
+- If asked about form, give 1 specific cue, not a list.
+- If they're trending down on reps, address it. If up, reinforce it.
+- Refer to the user as "you" never by name.
+- No emojis. No markdown bullets in conversational replies.
+- For insight cards (when asked for a coaching insight), give ONE key observation in 1–2 sentences, starting with the most important thing.`;
+}
+
+// ── App icon SVG ────────────────────────────────────────────
+function AppIcon({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={{flexShrink:0}}>
+      <defs>
+        <linearGradient id="ai-bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="oklch(17% 0.08 52)"/>
+          <stop offset="100%" stopColor="oklch(5.5% 0.015 32)"/>
+        </linearGradient>
+        <linearGradient id="ai-mk" x1="14" y1="20" x2="36" y2="84" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="oklch(94% 0.12 80)"/>
+          <stop offset="40%"  stopColor="oklch(81% 0.20 68)"/>
+          <stop offset="100%" stopColor="oklch(62% 0.27 44)"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" rx="22" fill="url(#ai-bg)"/>
+      <rect x="0.75" y="0.75" width="98.5" height="98.5" rx="21.5" fill="none" stroke="oklch(100% 0 0 / 0.08)" strokeWidth="1.5"/>
+      <line x1="15" y1="28" x2="85" y2="28" stroke="url(#ai-mk)" strokeWidth="17" strokeLinecap="round"/>
+      <line x1="85" y1="28" x2="36" y2="80" stroke="url(#ai-mk)" strokeWidth="12.5" strokeLinecap="round"/>
+      <line x1="49" y1="52" x2="72" y2="52" stroke="url(#ai-mk)" strokeWidth="9" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ── Coach avatar ────────────────────────────────────────────
+function CoachAvatar({ size = 36, glow = false }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: 'linear-gradient(135deg, oklch(17% 0.08 52) 0%, oklch(9% 0.03 35) 100%)',
+      border: `1.5px solid ${GOLD}50`,
+      boxShadow: glow ? `0 0 0 3px ${GOLD}22, 0 4px 16px oklch(0% 0 0 / 0.40)` : `0 2px 8px oklch(0% 0 0 / 0.40)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Warm glow inside */}
+      <div style={{ position:'absolute', top:-4, right:-4, width:size*0.7, height:size*0.7, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}22 0%, transparent 70%)` }} />
+      <svg width={size*0.52} height={size*0.52} viewBox="0 0 24 24" fill="none" style={{position:'relative', zIndex:1}}>
+        {/* Brain/bolt hybrid icon */}
+        <path d="M12 2L7 8h4l-3 7 8-9h-4l3-6z" stroke={GOLD} strokeWidth="1.6" strokeLinejoin="round" fill={`${GOLD}30`}/>
+        <circle cx="12" cy="12" r="10" stroke={GOLD} strokeWidth="1.2" strokeOpacity="0.25"/>
+      </svg>
+    </div>
+  );
+}
+
+// ── Progress ring ───────────────────────────────────────────
+function Ring({ size, sw, pct, color, children }) {
+  const r = (size - sw) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div style={{ position:'relative', width:size, height:size, flexShrink:0 }}>
+      <svg width={size} height={size} style={{ transform:'rotate(-90deg)', display:'block' }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="oklch(100% 0 0 / 0.10)" strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.max(0, Math.min(1, pct)))}
+          strokeLinecap="round" style={{ transition:'stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)' }}/>
+      </svg>
+      {children && <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>{children}</div>}
+    </div>
+  );
+}
+
+// ── Message bubble ──────────────────────────────────────────
+function Bubble({ role, text, isLoading }) {
+  const isCoach = role === 'coach';
+  return (
+    <div className="msg-in" style={{ display:'flex', gap:9, alignItems:'flex-end', flexDirection: isCoach ? 'row' : 'row-reverse', marginBottom:12 }}>
+      {isCoach && <CoachAvatar size={28} />}
+      <div style={{
+        maxWidth:'82%',
+        padding: isLoading ? '10px 14px' : '10px 14px',
+        borderRadius: isCoach ? '4px 16px 16px 16px' : '16px 4px 16px 16px',
+        background: isCoach
+          ? 'oklch(100% 0 0 / 0.06)'
+          : `linear-gradient(135deg, oklch(16% 0.07 52), oklch(10% 0.035 38))`,
+        border: isCoach
+          ? '1px solid oklch(100% 0 0 / 0.10)'
+          : `1px solid ${GOLD}30`,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: isCoach ? 'inset 0 1px 0 oklch(100% 0 0 / 0.10)' : `inset 0 1px 0 ${GOLD}20`,
+      }}>
+        {isLoading ? (
+          <div style={{ display:'flex', gap:4, alignItems:'center', padding:'2px 0' }}>
+            <span className="typing-dot" />
+            <span className="typing-dot" />
+            <span className="typing-dot" />
+          </div>
+        ) : (
+          <span style={{
+            fontFamily: "'DM Sans'", fontSize:14, lineHeight:1.55,
+            color: isCoach ? 'oklch(88% 0.005 55)' : GOLD,
+            fontWeight: isCoach ? 400 : 500,
+          }}>{text}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Quick chips ─────────────────────────────────────────────
+const QUICK_CHIPS = [
+  { label: 'Should I increase weight?', q: 'Based on my sets so far, should I increase the weight next session?' },
+  { label: 'Form cue for this exercise', q: 'Give me one key form cue for Bench Press right now.' },
+  { label: 'How are my reps trending?', q: 'How are my reps trending across my sets today?' },
+  { label: 'Should I rest longer?',     q: 'How long should I rest before my next set?' },
+  { label: "What's my weakest set?",    q: 'Which of my completed sets was weakest and why?' },
+  { label: 'Adjust tonight\'s plan',    q: 'Should I adjust anything for the remaining exercises today?' },
+];
+
+// ── Insight card ────────────────────────────────────────────
+function InsightCard({ text, loading }) {
+  return (
+    <div style={{
+      background: `linear-gradient(140deg, oklch(14% 0.07 52 / 0.8) 0%, oklch(8% 0.025 35 / 0.8) 100%)`,
+      border: `1px solid ${GOLD}28`,
+      borderRadius: 16, padding:'14px 16px',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      boxShadow: `0 4px 24px oklch(0% 0 0 / 0.35), inset 0 1px 0 ${GOLD}20`,
+      marginBottom: 14,
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:9 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L7 8h4l-3 7 8-9h-4l3-6z" fill={GOLD} strokeLinejoin="round"/>
+        </svg>
+        <span style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:GOLD, letterSpacing:'0.08em', textTransform:'uppercase' }}>Coach Insight</span>
+        <div style={{ flex:1, height:1, background:`${GOLD}20` }} />
+      </div>
+      {loading ? (
+        <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+        </div>
+      ) : (
+        <p style={{ fontFamily:"'DM Sans'", fontSize:13, lineHeight:1.6, color:'oklch(82% 0.005 55)', fontWeight:400 }}>{text}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Context strip ───────────────────────────────────────────
+function ContextStrip() {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', borderBottom:'1px solid oklch(100% 0 0 / 0.06)', flexShrink:0 }}>
+      <div style={{ width:7, height:7, borderRadius:'50%', background:GOLD, boxShadow:`0 0 6px ${GOLD}`, flexShrink:0 }} />
+      <span style={{ fontFamily:"'DM Mono'", fontSize:11, fontWeight:700, color:GOLD }}>
+        {SESSION.currentExercise}
+      </span>
+      <span style={{ fontFamily:"'DM Mono'", fontSize:11, color:'oklch(38% 0.006 48)' }}>·</span>
+      <span style={{ fontFamily:"'DM Mono'", fontSize:11, color:'oklch(54% 0.008 50)' }}>
+        Set {SESSION.currentSet}/{SESSION.totalSets}
+      </span>
+      <span style={{ fontFamily:"'DM Mono'", fontSize:11, color:'oklch(38% 0.006 48)' }}>·</span>
+      <span style={{ fontFamily:"'DM Mono'", fontSize:11, color:'oklch(54% 0.008 50)' }}>
+        {SESSION.targetWeight} kg
+      </span>
+      <div style={{ flex:1 }} />
+      <Ring size={28} sw={2.5} pct={SESSION.setsDone / SESSION.setsTotal} color={GOLD}>
+        <span style={{ fontFamily:"'DM Mono'", fontSize:7, fontWeight:800, color:'oklch(88% 0.005 55)' }}>{SESSION.setsDone}/{SESSION.setsTotal}</span>
+      </Ring>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// COACH SHEET
+// ══════════════════════════════════════════════════════════
+function CoachSheet({ onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [input,    setInput]    = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [insight,  setInsight]  = useState(null);
+  const [insightLoading, setInsightLoading] = useState(true);
+  const scrollRef = useRef(null);
+  const inputRef  = useRef(null);
+
+  // auto-scroll
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
+  // Fetch opening insight on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const text = await window.claude.complete({
+          messages: [
+            { role: 'user', content: `Give me one brief coaching insight about my current set performance. Context: Set ${SESSION.currentSet}/${SESSION.totalSets} of ${SESSION.currentExercise}. Previous sets: ${SESSION.lastSets.map((s,i)=>`Set ${i+1}: ${s.reps} reps @ ${s.weight}kg`).join(', ')}. Target: ${SESSION.targetWeight}kg × ${SESSION.targetReps}. Be specific and direct in 1-2 sentences.` },
+          ],
+          system: buildSystemPrompt(),
+        });
+        setInsight(text);
+      } catch(e) {
+        setInsight("You're holding reps at 9 and 8 on target weight — steady, but watch for form breakdown on Set 3. Drive your feet hard into the floor.");
+      } finally {
+        setInsightLoading(false);
+      }
+    })();
+  }, []);
+
+  const send = useCallback(async (text) => {
+    const q = text.trim();
+    if (!q || loading) return;
+    setInput('');
+    setMessages(prev => [...prev, { role:'user', text: q }]);
+    setLoading(true);
+    try {
+      const history = messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.text,
+      }));
+      const reply = await window.claude.complete({
+        messages: [
+          ...history,
+          { role: 'user', content: q },
+        ],
+        system: buildSystemPrompt(),
+      });
+      setMessages(prev => [...prev, { role:'coach', text: reply }]);
+    } catch(e) {
+      setMessages(prev => [...prev, { role:'coach', text: "Couldn't reach the coaching server. Check your connection." }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [messages, loading]);
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
+  };
+
+  return (
+    <div className="sheet" style={{
+      position:'absolute', bottom:0, left:0, right:0,
+      height:'72%',
+      background:'oklch(9% 0.025 38)',
+      borderRadius:'24px 24px 0 0',
+      border:'1px solid oklch(100% 0 0 / 0.10)',
+      borderBottom:'none',
+      boxShadow:'0 -16px 64px oklch(0% 0 0 / 0.65), inset 0 1px 0 oklch(100% 0 0 / 0.18)',
+      display:'flex', flexDirection:'column', overflow:'hidden',
+      zIndex:30,
+    }}>
+      {/* Handle */}
+      <div style={{ display:'flex', justifyContent:'center', paddingTop:10, flexShrink:0 }}>
+        <div style={{ width:38, height:4, borderRadius:99, background:'oklch(100% 0 0 / 0.15)' }} />
+      </div>
+
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:11, padding:'10px 18px 10px', flexShrink:0, borderBottom:'1px solid oklch(100% 0 0 / 0.07)' }}>
+        <CoachAvatar size={38} glow={true} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:"'DM Sans'", fontSize:16, fontWeight:800, color:'oklch(97% 0.005 55)', letterSpacing:'-0.02em', lineHeight:1 }}>
+            Se7en Coach
+          </div>
+          <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, fontWeight:600, marginTop:3, letterSpacing:'0.04em' }}>
+            AI · Push Day · Cycle 4
+          </div>
+        </div>
+        {/* Session stats */}
+        <div style={{ display:'flex', gap:14, alignItems:'center' }}>
+          {[
+            { v:SESSION.elapsed,   l:'elapsed' },
+            { v:`${(SESSION.volume/1000).toFixed(1)}k kg`, l:'volume'  },
+          ].map((s,i) => (
+            <div key={i} style={{ textAlign:'right' }}>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:800, color:'oklch(97% 0.005 55)', letterSpacing:'-0.03em', lineHeight:1 }}>{s.v}</div>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(38% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:600, marginTop:2 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} style={{ width:30, height:30, borderRadius:'50%', background:'oklch(100% 0 0 / 0.07)', border:'1px solid oklch(100% 0 0 / 0.10)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'oklch(52% 0.008 50)', fontSize:16, flexShrink:0 }}>
+          ×
+        </button>
+      </div>
+
+      {/* Context strip */}
+      <ContextStrip />
+
+      {/* Scroll area */}
+      <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'14px 16px 0' }}>
+        {/* Insight card */}
+        <InsightCard text={insight} loading={insightLoading} />
+
+        {/* Messages */}
+        {messages.map((m, i) => (
+          <Bubble key={i} role={m.role} text={m.text} />
+        ))}
+        {loading && <Bubble role="coach" isLoading={true} />}
+
+        {/* Empty state hint */}
+        {messages.length === 0 && !loading && (
+          <div style={{ textAlign:'center', padding:'4px 0 12px' }}>
+            <p style={{ fontFamily:"'DM Sans'", fontSize:12, color:'oklch(34% 0.006 48)', lineHeight:1.6 }}>
+              Ask me anything about your session,<br/>form, weight, or what to do next.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Quick chips */}
+      {messages.length < 2 && (
+        <div style={{ flexShrink:0, padding:'10px 14px 6px', display:'flex', gap:6, overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+          {QUICK_CHIPS.map((c, i) => (
+            <button key={i} onClick={() => send(c.q)} disabled={loading} style={{
+              flexShrink:0, padding:'6px 11px', borderRadius:99,
+              background:'oklch(100% 0 0 / 0.06)', border:'1px solid oklch(100% 0 0 / 0.10)',
+              fontFamily:"'DM Sans'", fontSize:12, fontWeight:600,
+              color: loading ? 'oklch(30% 0.006 48)' : 'oklch(72% 0.008 50)',
+              cursor: loading ? 'default' : 'pointer',
+              whiteSpace:'nowrap',
+              transition:'all 0.15s ease',
+            }}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input bar */}
+      <div style={{ flexShrink:0, padding:'8px 12px 20px', display:'flex', gap:8, alignItems:'flex-end', borderTop:'1px solid oklch(100% 0 0 / 0.07)', marginTop:4 }}>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e => { setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,96)+'px'; }}
+          onKeyDown={handleKey}
+          placeholder="Ask your coach…"
+          rows={1}
+          style={{
+            flex:1, minHeight:40, maxHeight:96,
+            background:'oklch(100% 0 0 / 0.06)',
+            border:'1px solid oklch(100% 0 0 / 0.10)',
+            borderRadius:12, padding:'10px 14px',
+            fontFamily:"'DM Sans'", fontSize:14, color:'oklch(92% 0.005 55)',
+            outline:'none', overflowY:'auto', lineHeight:1.45,
+          }}
+          onFocus={e => { e.target.style.border=`1px solid ${GOLD}40`; e.target.style.boxShadow=`0 0 0 3px ${GOLD}12`; }}
+          onBlur={e  => { e.target.style.border='1px solid oklch(100% 0 0 / 0.10)'; e.target.style.boxShadow='none'; }}
+        />
+        <button
+          onClick={() => send(input)}
+          disabled={!input.trim() || loading}
+          style={{
+            width:40, height:40, borderRadius:12, flexShrink:0,
+            background: (input.trim() && !loading) ? `linear-gradient(135deg, ${FIRE}, ${GOLD})` : 'oklch(100% 0 0 / 0.06)',
+            border: (input.trim() && !loading) ? `1px solid ${GOLD}50` : '1px solid oklch(100% 0 0 / 0.10)',
+            boxShadow: (input.trim() && !loading) ? `0 4px 14px ${GOLD}40` : 'none',
+            cursor: (input.trim() && !loading) ? 'pointer' : 'default',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            transition:'all 0.2s ease',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13" stroke={(input.trim() && !loading) ? 'oklch(12% 0.025 40)' : 'oklch(30% 0.006 48)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke={(input.trim() && !loading) ? 'oklch(12% 0.025 40)' : 'oklch(30% 0.006 48)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// WORKOUT SCREEN (simplified, sits behind the coach)
+// ══════════════════════════════════════════════════════════
+function WorkoutBehind() {
+  return (
+    <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', background:'linear-gradient(160deg, oklch(9% 0.028 38) 0%, oklch(6% 0.018 42) 40%, oklch(9% 0.030 30) 80%, oklch(7% 0.022 38) 100%)' }}>
+      {/* Ambient orbs */}
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
+        <div style={{ position:'absolute', top:-60, right:-40, width:220, height:220, borderRadius:'50%', background:'radial-gradient(circle, oklch(72% 0.22 52 / 0.14) 0%, transparent 70%)' }} />
+        <div style={{ position:'absolute', bottom:'20%', left:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, oklch(60% 0.22 28 / 0.08) 0%, transparent 70%)' }} />
+      </div>
+
+      {/* Status bar */}
+      <div style={{ height:50, flexShrink:0, display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'0 24px 8px', position:'relative', zIndex:2 }}>
+        <span style={{ fontFamily:'-apple-system, system-ui', fontSize:15, fontWeight:590, color:'#fff' }}>9:41</span>
+        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+          <svg width="17" height="12" viewBox="0 0 17 12">
+            <rect x="0" y="4" width="3" height="8" rx="0.7" fill="white"/>
+            <rect x="5" y="2.5" width="3" height="9.5" rx="0.7" fill="white"/>
+            <rect x="10" y="0" width="3" height="12" rx="0.7" fill="white"/>
+          </svg>
+          <svg width="25" height="12" viewBox="0 0 25 12">
+            <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="white" strokeOpacity="0.35" fill="none"/>
+            <rect x="2" y="2" width="17" height="8" rx="2" fill="white"/>
+          </svg>
+        </div>
+      </div>
+
+      <div style={{ position:'relative', zIndex:2, flex:1, display:'flex', flexDirection:'column', padding:'0 16px' }}>
+        {/* Header */}
+        <div style={{ marginBottom:14, display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:11, fontWeight:700, color:GOLD, letterSpacing:'0.07em', textTransform:'uppercase', marginBottom:3 }}>Day {SESSION.day} · Cycle {SESSION.cycle}</div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:26, fontWeight:800, color:'#fff', letterSpacing:'-0.04em', lineHeight:1 }}>{SESSION.name}</div>
+          </div>
+          <AppIcon size={38}/>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:12 }}>
+          {[{l:'Timer',v:SESSION.elapsed,a:false},{l:'Sets',v:`${SESSION.setsDone}/${SESSION.setsTotal}`,a:true},{l:'Volume',v:`2.1k kg`,a:false}].map((s,i)=>(
+            <div key={i} style={{ background:'oklch(100% 0 0 / 0.06)', backdropFilter:'blur(20px)', border:'1px solid oklch(100% 0 0 / 0.09)', borderRadius:12, padding:'10px 11px' }}>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:9, fontWeight:700, color:'oklch(36% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:3 }}>{s.l}</div>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:16, fontWeight:800, color:s.a?GOLD:'#fff', letterSpacing:'-0.03em', lineHeight:1, textShadow:s.a?`0 0 14px ${GOLD}55`:'none' }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Exercise cards (blurred out) */}
+        {SESSION.exercises.map((ex, i) => (
+          <div key={i} style={{ background: i===0 ? `${GOLD}10` : 'oklch(100% 0 0 / 0.04)', border: i===0 ? `1px solid ${GOLD}25` : '1px solid oklch(100% 0 0 / 0.07)', borderRadius:14, padding:'12px 14px', marginBottom:8, display:'flex', alignItems:'center', gap:12, opacity: i===0?1:0.65 }}>
+            <Ring size={38} sw={3.5} pct={i===0?0.5:0} color={i===0?GOLD:COOL}>
+              <span style={{ fontFamily:"'DM Mono'", fontSize:9, fontWeight:800, color:i===0?GOLD:'oklch(36% 0.006 48)' }}>{i===0?'3/4':'—'}</span>
+            </Ring>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:14, fontWeight:700, color:i===0?'#fff':'oklch(46% 0.006 48)', letterSpacing:'-0.01em' }}>{ex.name}</div>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:i===0?GOLD:'oklch(30% 0.006 48)', marginTop:2 }}>{ex.sets} · {ex.weight}</div>
+            </div>
+            {i===0 && <div style={{ width:7, height:7, borderRadius:'50%', background:GOLD, boxShadow:`0 0 8px ${GOLD}` }} />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// PHONE FRAME + FULL WIDGET
+// ══════════════════════════════════════════════════════════
+function PhoneWithCoach() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{
+      width: 390, height: 844,
+      borderRadius: 52,
+      background: 'oklch(8% 0.015 36)',
+      border: '10px solid oklch(14% 0.012 38)',
+      boxShadow: '0 0 0 1px oklch(28% 0.010 38), 0 48px 96px oklch(0% 0 0 / 0.80)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Notch */}
+      <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:130, height:38, background:'oklch(6% 0.010 36)', borderRadius:'0 0 22px 22px', zIndex:20 }} />
+
+      {/* Background screen */}
+      <WorkoutBehind />
+
+      {/* Overlay when coach is open */}
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          style={{ position:'absolute', inset:0, background:'oklch(0% 0 0 / 0.40)', zIndex:25, backdropFilter:'blur(2px)', WebkitBackdropFilter:'blur(2px)' }}
+        />
+      )}
+
+      {/* Coach sheet */}
+      {open && <CoachSheet onClose={() => setOpen(false)} />}
+
+      {/* Floating coach button */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            position: 'absolute', bottom: 104, right: 16, zIndex: 28,
+            display: 'flex', alignItems: 'center', gap: 9,
+            background: 'linear-gradient(135deg, oklch(16% 0.08 50), oklch(9% 0.030 36))',
+            border: `1.5px solid ${GOLD}45`,
+            borderRadius: 99,
+            padding: '9px 16px 9px 9px',
+            cursor: 'pointer',
+            animation: 'orb-pulse 3s ease-in-out infinite',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
+          <CoachAvatar size={30} glow={true} />
+          <div style={{ textAlign:'left' }}>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:700, color:'#fff', lineHeight:1, letterSpacing:'-0.01em' }}>Coach</div>
+            <div style={{ fontFamily:"'DM Mono'", fontSize:9, color:GOLD, fontWeight:600, marginTop:2, letterSpacing:'0.03em' }}>Tap for insight</div>
+          </div>
+        </button>
+      )}
+
+      {/* Dock */}
+      <div style={{ position:'absolute', bottom:20, left:'50%', transform:'translateX(-50%)', background:'oklch(100% 0 0 / 0.07)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', border:'1px solid oklch(100% 0 0 / 0.14)', borderRadius:99, padding:'8px 10px', display:'flex', alignItems:'center', gap:4, zIndex:open?20:50, boxShadow:'0 8px 32px oklch(0% 0 0 / 0.45), inset 0 1px 0 oklch(100% 0 0 / 0.18)' }}>
+        {[
+          { icon:'⌂', label:'Home',     active:true  },
+          { icon:'◫', label:'Cycle',    active:false },
+          { icon:'〜', label:'Progress', active:false },
+          { icon:'⚙', label:'Settings', active:false },
+        ].map((t,i) => (
+          <div key={i} style={{ display:'flex', alignItems:'center', gap: t.active?6:0, padding:t.active?'8px 14px':'8px 12px', borderRadius:99, background:t.active?`linear-gradient(135deg, ${FIRE}, ${GOLD})`:'transparent' }}>
+            <span style={{ fontSize:14, color:t.active?'oklch(12% 0.025 40)':'oklch(42% 0.006 48)' }}>{t.icon}</span>
+            {t.active && <span style={{ fontFamily:"'DM Sans'", fontSize:12, fontWeight:800, color:'oklch(12% 0.025 40)', letterSpacing:'-0.01em' }}>{t.label}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// LABEL PANEL
+// ══════════════════════════════════════════════════════════
+function LabelPanel() {
+  const features = [
+    { icon:'⚡', color:GOLD,  title:'Instant Insight',       desc:'Opens with a live AI analysis of your current set performance — no prompting needed.' },
+    { icon:'◎', color:COOL,  title:'Context-Aware',          desc:'Knows your exercise, sets, reps, weight targets, and session history. No copy-pasting.' },
+    { icon:'⟡', color:FIRE,  title:'Quick Chips',            desc:'Pre-built questions for the most common coaching asks: form, weight, pacing, rest.' },
+    { icon:'✦', color:GOLD,  title:'Persistent Thread',      desc:'Full conversation history within the session. Ask follow-ups without re-explaining.' },
+    { icon:'◈', color:COOL,  title:'Live Session Data',      desc:'Timer, volume, and set progress shown inline so the coach always has full context.' },
+    { icon:'⊕', color:FIRE,  title:'Non-intrusive',          desc:'Floating pill — visible but out of the way. Opens as a bottom sheet, closes with a tap.' },
+  ];
+
+  return (
+    <div style={{ width:320, display:'flex', flexDirection:'column', gap:0, padding:'16px 0' }}>
+      <div style={{ marginBottom:28 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+          <CoachAvatar size={32} glow={true}/>
+          <div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:18, fontWeight:800, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>Se7en Coach</div>
+            <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, fontWeight:600, marginTop:3, letterSpacing:'0.04em' }}>In-App AI Widget</div>
+          </div>
+        </div>
+        <p style={{ fontFamily:"'DM Sans'", fontSize:13, color:'oklch(50% 0.008 50)', lineHeight:1.65 }}>
+          A real-time coaching layer built into every workout. Powered by Claude — it knows your current exercise, rep trends, and session stats before you ask.
+        </p>
+      </div>
+
+      {features.map((f,i) => (
+        <div key={i} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'13px 0', borderTop:`1px solid oklch(100% 0 0 / 0.07)` }}>
+          <span style={{ fontSize:14, color:f.color, marginTop:1, filter:`drop-shadow(0 0 5px ${f.color}80)`, flexShrink:0 }}>{f.icon}</span>
+          <div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:700, color:'oklch(90% 0.005 55)', marginBottom:2 }}>{f.title}</div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:12, color:'oklch(46% 0.008 50)', lineHeight:1.5 }}>{f.desc}</div>
+          </div>
+        </div>
+      ))}
+
+      {/* States diagram */}
+      <div style={{ marginTop:24, padding:'16px', background:'oklch(100% 0 0 / 0.04)', border:'1px solid oklch(100% 0 0 / 0.08)', borderRadius:16 }}>
+        <div style={{ fontFamily:"'DM Mono'", fontSize:10, fontWeight:700, color:'oklch(36% 0.006 48)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12 }}>States</div>
+        {[
+          { label:'Floating', note:'Ambient pill, bottom-right. Pulses gently during active session.' },
+          { label:'Sheet',    note:'Bottom sheet (72% height). Auto-loads insight, context strip, chips.' },
+          { label:'Deep',     note:'Full chat thread after first message. Chips collapse after 2 replies.' },
+        ].map((s,i) => (
+          <div key={i} style={{ display:'flex', gap:10, marginBottom:i<2?8:0 }}>
+            <div style={{ width:56, flexShrink:0 }}>
+              <span style={{ fontFamily:"'DM Sans'", fontSize:11, fontWeight:700, color:GOLD }}>{s.label}</span>
+            </div>
+            <span style={{ fontFamily:"'DM Sans'", fontSize:11, color:'oklch(44% 0.008 50)', lineHeight:1.5 }}>{s.note}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// ROOT
+// ══════════════════════════════════════════════════════════
+function App() {
+  return (
+    <div style={{ width:'100%', height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'oklch(7% 0.020 36)', overflow:'hidden', position:'relative' }}>
+      {/* Global orbs */}
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
+        <div style={{ position:'absolute', top:'-10%', right:'10%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, oklch(72% 0.22 52 / 0.07) 0%, transparent 70%)' }} />
+        <div style={{ position:'absolute', bottom:'5%', left:'8%', width:380, height:380, borderRadius:'50%', background:'radial-gradient(circle, oklch(60% 0.22 28 / 0.05) 0%, transparent 70%)' }} />
+      </div>
+
+      <div style={{ position:'relative', zIndex:1, display:'flex', gap:48, alignItems:'center', flexWrap:'wrap', justifyContent:'center', padding:'24px' }}>
+        {/* Phone */}
+        <div style={{ flexShrink:0, transform:'scale(0.9)', transformOrigin:'center center' }}>
+          <PhoneWithCoach />
+        </div>
+        {/* Label */}
+        <LabelPanel />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

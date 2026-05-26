@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from '../../components/common/GlassView';
@@ -16,6 +16,7 @@ import { CoachWidget } from '../../components/CoachWidget/CoachWidget';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { computeDayPosition, localDateStr } from '../../utils/cycleUtils';
 import { useDockClearance } from '../../hooks/useDockClearance';
+import { scheduleWorkoutReminder, cancelWorkoutReminders } from '../../services/notificationService';
 
 // HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
 // (shown as a modal in AppNavigator whenever activeSession !== null).
@@ -30,6 +31,46 @@ export function HomeScreen({ onNavigate, onOpenCoach }: Props) {
   const { sessions, startSession } = useSessionStore();
   const { settings }               = useSettingsStore();
   const dockClearance              = useDockClearance();
+
+  // Keep the home-screen widget in sync with the latest plan/session data.
+  useEffect(() => {
+    import('../../services/widgetService').then(({ widgetService }) => {
+      widgetService.updateIdle(activePlan, sessions, settings.cycleStartDate);
+    }).catch(() => {});
+  }, [activePlan, sessions, settings.cycleStartDate]);
+
+  // Schedule workout reminders for each upcoming non-rest day in the current cycle.
+  // Old reminders are wiped first so stale ones don't accumulate after plan changes.
+  useEffect(() => {
+    if (!activePlan || !settings.cycleStartDate) return;
+    const cycleStart = new Date(settings.cycleStartDate + 'T00:00:00');
+
+    cancelWorkoutReminders().then(() => {
+      activePlan.days.forEach((day, slotIndex) => {
+        if (day.isRestDay) return;
+
+        const dayDate = new Date(cycleStart);
+        dayDate.setDate(cycleStart.getDate() + slotIndex);
+
+        // Skip days that already have a completed session this cycle
+        const dateStr = localDateStr(dayDate);
+        const done = sessions.some(
+          s => s.status === 'completed' &&
+               s.dayPosition === day.dayPosition &&
+               s.finishedAt?.slice(0, 10) === dateStr,
+        );
+        if (done) return;
+
+        scheduleWorkoutReminder(
+          `${activePlan.id}-${slotIndex}`,
+          day.label,
+          dayDate,
+          7,
+          0,
+        ).catch(() => {});
+      });
+    }).catch(() => {});
+  }, [activePlan?.id, settings.cycleStartDate, sessions.length]);
 
   // Derive the current day position from the cycle anchor date.
   // Falls back to the stored position for users who haven't set cycleStartDate yet.

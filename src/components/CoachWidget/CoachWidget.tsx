@@ -2,18 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { GlassView } from '../common/GlassView';
-import { CoachAvatar, AVATAR_THEMES, AvatarTheme, AvatarState } from '../CoachAvatar/CoachAvatar';
 import { askCoachProactive, clearCoachCache } from '../../services/coachService';
 import { useAuthStore }    from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { useCoachTheme }   from '../../hooks/useCoachTheme';
 import { COLORS, SPACING } from '../../constants';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const RATE_LIMIT_SECS  = 60;
-const MIN_SESSIONS_FOR_AI = 3; // below this we show the first-time nudge
+const RATE_LIMIT_SECS     = 60;
+const MIN_SESSIONS_FOR_AI = 3;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,9 +22,34 @@ interface Props {
 
 type WidgetError = 'rate_limit' | 'offline' | 'unknown' | null;
 
+// ─── SVG icons ────────────────────────────────────────────────────────────────
+
+function BoltSvg({ size = 11 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill={COLORS.accent} />
+    </Svg>
+  );
+}
+
+function RefreshSvg({ size = 13 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M1 4v6h6M23 20v-6h-6"
+        stroke={COLORS.textLabel} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path
+        d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"
+        stroke={COLORS.textLabel} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 // ─── Typewriter ───────────────────────────────────────────────────────────────
 
-function useTypewriter(fullText: string, speed = 18) {
+function useTypewriter(fullText: string, speed = 16) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone]           = useState(false);
 
@@ -45,47 +69,50 @@ function useTypewriter(fullText: string, speed = 18) {
   return { displayed, done };
 }
 
-// ─── Avatar state from message ────────────────────────────────────────────────
+// ─── Typing dots ──────────────────────────────────────────────────────────────
 
-function deriveAvatarState(loading: boolean, typing: boolean, msg: string): AvatarState {
-  if (loading) return 'thinking';
-  if (typing)  return 'talking';
-  const l = msg.toLowerCase();
-  if (l.includes('⚠️') || l.includes('overtraining') || l.includes('neglect') || l.includes('missing')) return 'concerned';
-  if (l.includes('streak') || l.includes(' pr') || l.includes('progress') || l.includes('crushed') || l.includes('great')) return 'celebrating';
-  return 'idle';
-}
+function TypingDots() {
+  const dots = [
+    useRef(new Animated.Value(0.35)).current,
+    useRef(new Animated.Value(0.35)).current,
+    useRef(new Animated.Value(0.35)).current,
+  ];
 
-// ─── Theme colour swatch ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const anims = dots.map((d, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 180),
+          Animated.timing(d, { toValue: 1,    duration: 280, useNativeDriver: true }),
+          Animated.timing(d, { toValue: 0.35, duration: 280, useNativeDriver: true }),
+          Animated.delay((2 - i) * 180 + 120),
+        ]),
+      ),
+    );
+    anims.forEach(a => a.start());
+    return () => anims.forEach(a => a.stop());
+  }, []);
 
-function ThemePicker({ current, onChange }: { current: AvatarTheme; onChange: (t: AvatarTheme) => void }) {
-  const themes: AvatarTheme[] = ['classic', 'cool', 'glow'];
   return (
-    <View style={tp.row}>
-      {themes.map(t => (
-        <TouchableOpacity
-          key={t}
-          onPress={() => onChange(t)}
-          activeOpacity={0.75}
-          style={[
-            tp.swatch,
-            { backgroundColor: AVATAR_THEMES[t].head },
-            current === t && tp.swatchActive,
-          ]}
-        />
+    <View style={td.row}>
+      {dots.map((op, i) => (
+        <Animated.View key={i} style={[td.dot, { opacity: op }]} />
       ))}
     </View>
   );
 }
+
+const td = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 5, paddingVertical: 6 },
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: COLORS.accent },
+});
 
 // ─── Rate-limit countdown ─────────────────────────────────────────────────────
 
 function RateLimitBanner({ secsLeft, onRetry }: { secsLeft: number; onRetry: () => void }) {
   return (
     <View style={rl.wrap}>
-      <Text style={rl.txt}>
-        Rate limit — retrying in {secsLeft}s
-      </Text>
+      <Text style={rl.txt}>Rate limit — retrying in {secsLeft}s</Text>
       <TouchableOpacity onPress={onRetry} activeOpacity={0.75} style={rl.btn}>
         <Text style={rl.btnTxt}>Try now</Text>
       </TouchableOpacity>
@@ -93,26 +120,76 @@ function RateLimitBanner({ secsLeft, onRetry }: { secsLeft: number; onRetry: () 
   );
 }
 
+const rl = StyleSheet.create({
+  wrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.06)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.18)' },
+  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontWeight: '600' },
+  btn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.12)' },
+  btnTxt: { fontSize: 11, color: COLORS.accent, fontWeight: '800' },
+});
+
+// ─── InsightHeader ────────────────────────────────────────────────────────────
+
+function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolean }) {
+  // Bolt pulses while the AI is fetching
+  const boltOp = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!loading) {
+      boltOp.stopAnimation();
+      Animated.timing(boltOp, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(boltOp, { toValue: 0.25, duration: 550, useNativeDriver: true }),
+        Animated.timing(boltOp, { toValue: 1,    duration: 550, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [loading]);
+
+  return (
+    <View style={ih.row}>
+      <Animated.View style={{ opacity: boltOp }}>
+        <BoltSvg size={11} />
+      </Animated.View>
+      <Text style={ih.label}>Coach Insight</Text>
+      <View style={ih.line} />
+      {cached && (
+        <View style={ih.cachedPill}>
+          <Text style={ih.cachedTxt}>cached</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const ih = StyleSheet.create({
+  row:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.sm },
+  label:     { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.9, textTransform: 'uppercase' },
+  line:      { flex: 1, height: 1, backgroundColor: 'rgba(255,140,0,0.15)' },
+  cachedPill:{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
+  cachedTxt: { fontSize: 9, color: COLORS.textLabel, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+});
+
 // ─── CoachWidget ──────────────────────────────────────────────────────────────
 
 export function CoachWidget({ onAskMore }: Props) {
-  const { user }               = useAuthStore();
-  const { sessions }           = useSessionStore();
-  const [theme, setTheme]      = useCoachTheme();
+  const { user }     = useAuthStore();
+  const { sessions } = useSessionStore();
 
   const [message,   setMessage  ] = useState('');
   const [loading,   setLoading  ] = useState(false);
   const [fromCache, setFromCache] = useState(false);
   const [error,     setError    ] = useState<WidgetError>(null);
-  const [retryAt,   setRetryAt  ] = useState<number | null>(null);  // epoch ms
+  const [retryAt,   setRetryAt  ] = useState<number | null>(null);
   const [secsLeft,  setSecsLeft ] = useState(0);
   const fetchedRef = useRef(false);
 
   const { displayed, done } = useTypewriter(message);
-  const avatarState = deriveAvatarState(loading, !done && !!message, message);
 
-  // ── Session-count gate ─────────────────────────────────────────────────────
-  const completedCount = sessions.filter(s => s.status === 'completed').length;
+  const completedCount  = sessions.filter(s => s.status === 'completed').length;
   const isFirstTimeUser = completedCount < MIN_SESSIONS_FOR_AI;
 
   // ── Rate-limit countdown ───────────────────────────────────────────────────
@@ -148,6 +225,11 @@ export function CoachWidget({ onAskMore }: Props) {
         setError('rate_limit');
         if (!res.cached) setRetryAt(Date.now() + RATE_LIMIT_SECS * 1000);
       }
+      if (res.text) {
+        import('../../services/widgetService').then(({ widgetService }) => {
+          widgetService.updateCoach(res.text);
+        }).catch(() => {});
+      }
     } catch (e: any) {
       const msg: string = e?.message ?? '';
       setError(msg.includes('Network request failed') ? 'offline' : 'unknown');
@@ -156,137 +238,78 @@ export function CoachWidget({ onAskMore }: Props) {
     }
   }, [user?.uid, isFirstTimeUser]);
 
-  // Fetch once on mount
   useEffect(() => {
     if (fetchedRef.current || !user?.uid) return;
     fetchedRef.current = true;
     fetchMessage(false);
   }, [user?.uid]);
 
-  // ── First-time / empty state ───────────────────────────────────────────────
+  // ── First-time state ───────────────────────────────────────────────────────
   if (isFirstTimeUser) {
+    const remaining = MIN_SESSIONS_FOR_AI - completedCount;
     return (
-      <GlassView radius={20} style={s.card}>
-        <View style={s.row}>
-          <View style={s.avatarCol}>
-            <CoachAvatar state="idle" size={72} theme={theme} />
-            <ThemePicker current={theme} onChange={setTheme} />
-          </View>
-          <View style={s.messageArea}>
-            <View style={s.badge}><Text style={s.badgeTxt}>AI COACH</Text></View>
-            <Text style={s.messageText}>
-              Log {MIN_SESSIONS_FOR_AI - completedCount} more workout{MIN_SESSIONS_FOR_AI - completedCount !== 1 ? 's' : ''} and I'll start learning your patterns — consistency data is what makes my insights useful.
-            </Text>
-          </View>
-        </View>
-      </GlassView>
+      <View style={s.card}>
+        <GlassView radius={20} style={s.cardInner}>
+          <InsightHeader />
+          <Text style={s.messageText}>
+            Log {remaining} more workout{remaining !== 1 ? 's' : ''} and I'll start
+            analysing your patterns — I need a few sessions before my insights become useful.
+          </Text>
+        </GlassView>
+      </View>
     );
   }
 
-  // ── Loading skeleton ───────────────────────────────────────────────────────
-  if (loading && !message) {
-    return (
-      <GlassView radius={20} style={s.card}>
-        <View style={s.row}>
-          <View style={s.avatarCol}>
-            <CoachAvatar state="thinking" size={72} theme={theme} />
-            <ThemePicker current={theme} onChange={setTheme} />
-          </View>
-          <View style={s.messageArea}>
-            <View style={s.badge}><Text style={s.badgeTxt}>AI COACH</Text></View>
-            <View style={s.skeletonLong}  />
-            <View style={s.skeletonShort} />
-            <SkeletonDots />
-          </View>
-        </View>
-      </GlassView>
-    );
-  }
+  // ── Card ───────────────────────────────────────────────────────────────────
+  const showFooter = (!!message || error === 'offline') && !loading;
 
-  // ── Normal / error state ───────────────────────────────────────────────────
   return (
-    <GlassView radius={20} style={s.card} glow={avatarState === 'celebrating'}>
-      <View style={s.row}>
-        {/* Avatar — tappable to refresh */}
-        <TouchableOpacity onPress={() => fetchMessage(true)} activeOpacity={0.8} style={s.avatarCol}>
-          <CoachAvatar state={avatarState} size={72} theme={theme} />
-          <Text style={s.tapHint}>{loading ? 'thinking…' : 'tap to refresh'}</Text>
-          <ThemePicker current={theme} onChange={setTheme} />
-        </TouchableOpacity>
+    <View style={s.card}>
+      <GlassView radius={20} style={s.cardInner}>
+        {/* Top accent bar */}
+        <View style={s.accentBar} />
 
-        {/* Message area */}
-        <View style={s.messageArea}>
-          <View style={s.topRow}>
-            <View style={s.badge}><Text style={s.badgeTxt}>AI COACH</Text></View>
-            {fromCache && !loading && (
-              <Text style={s.cachedHint}>cached</Text>
+        {/* Header */}
+        <InsightHeader cached={fromCache && !loading} loading={loading} />
+
+        {/* Rate-limit banner */}
+        {error === 'rate_limit' && retryAt && (
+          <RateLimitBanner secsLeft={secsLeft} onRetry={() => fetchMessage(true)} />
+        )}
+
+        {/* Body */}
+        {loading && !message ? (
+          <TypingDots />
+        ) : message ? (
+          <Text style={s.messageText}>
+            {displayed}
+            {!done && <Text style={s.cursor}>▌</Text>}
+          </Text>
+        ) : error === 'offline' ? (
+          <Text style={s.errorText}>No connection — last insight will reappear once you're back online.</Text>
+        ) : error && error !== 'rate_limit' ? (
+          <Text style={s.errorText}>Couldn't reach the coach right now.</Text>
+        ) : null}
+
+        {/* Footer */}
+        {showFooter && (
+          <View style={s.footer}>
+            <TouchableOpacity onPress={() => fetchMessage(true)} activeOpacity={0.7} style={s.refreshBtn}>
+              <RefreshSvg size={12} />
+              <Text style={s.refreshTxt}>Refresh</Text>
+            </TouchableOpacity>
+            {onAskMore && (
+              <TouchableOpacity
+                onPress={() => onAskMore(message || undefined)}
+                activeOpacity={0.8}
+                style={s.askBtn}
+              >
+                <Text style={s.askTxt}>Ask Coach →</Text>
+              </TouchableOpacity>
             )}
           </View>
-
-          {/* Rate-limit banner */}
-          {error === 'rate_limit' && retryAt && (
-            <RateLimitBanner secsLeft={secsLeft} onRetry={() => fetchMessage(true)} />
-          )}
-
-          {/* Offline notice */}
-          {error === 'offline' && !message && (
-            <Text style={s.errorText}>No connection — showing last saved insight once you're back online.</Text>
-          )}
-
-          {/* Message text */}
-          {message ? (
-            <Text style={s.messageText}>
-              {displayed}
-              {!done && <Text style={s.cursor}>▌</Text>}
-            </Text>
-          ) : !error ? null : (
-            error !== 'rate_limit' && error !== 'offline' ? (
-              <Text style={s.errorText}>Couldn't reach the coach right now.</Text>
-            ) : null
-          )}
-        </View>
-      </View>
-
-      {/* Footer */}
-      {(!!message || error === 'offline') && !loading && (
-        <View style={s.footer}>
-          <View style={s.footerLeft} />
-          {onAskMore && (
-            <TouchableOpacity onPress={() => onAskMore(message || undefined)} activeOpacity={0.8} style={s.askBtn}>
-              <Text style={s.askTxt}>Ask Coach →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </GlassView>
-  );
-}
-
-// ─── Animated skeleton dots ───────────────────────────────────────────────────
-
-function SkeletonDots() {
-  const dots = [
-    useRef(new Animated.Value(0.3)).current,
-    useRef(new Animated.Value(0.3)).current,
-    useRef(new Animated.Value(0.3)).current,
-  ];
-  useEffect(() => {
-    const anims = dots.map((d, i) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(i * 150),
-        Animated.timing(d, { toValue: 1,   duration: 300, useNativeDriver: true }),
-        Animated.timing(d, { toValue: 0.3, duration: 300, useNativeDriver: true }),
-        Animated.delay((2 - i) * 150 + 100),
-      ])),
-    );
-    anims.forEach(a => a.start());
-    return () => anims.forEach(a => a.stop());
-  }, []);
-  return (
-    <View style={{ flexDirection: 'row', gap: 5, marginTop: 8 }}>
-      {dots.map((op, i) => (
-        <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.textMuted, opacity: op }} />
-      ))}
+        )}
+      </GlassView>
     </View>
   );
 }
@@ -294,35 +317,15 @@ function SkeletonDots() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  card:         { marginHorizontal: 16, marginBottom: 8, padding: SPACING.md, paddingBottom: SPACING.sm },
-  row:          { flexDirection: 'row', gap: SPACING.md, alignItems: 'flex-start' },
-  avatarCol:    { alignItems: 'center', gap: 4, paddingTop: 2 },
-  tapHint:      { fontSize: 9, color: COLORS.textLabel, fontWeight: '600', letterSpacing: 0.4 },
-  messageArea:  { flex: 1, minWidth: 0 },
-  topRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 7 },
-  badge:        { backgroundColor: 'rgba(255,140,0,0.14)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', paddingHorizontal: 7, paddingVertical: 3 },
-  badgeTxt:     { fontSize: 9, fontWeight: '900', color: COLORS.accent, letterSpacing: 1.1 },
-  cachedHint:   { fontSize: 9, color: COLORS.textLabel, fontWeight: '600', letterSpacing: 0.3 },
-  messageText:  { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20, letterSpacing: 0.1 },
-  cursor:       { color: COLORS.accent, fontWeight: '900' },
-  errorText:    { fontSize: 12, color: COLORS.textMuted, fontStyle: 'italic', lineHeight: 18 },
-  skeletonLong: { height: 11, borderRadius: 6, backgroundColor: 'rgba(255,240,220,0.08)', marginBottom: 6, width: '90%' },
-  skeletonShort:{ height: 11, borderRadius: 6, backgroundColor: 'rgba(255,240,220,0.08)', width: '65%' },
-  footer:       { flexDirection: 'row', justifyContent: 'flex-end', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
-  footerLeft:   { flex: 1 },
-  askBtn:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  askTxt:       { fontSize: 12, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.3 },
-});
-
-const tp = StyleSheet.create({
-  row:         { flexDirection: 'row', gap: 5, marginTop: 4 },
-  swatch:      { width: 12, height: 12, borderRadius: 6, opacity: 0.5 },
-  swatchActive:{ opacity: 1, transform: [{ scale: 1.25 }] },
-});
-
-const rl = StyleSheet.create({
-  wrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
-  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontWeight: '600' },
-  btn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.15)' },
-  btnTxt: { fontSize: 11, color: COLORS.accent, fontWeight: '800' },
+  card:        { marginHorizontal: 16, marginBottom: 8 },
+  cardInner:   { padding: SPACING.md, paddingBottom: SPACING.sm, overflow: 'hidden' },
+  accentBar:   { position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, backgroundColor: 'rgba(255,140,0,0.35)' },
+  messageText: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 21, letterSpacing: 0.1 },
+  cursor:      { color: COLORS.accent, fontWeight: '900' },
+  errorText:   { fontSize: 12, color: COLORS.textMuted, fontStyle: 'italic', lineHeight: 18 },
+  footer:      { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
+  refreshBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingRight: 12 },
+  refreshTxt:  { fontSize: 11, color: COLORS.textLabel, fontWeight: '600', letterSpacing: 0.2 },
+  askBtn:      { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.08)' },
+  askTxt:      { fontSize: 12, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.3 },
 });

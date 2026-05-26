@@ -8,6 +8,10 @@ import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { widgetService } from '../../services/widgetService';
+import {
+  scheduleRestOverNotification,
+  cancelRestOverNotification,
+} from '../../services/notificationService';
 
 interface Props {
   exerciseName?:     string;
@@ -34,7 +38,19 @@ export function RestTimerScreen({
   const [seconds, setSeconds] = useState(initialSecs);
   const [running, setRunning] = useState(true);
   const [done,    setDone   ] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notifIdRef       = useRef<string>('');
+  const skippedRef       = useRef(false);
+
+  // Schedule a background notification for when rest ends; cancel it on skip.
+  useEffect(() => {
+    scheduleRestOverNotification(exerciseName, setNumber + 1, initialSecs)
+      .then(id => { notifIdRef.current = id; })
+      .catch(() => {});
+    return () => {
+      if (notifIdRef.current) cancelRestOverNotification(notifIdRef.current).catch(() => {});
+    };
+  }, []);
 
   // Absolute wall-clock time when the timer should reach zero.
   // Lets us correct for time lost while the app was backgrounded.
@@ -126,11 +142,18 @@ export function RestTimerScreen({
   }, [running, done]);
 
   const toggle = () => {
-    if (done) { widgetService.clearRestTimer(); onClose(); return; }
+    if (done) {
+      if (notifIdRef.current) cancelRestOverNotification(notifIdRef.current).catch(() => {});
+      widgetService.clearRestTimer();
+      onClose();
+      return;
+    }
     setRunning(r => !r);
   };
 
   const skip = () => {
+    skippedRef.current = true;
+    if (notifIdRef.current) cancelRestOverNotification(notifIdRef.current).catch(() => {});
     if (intervalRef.current) clearInterval(intervalRef.current);
     setSeconds(0); setRunning(false); setDone(true);
     widgetService.clearRestTimer();

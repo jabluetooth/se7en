@@ -8,9 +8,13 @@ import {
 } from '../types';
 import { generateId } from '../utils/idGen';
 import { sessionTotalVolume } from '../utils/volume';
+import { detectPRs } from '../utils/prDetection';
 import type { Unsubscribe } from 'firebase/firestore';
-// Lazy import to avoid circular dependencies — resolved at call time.
+// Lazy imports to avoid circular dependencies — resolved at call time.
 const getWidgetService = () => import('../services/widgetService').then(m => m.widgetService);
+const getActivePlan    = () => import('./planStore').then(m => m.usePlanStore.getState().activePlan);
+const getPRStore       = () => import('./prStore').then(m => m.usePRStore.getState());
+const getSettings      = () => import('./settingsStore').then(m => m.useSettingsStore.getState().settings);
 
 const ACTIVE_KEY  = '@se7en_active_session';
 const HISTORY_KEY = '@se7en_session_history';
@@ -141,8 +145,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
     getUid().then(uid => { if (uid) fsActiveSession.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
     get().startTimer();
-    // Notify widget of new session
-    getWidgetService().then(ws => ws.updateSession(session, 0)).catch(() => {});
+    // Notify widget of new session and start iOS Live Activity
+    Promise.all([getWidgetService(), getActivePlan()]).then(([ws, plan]) => {
+      ws.updateSession(session, 0, plan);
+      ws.startLiveActivity(session, plan);
+    }).catch(() => {});
   },
 
   completeSet: (exerciseId, setId, data) => {
@@ -158,8 +165,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const updated = { ...s.activeSession, exercises };
       AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
       getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
-      // Notify widget of updated session stats
-      getWidgetService().then(ws => ws.updateSession(updated, s.sessionTimer)).catch(() => {});
+      // Notify widget of updated session stats (pass plan for reps/weight labels)
+      Promise.all([getWidgetService(), getActivePlan()]).then(([ws, plan]) => {
+        ws.updateSession(updated, s.sessionTimer, plan);
+      }).catch(() => {});
       return { activeSession: updated };
     });
   },
@@ -223,7 +232,33 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       duration: Math.round(get().sessionTimer / 60),
       sessionNote: sessionNote ?? null,
       totalVolume: sessionTotalVolume(session.exercises),
+      prsBreached: [],
     };
+
+    // ── PR detection ──────────────────────────────────────────────────────────
+    // Detect new personal records, persist them, and fire notifications.
+    getPRStore().then(async prStore => {
+      const { updatedPRs, prsBreached } = detectPRs(finished, prStore.records);
+      if (prsBreached.length === 0) return;
+
+      // Mutate the session record in place (already saved above, re-save below)
+      finished.prsBreached = prsBreached;
+
+      const { notifyNewPR } = await import('../services/notificationService');
+      await Promise.all(
+        updatedPRs.map(async pr => {
+          prStore.upsertPR(pr);
+          await notifyNewPR(
+            pr.exerciseName,
+            pr.heaviestWeight,
+            pr.mostReps,
+            // Find the exercise in the session to get weightUnit
+            finished.exercises.find(e => e.exerciseId === pr.exerciseId)?.weightUnit ?? 'kg',
+          );
+        }),
+      );
+    }).catch(e => __DEV__ && console.warn('[se7en/pr]', e));
+
     const sessions = [...get().sessions, finished];
     set({ activeSession: null, sessions, sessionTimer: 0 });
     await Promise.all([
@@ -237,6 +272,36 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         fsSessions.set(uid, finished).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
       ]);
     }
+
+    // ── Cycle-complete detection ───────────────────────────────────────────────
+    Promise.all([getActivePlan(), getSettings()]).then(async ([plan, settings]) => {
+      if (!plan || !settings.cycleStartDate) return;
+      const cycleStart = new Date(settings.cycleStartDate + 'T00:00:00');
+      const cycleEnd   = new Date(cycleStart);
+      cycleEnd.setDate(cycleStart.getDate() + plan.days.length);
+
+      const nonRestDays = plan.days.filter(d => !d.isRestDay);
+      if (nonRestDays.length === 0) return;
+
+      const cycleSessions = sessions.filter(s =>
+        s.status === 'completed' &&
+        s.finishedAt != null &&
+        new Date(s.finishedAt) >= cycleStart &&
+        new Date(s.finishedAt) < cycleEnd,
+      );
+
+      const allCovered = nonRestDays.every(day =>
+        cycleSessions.some(s => s.dayPosition === day.dayPosition),
+      );
+      if (!allCovered) return;
+
+      const totalVolume   = cycleSessions.reduce((sum, s) => sum + (s.totalVolume ?? 0), 0);
+      const totalSessions = cycleSessions.length;
+
+      const { notifyCycleComplete } = await import('../services/notificationService');
+      await notifyCycleComplete(totalVolume, totalSessions);
+    }).catch(e => __DEV__ && console.warn('[se7en/cycle]', e));
+
     // Invalidate coach cache so the widget regenerates with fresh post-workout insight
     AsyncStorage.removeItem('@se7en_coach_cache').catch(() => {});
     // Transition widget to idle state

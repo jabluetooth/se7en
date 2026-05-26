@@ -3,49 +3,56 @@ import React, {
 } from 'react';
 import {
   Animated, FlatList, KeyboardAvoidingView, Platform,
-  Pressable, StyleSheet, Text, TextInput, TouchableOpacity,
+  StyleSheet, Text, TextInput, TouchableOpacity,
   View, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { CoachAvatar, AvatarState, AvatarTheme } from '../../components/CoachAvatar/CoachAvatar';
-import { useCoachTheme } from '../../hooks/useCoachTheme';
 import { GlassView } from '../../components/common/GlassView';
 import { COLORS, GRAD, SPACING } from '../../constants';
 import { continueConversation, ConversationMessage } from '../../services/coachService';
 import { useAuthStore } from '../../stores/authStore';
+import { useSessionStore } from '../../stores/sessionStore';
 import { generateId } from '../../utils/idGen';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ChatMessage {
-  id:   string;
-  role: 'user' | 'coach';
-  text: string;
+  id:    string;
+  role:  'user' | 'coach';
+  text:  string;
+  fresh: boolean; // true = just arrived, animate in
 }
 
 interface Props {
-  onClose:          () => void;
-  /** Optional opening message from the widget — shown as first coach message */
-  initialMessage?:  string;
+  onClose:         () => void;
+  initialMessage?: string;
 }
 
-// ─── Suggested prompts ────────────────────────────────────────────────────────
+// ─── Quick chips ──────────────────────────────────────────────────────────────
 
-const SUGGESTIONS = [
+const QUICK_CHIPS = [
   'How am I doing overall?',
-  'What should I focus on next?',
   'Am I overtraining?',
   'Which muscles am I neglecting?',
   'Should I take a rest day?',
+  'What should I focus on next week?',
   'How can I improve my consistency?',
 ];
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+// ─── SVG icons ────────────────────────────────────────────────────────────────
 
-function BackIcon() {
+function BoltSvg({ size = 16, color = COLORS.accent }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill={color} />
+    </Svg>
+  );
+}
+
+function BackSvg() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
       <Path d="M15 18l-6-6 6-6" stroke={COLORS.textSecondary}
@@ -54,20 +61,69 @@ function BackIcon() {
   );
 }
 
-function SendIcon({ active }: { active: boolean }) {
+function SendSvg({ active }: { active: boolean }) {
   return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
       <Path d="M22 2L11 13" stroke={active ? '#000' : COLORS.textMuted}
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M22 2L15 22 11 13 2 9l20-7z" stroke={active ? '#000' : COLORS.textMuted}
+      <Path d="M22 2L15 22l-4-9-9-4 20-7z" stroke={active ? '#000' : COLORS.textMuted}
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
+// ─── BoltAvatar ───────────────────────────────────────────────────────────────
+// Replaces the cartoon CoachAvatar. A glass circle with the bolt icon inside.
+
+function BoltAvatar({ size = 36, glow = false }: { size?: number; glow?: boolean }) {
+  const boltSize = size * 0.45;
+  return (
+    <View style={[
+      av.wrap,
+      { width: size, height: size, borderRadius: size / 2 },
+      glow && av.glow,
+    ]}>
+      <BoltSvg size={boltSize} />
+    </View>
+  );
+}
+
+const av = StyleSheet.create({
+  wrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.10)', borderWidth: 1.5, borderColor: 'rgba(255,140,0,0.30)' },
+  glow: { shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 8 },
+});
+
+// ─── Context strip (active session only) ─────────────────────────────────────
+
+function ContextStrip({ activeSession }: { activeSession: any | null }) {
+  if (!activeSession) return null;
+  const currentEx = activeSession.exercises.find((e: any) => !e.isCompleted);
+  if (!currentEx) return null;
+  const doneSets = currentEx.sets.filter((s: any) => s.isCompleted).length;
+  const totalSets = currentEx.sets.length;
+  return (
+    <View style={cx.strip}>
+      <View style={cx.dot} />
+      <Text style={cx.exercise} numberOfLines={1}>{currentEx.exerciseName}</Text>
+      <Text style={cx.sep}>·</Text>
+      <Text style={cx.meta}>Set {doneSets + 1}/{totalSets}</Text>
+      <Text style={cx.sep}>·</Text>
+      <Text style={cx.meta}>{activeSession.dayLabel}</Text>
+    </View>
+  );
+}
+
+const cx = StyleSheet.create({
+  strip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)', backgroundColor: 'rgba(255,140,0,0.04)' },
+  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
+  exercise: { fontSize: 11, fontWeight: '700', color: COLORS.accent, flex: 1 },
+  sep:      { fontSize: 11, color: 'rgba(255,240,220,0.25)' },
+  meta:     { fontSize: 11, color: COLORS.textLabel, fontWeight: '500' },
+});
+
 // ─── Typing indicator ─────────────────────────────────────────────────────────
 
-function TypingIndicator({ theme }: { theme: AvatarTheme }) {
+function TypingIndicator() {
   const dots = [
     useRef(new Animated.Value(0.25)).current,
     useRef(new Animated.Value(0.25)).current,
@@ -91,7 +147,7 @@ function TypingIndicator({ theme }: { theme: AvatarTheme }) {
 
   return (
     <View style={b.coachRow}>
-      <CoachAvatar state="thinking" size={28} theme={theme} />
+      <BoltAvatar size={26} />
       <GlassView radius={14} style={b.coachBubble}>
         <View style={b.dotRow}>
           {dots.map((op, i) => (
@@ -105,12 +161,21 @@ function TypingIndicator({ theme }: { theme: AvatarTheme }) {
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ msg, avatarState, theme }: { msg: ChatMessage; avatarState: AvatarState; theme: AvatarTheme }) {
-  const isUser = msg.role === 'user';
+const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const fadeAnim = useRef(new Animated.Value(msg.fresh ? 0 : 1)).current;
+  const slideAnim = useRef(new Animated.Value(msg.fresh ? 10 : 0)).current;
 
-  if (isUser) {
+  useEffect(() => {
+    if (!msg.fresh) return;
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  if (msg.role === 'user') {
     return (
-      <View style={b.userRow}>
+      <Animated.View style={[b.userRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <LinearGradient
           colors={GRAD.accent}
           start={{ x: 0, y: 0 }}
@@ -119,56 +184,85 @@ function MessageBubble({ msg, avatarState, theme }: { msg: ChatMessage; avatarSt
         >
           <Text style={b.userText}>{msg.text}</Text>
         </LinearGradient>
-      </View>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={b.coachRow}>
-      <CoachAvatar state={avatarState} size={28} />
+    <Animated.View style={[b.coachRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <BoltAvatar size={26} />
       <GlassView radius={14} style={b.coachBubble}>
         <Text style={b.coachText}>{msg.text}</Text>
       </GlassView>
+    </Animated.View>
+  );
+});
+
+const b = StyleSheet.create({
+  userRow:    { alignItems: 'flex-end', marginBottom: 10 },
+  userBubble: { borderRadius: 16, borderTopRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '82%' },
+  userText:   { fontSize: 14, color: '#000', fontWeight: '600', lineHeight: 20 },
+
+  coachRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
+  coachBubble:{ borderRadius: 16, borderTopLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '78%' },
+  coachText:  { fontSize: 14, color: COLORS.textSecondary, lineHeight: 21 },
+
+  dotRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4, paddingVertical: 2 },
+  dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent, opacity: 0.5 },
+});
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <View style={em.wrap}>
+      <View style={em.iconWrap}>
+        <BoltAvatar size={64} glow />
+      </View>
+      <Text style={em.title}>Se7en Coach</Text>
+      <Text style={em.body}>
+        Ask me anything about your training — I have access to your full workout history,
+        RPE logs, and exercise notes.
+      </Text>
     </View>
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+const em = StyleSheet.create({
+  wrap:    { alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 28, gap: 12 },
+  iconWrap:{ marginBottom: 4 },
+  title:   { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  body:    { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+});
+
+// ─── CoachScreen ──────────────────────────────────────────────────────────────
 
 export function CoachScreen({ onClose, initialMessage }: Props) {
-  const { user }         = useAuthStore();
-  const [theme]          = useCoachTheme();
+  const { user }           = useAuthStore();
+  const { activeSession }  = useSessionStore();
 
-  // ── Conversation state ─────────────────────────────────────────────────────
-  const [messages,  setMessages ] = useState<ChatMessage[]>(() =>
+  const [messages,     setMessages    ] = useState<ChatMessage[]>(() =>
     initialMessage
-      ? [{ id: generateId(), role: 'coach', text: initialMessage }]
+      ? [{ id: generateId(), role: 'coach', text: initialMessage, fresh: false }]
       : [],
   );
-  const [input,     setInput    ] = useState('');
-  const [loading,   setLoading  ] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
-  const listRef = useRef<FlatList>(null);
+  const [input,        setInput       ] = useState('');
+  const [loading,      setLoading     ] = useState(false);
+  const [sendError,    setSendError   ] = useState<string | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const listRef  = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const hasMessages = messages.length > 0;
+  // Chips visible until user has sent 2+ messages
+  const showChips   = messages.filter(m => m.role === 'user').length < 2;
 
-  // Avatar state for the most recent coach message
-  const lastCoachMsg = [...messages].reverse().find(m => m.role === 'coach')?.text ?? '';
-  const headerAvatarState: AvatarState = loading ? 'thinking' : 'idle';
-  const lastMsgAvatarState: AvatarState = (() => {
-    if (loading) return 'thinking';
-    const lower = lastCoachMsg.toLowerCase();
-    if (lower.includes('⚠️') || lower.includes('overtraining') || lower.includes('neglect')) return 'concerned';
-    if (lower.includes('streak') || lower.includes(' pr') || lower.includes('progress') || lower.includes('crushed')) return 'celebrating';
-    return 'idle';
-  })();
-
-  // ── Send message ───────────────────────────────────────────────────────────
+  // ── Send ───────────────────────────────────────────────────────────────────
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || loading || !user?.uid) return;
 
-    const userMsg: ChatMessage = { id: generateId(), role: 'user', text: trimmed };
+    const userMsg: ChatMessage = { id: generateId(), role: 'user',  text: trimmed, fresh: true };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -178,7 +272,7 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 
     try {
       const res = await continueConversation(user.uid, history, trimmed);
-      const coachMsg: ChatMessage = { id: generateId(), role: 'coach', text: res.text };
+      const coachMsg: ChatMessage = { id: generateId(), role: 'coach', text: res.text, fresh: true };
       setMessages(prev => [...prev, coachMsg]);
       if (res.error === 'rate_limit') setSendError('rate_limit');
     } catch (e: any) {
@@ -189,10 +283,10 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
     }
   }, [messages, loading, user?.uid]);
 
-  // Scroll to end after every new message
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
     }
   }, [messages.length, loading]);
 
@@ -202,24 +296,26 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
       <AppBackground />
 
       <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+
         {/* ── Header ── */}
         <View style={s.header}>
           <TouchableOpacity onPress={onClose} style={s.backBtn} activeOpacity={0.7}>
-            <BackIcon />
+            <BackSvg />
           </TouchableOpacity>
 
-          <View style={s.headerTitle}>
-            <CoachAvatar state={headerAvatarState} size={32} theme={theme} />
+          <View style={s.headerCenter}>
+            <BoltAvatar size={30} glow={loading} />
             <View>
-              <Text style={s.titleText}>Coach</Text>
+              <Text style={s.titleText}>Se7en Coach</Text>
               <Text style={s.subtitleText}>
                 {loading ? 'thinking…' : 'AI · powered by Groq'}
               </Text>
             </View>
           </View>
-
-
         </View>
+
+        {/* ── Context strip (active session only) ── */}
+        <ContextStrip activeSession={activeSession} />
 
         <KeyboardAvoidingView
           style={s.flex}
@@ -231,62 +327,46 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
             ref={listRef}
             data={messages}
             keyExtractor={m => m.id}
-            renderItem={({ item, index }) => (
-              <MessageBubble
-                msg={item}
-                avatarState={item.role === 'coach' && index === messages.length - 1 ? lastMsgAvatarState : 'idle'}
-                theme={theme}
-              />
-            )}
-            ListHeaderComponent={
-              !hasMessages ? (
-                <View style={s.emptyState}>
-                  <CoachAvatar state="idle" size={72} theme={theme} />
-                  <Text style={s.emptyTitle}>Your Personal Coach</Text>
-                  <Text style={s.emptySub}>
-                    Ask me anything about your training — I have access to your full
-                    workout history, RPE logs, and exercise notes.
-                  </Text>
-                </View>
-              ) : null
-            }
-            ListFooterComponent={loading ? <TypingIndicator theme={theme} /> : null}
+            renderItem={({ item }) => <MessageBubble msg={item} />}
+            ListHeaderComponent={!hasMessages ? <EmptyState /> : null}
+            ListFooterComponent={loading ? <TypingIndicator /> : null}
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           />
 
-          {/* ── Suggested prompts ── */}
-          {!hasMessages && (
+          {/* ── Quick chips ── */}
+          {showChips && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.suggestionsContent}
-              style={s.suggestions}
+              contentContainerStyle={s.chipsContent}
+              style={s.chips}
               keyboardShouldPersistTaps="handled"
             >
-              {SUGGESTIONS.map(prompt => (
+              {QUICK_CHIPS.map(chip => (
                 <TouchableOpacity
-                  key={prompt}
-                  onPress={() => send(prompt)}
+                  key={chip}
+                  onPress={() => send(chip)}
                   activeOpacity={0.75}
-                  style={s.suggestionPill}
+                  style={s.chip}
+                  disabled={loading}
                 >
-                  <Text style={s.suggestionTxt}>{prompt}</Text>
+                  <Text style={[s.chipTxt, loading && s.chipTxtDisabled]}>{chip}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           )}
 
-          {/* ── Send error banner ── */}
+          {/* ── Send error ── */}
           {sendError && (
             <View style={s.errorBanner}>
-              <Text style={s.errorBannerTxt}>
+              <Text style={s.errorTxt}>
                 {sendError === 'rate_limit'
-                  ? '⚠️ Rate limit reached — wait a moment before sending again.'
+                  ? '⚠️  Rate limit reached — wait a moment before sending again.'
                   : sendError === 'offline'
-                  ? '📡 No connection — check your network and try again.'
-                  : '⚠️ Something went wrong — try again.'}
+                  ? '📡  No connection — check your network and try again.'
+                  : '⚠️  Something went wrong — try again.'}
               </Text>
             </View>
           )}
@@ -294,35 +374,38 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
           {/* ── Input bar ── */}
           <View style={s.inputBar}>
             <TextInput
-              style={s.input}
+              ref={inputRef}
+              style={[s.input, inputFocused && s.inputFocused]}
               value={input}
               onChangeText={setInput}
               placeholder="Ask your coach…"
               placeholderTextColor={COLORS.textLabel}
               multiline
-              maxLength={400}
+              maxLength={500}
               returnKeyType="send"
               blurOnSubmit
               onSubmitEditing={() => send(input)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
             />
             <TouchableOpacity
               onPress={() => send(input)}
               activeOpacity={input.trim() ? 0.85 : 1}
               disabled={!input.trim() || loading}
-              style={[s.sendWrap, !input.trim() && s.sendDisabled]}
+              style={s.sendWrap}
             >
-              {input.trim() ? (
+              {input.trim() && !loading ? (
                 <LinearGradient
                   colors={GRAD.accent}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={s.sendBtn}
                 >
-                  <SendIcon active />
+                  <SendSvg active />
                 </LinearGradient>
               ) : (
                 <View style={[s.sendBtn, s.sendInactive]}>
-                  <SendIcon active={false} />
+                  <SendSvg active={false} />
                 </View>
               )}
             </TouchableOpacity>
@@ -336,52 +419,36 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  root:        { flex: 1 },
-  safe:        { flex: 1 },
-  flex:        { flex: 1 },
+  root: { flex: 1 },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
 
   // Header
-  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, gap: SPACING.sm },
-  backBtn:     { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  titleText:   { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  subtitleText:{ fontSize: 10, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, gap: SPACING.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
+  backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  titleText:    { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.4 },
+  subtitleText: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
 
-  // Messages list
+  // Message list
   listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },
 
-  // Empty state
-  emptyState:  { alignItems: 'center', paddingTop: 32, paddingBottom: 24, gap: SPACING.sm, paddingHorizontal: 24 },
-  emptyTitle:  { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.4, marginTop: 8 },
-  emptySub:    { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+  // Quick chips
+  chips:        { maxHeight: 44, flexGrow: 0, flexShrink: 0 },
+  chipsContent: { paddingHorizontal: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
+  chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,140,0,0.25)', backgroundColor: 'rgba(255,140,0,0.07)' },
+  chipTxt:      { fontSize: 12, color: COLORS.accent, fontWeight: '600' },
+  chipTxtDisabled: { color: 'rgba(255,140,0,0.35)' },
 
-  // Suggested prompts
-  suggestions:        { maxHeight: 48, flexGrow: 0, flexShrink: 0 },
-  suggestionsContent: { paddingHorizontal: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
-  suggestionPill:     { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  suggestionTxt:      { fontSize: 13, color: COLORS.accent, fontWeight: '600' },
+  // Error banner
+  errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
+  errorTxt:     { fontSize: 12, color: COLORS.accent, fontWeight: '600', lineHeight: 17 },
 
   // Input bar
-  inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
-  input:       { flex: 1, backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: '#fff', maxHeight: 100, lineHeight: 20 },
+  inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
+  input:       { flex: 1, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, color: '#fff', maxHeight: 100, lineHeight: 20 },
+  inputFocused:{ borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.04)' },
   sendWrap:    { borderRadius: 18, overflow: 'hidden' },
-  sendDisabled:{ opacity: 0.4 },
   sendBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
-  sendInactive: { backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
-  errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.22)' },
-  errorBannerTxt:{ fontSize: 12, color: COLORS.accent, fontWeight: '600', lineHeight: 17 },
-});
-
-// Bubble styles in their own StyleSheet so they don't bloat `s`
-const b = StyleSheet.create({
-  userRow:    { alignItems: 'flex-end', marginBottom: 10 },
-  userBubble: { borderRadius: 18, borderBottomRightRadius: 5, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '80%' },
-  userText:   { fontSize: 14, color: '#000', fontWeight: '600', lineHeight: 20 },
-
-  coachRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
-  coachBubble:{ borderRadius: 18, borderBottomLeftRadius: 5, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '78%' },
-  coachText:  { fontSize: 14, color: COLORS.textSecondary, lineHeight: 20 },
-
-  dotRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4, paddingVertical: 2 },
-  dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.textMuted },
+  sendInactive:{ backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
 });

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Se7en — Widget System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: oklch(7% 0.020 36); scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: oklch(7% 0.020 36); color: oklch(97% 0.005 55); min-height: 100vh; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: oklch(20% 0.012 38); border-radius: 3px; }
+    button { font-family: 'DM Sans', sans-serif; }
+
+    /* shared section label */
+    .sec-label { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .sec-num   { font: 600 10px/1 'DM Mono', monospace; color: oklch(78% 0.20 68); letter-spacing: 0.08em; }
+    .sec-title { font: 700 10px/1 'DM Sans', sans-serif; color: oklch(42% 0.006 48); letter-spacing: 0.10em; text-transform: uppercase; }
+    .sec-line  { flex: 1; height: 1px; background: oklch(100% 0 0 / 0.07); }
+
+    /* phone bezel */
+    .phone {
+      width: 390px; height: 844px;
+      border-radius: 52px;
+      background: oklch(8% 0.015 36);
+      border: 10px solid oklch(14% 0.012 38);
+      box-shadow: 0 0 0 1px oklch(28% 0.010 38), 0 40px 80px oklch(0% 0 0 / 0.70), inset 0 1px 0 oklch(100% 0 0 / 0.08);
+      position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 130px; height: 38px;
+      background: oklch(6% 0.010 36); border-radius: 0 0 22px 22px; z-index: 20;
+    }
+    .phone-capsule {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 18px;
+      background: #000; border-radius: 99px; z-index: 21;
+      display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; gap: 5px;
+    }
+
+    /* widget chrome */
+    .widget-chrome {
+      border-radius: 26px; overflow: hidden; position: relative;
+      box-shadow: 0 8px 32px oklch(0% 0 0 / 0.55), inset 0 1px 0 oklch(100% 0 0 / 0.12);
+    }
+    .widget-label { font: 600 10px/1 'DM Mono', monospace; color: oklch(36% 0.006 48); letter-spacing: 0.06em; text-transform: uppercase; text-align: center; margin-top: 8px; }
+
+    /* di state pill */
+    .di-state-btn {
+      padding: 5px 12px; border-radius: 99px; border: none; cursor: pointer;
+      font: 700 11px/1 'DM Sans', sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+<!-- Global SVG defs (gradients shared across SVGs) -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="g-mark" x1="14" y1="20" x2="36" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="oklch(94% 0.12 80)"/>
+      <stop offset="40%"  stop-color="oklch(81% 0.20 68)"/>
+      <stop offset="100%" stop-color="oklch(62% 0.27 44)"/>
+    </linearGradient>
+    <linearGradient id="g-icon-bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="oklch(17% 0.08 52)"/>
+      <stop offset="100%" stop-color="oklch(5.5% 0.015 32)"/>
+    </linearGradient>
+    <linearGradient id="g-bar" x1="0" y1="0" x2="100%" y2="0">
+      <stop offset="0%"   stop-color="oklch(70% 0.24 42)"/>
+      <stop offset="100%" stop-color="oklch(78% 0.20 68)"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ── Colors
+const GOLD  = 'oklch(78% 0.20 68)';
+const FIRE  = 'oklch(70% 0.24 42)';
+const COOL  = 'oklch(64% 0.14 220)';
+const WARN  = 'oklch(76% 0.16 68)';
+
+// ── App icon SVG
+function AppIcon({ size = 36 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={{flexShrink:0}}>
+      <rect width="100" height="100" rx="22" fill="url(#g-icon-bg)"/>
+      <rect x="0.75" y="0.75" width="98.5" height="98.5" rx="21.5" fill="none" stroke="oklch(100% 0 0 / 0.08)" strokeWidth="1.5"/>
+      <line x1="15" y1="28" x2="85" y2="28" stroke="url(#g-mark)" strokeWidth="17" strokeLinecap="round"/>
+      <line x1="85" y1="28" x2="36" y2="80" stroke="url(#g-mark)" strokeWidth="12.5" strokeLinecap="round"/>
+      <line x1="49" y1="52" x2="72" y2="52" stroke="url(#g-mark)" strokeWidth="9" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ── Circular progress ring
+function Ring({ size, sw, value, max, color, trackColor, children }) {
+  const r = (size - sw) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(1, value / max));
+  return (
+    <div style={{ position:'relative', width:size, height:size, flexShrink:0 }}>
+      <svg width={size} height={size} style={{ transform:'rotate(-90deg)', display:'block' }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={trackColor || 'oklch(100% 0 0 / 0.10)'} strokeWidth={sw}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={sw}
+          strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+          strokeLinecap="round" style={{ transition:'stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)' }}/>
+      </svg>
+      {children && (
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Live timer hooks
+function useCountdown(start) {
+  const [secs, setSecs] = useState(start);
+  useEffect(() => {
+    if (secs <= 0) { const t = setTimeout(() => setSecs(start), 800); return () => clearTimeout(t); }
+    const id = setInterval(() => setSecs(s => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [secs]);
+  return {
+    secs, total: start,
+    display: `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`,
+    pct: secs / start,
+  };
+}
+function useSessionTimer(init) {
+  const [secs, setSecs] = useState(init);
+  useEffect(() => { const id = setInterval(() => setSecs(s => s+1), 1000); return () => clearInterval(id); }, []);
+  return `${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+}
+
+// ── Shared status bar
+function PhoneStatusBar({ time='9:41' }) {
+  return (
+    <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:15, height:50, display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'0 24px 8px' }}>
+      <span style={{ fontFamily:'-apple-system, system-ui', fontSize:15, fontWeight:590, color:'#fff' }}>{time}</span>
+      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <rect x="0" y="4" width="3" height="8" rx="0.7" fill="white"/>
+          <rect x="5" y="2.5" width="3" height="9.5" rx="0.7" fill="white"/>
+          <rect x="10" y="0" width="3" height="12" rx="0.7" fill="white"/>
+          <rect x="15" y="0" width="2" height="12" rx="0.7" fill="white" opacity="0.3"/>
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="white" strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="17" height="8" rx="2" fill="white"/>
+          <path d="M23 4v4c.8-.3 1.5-1.1 1.5-2s-.7-1.7-1.5-2z" fill="white" fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 01 — DYNAMIC ISLAND
+// ═══════════════════════════════════════════════════════════════
+function DynamicIslandSection({ rest, session }) {
+  const [state, setState] = useState('expanded-workout');
+
+  const STATES = [
+    { id:'compact',          label:'Compact'     },
+    { id:'expanded-workout', label:'Active Ex.'  },
+    { id:'expanded-timer',   label:'Rest Timer'  },
+  ];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+      {/* State picker */}
+      <div style={{ display:'flex', gap:6, background:'oklch(100% 0 0 / 0.05)', borderRadius:99, padding:4, border:'1px solid oklch(100% 0 0 / 0.08)' }}>
+        {STATES.map(s => (
+          <button key={s.id} onClick={() => setState(s.id)} className="di-state-btn" style={{
+            background: state === s.id ? GOLD : 'transparent',
+            color: state === s.id ? 'oklch(12% 0.025 40)' : 'oklch(52% 0.008 50)',
+          }}>{s.label}</button>
+        ))}
+      </div>
+
+      {/* Context bar mimicking top of phone */}
+      <div style={{ width:390, background:'oklch(8% 0.022 38)', borderRadius:'24px 24px 0 0', border:'1px solid oklch(20% 0.012 38)', borderBottom:'none', padding:'14px 0 0', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+        {/* Capsule */}
+        <div style={{ width:126, height:37, background:'#000', borderRadius:99, boxShadow:'0 2px 12px oklch(0% 0 0 / 0.60)' }} />
+
+        {/* Islands */}
+        <div style={{ width:'100%', display:'flex', justifyContent:'center', padding:'0 16px 20px', minHeight:80, alignItems:'center' }}>
+
+          {state === 'compact' && (
+            <div style={{ display:'flex', alignItems:'center', gap:7, background:'#050403', borderRadius:99, padding:'0 14px 0 7px', height:36, boxShadow:'0 6px 28px oklch(0% 0 0 / 0.70)', border:'1px solid oklch(100% 0 0 / 0.06)' }}>
+              <Ring size={26} sw={2.5} value={rest.secs} max={rest.total} color={COOL} trackColor="oklch(100% 0 0 / 0.12)">
+                <span style={{ fontFamily:"'DM Mono'", fontSize:7, fontWeight:800, color:COOL }}>⏱</span>
+              </Ring>
+              <span style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:700, color:'#fff' }}>Bench Press</span>
+              <div style={{ width:1, height:14, background:'oklch(100% 0 0 / 0.12)' }} />
+              <span style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:700, color:COOL }}>{rest.display}</span>
+              <div style={{ width:1, height:14, background:'oklch(100% 0 0 / 0.12)' }} />
+              <span style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:600, color:GOLD }}>3/4</span>
+            </div>
+          )}
+
+          {state === 'expanded-workout' && (
+            <div style={{ background:'#050403', borderRadius:26, padding:'16px 18px 14px', width:350, boxShadow:'0 16px 56px oklch(0% 0 0 / 0.75)', border:'1px solid oklch(100% 0 0 / 0.07)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                <AppIcon size={20}/>
+                <span style={{ fontFamily:"'DM Sans'", fontSize:11, fontWeight:700, color:'oklch(40% 0.006 48)', letterSpacing:'0.06em', textTransform:'uppercase' }}>Se7en · Push Day · Day 3</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <div>
+                  <div style={{ fontFamily:"'DM Sans'", fontSize:20, fontWeight:800, color:'#fff', letterSpacing:'-0.03em', marginBottom:4 }}>Bench Press</div>
+                  <div style={{ fontFamily:"'DM Mono'", fontSize:12, color:'oklch(40% 0.006 48)' }}>Set 3 of 4 · 100 kg × 8–12</div>
+                </div>
+                <Ring size={52} sw={4.5} value={3} max={4} color={GOLD} trackColor="oklch(100% 0 0 / 0.08)">
+                  <div style={{ textAlign:'center' }}>
+                    <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:800, color:'#fff', lineHeight:1 }}>3/4</div>
+                  </div>
+                </Ring>
+              </div>
+              <div style={{ marginTop:12, paddingTop:10, borderTop:'1px solid oklch(100% 0 0 / 0.07)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                  <div style={{ width:5, height:5, borderRadius:'50%', background:GOLD, boxShadow:`0 0 6px ${GOLD}` }} />
+                  <span style={{ fontFamily:"'DM Mono'", fontSize:11, color:GOLD }}>Cycle 4 · {session}</span>
+                </div>
+                <div style={{ display:'flex', gap:12 }}>
+                  {[{v:'4,200 kg', l:'Volume'},{v:'7/11', l:'Sets'}].map((s,i) => (
+                    <div key={i} style={{ textAlign:'right' }}>
+                      <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:700, color:'#fff' }}>{s.v}</div>
+                      <div style={{ fontFamily:"'DM Sans'", fontSize:9, color:'oklch(38% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {state === 'expanded-timer' && (
+            <div style={{ background:'#050403', borderRadius:26, padding:'15px 18px', width:320, boxShadow:'0 16px 56px oklch(0% 0 0 / 0.75)', border:'1px solid oklch(100% 0 0 / 0.07)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
+                <AppIcon size={20}/>
+                <span style={{ fontFamily:"'DM Sans'", fontSize:11, fontWeight:700, color:'oklch(40% 0.006 48)', letterSpacing:'0.06em', textTransform:'uppercase' }}>Rest Timer</span>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:18 }}>
+                <Ring size={80} sw={6} value={rest.secs} max={rest.total} color={COOL} trackColor="oklch(100% 0 0 / 0.10)">
+                  <div style={{ textAlign:'center' }}>
+                    <div style={{ fontFamily:"'DM Mono'", fontSize:18, fontWeight:800, color:'#fff', letterSpacing:'-0.04em', lineHeight:1 }}>{rest.display}</div>
+                    <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(38% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.04em', marginTop:2 }}>rest</div>
+                  </div>
+                </Ring>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontFamily:"'DM Sans'", fontSize:12, fontWeight:600, color:'oklch(38% 0.006 48)', marginBottom:4 }}>Up next</div>
+                  <div style={{ fontFamily:"'DM Sans'", fontSize:16, fontWeight:700, color:'#fff', marginBottom:3 }}>Bench Press</div>
+                  <div style={{ fontFamily:"'DM Mono'", fontSize:12, color:GOLD }}>Set 4 · 100 kg</div>
+                  <div style={{ marginTop:8, height:3, borderRadius:99, background:'oklch(100% 0 0 / 0.10)', overflow:'hidden' }}>
+                    <div style={{ width:`${rest.pct*100}%`, height:'100%', background:`linear-gradient(90deg, ${COOL}, oklch(72% 0.12 200))`, borderRadius:99, transition:'width 1s linear' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 02 — LOCK SCREEN PHONE
+// ═══════════════════════════════════════════════════════════════
+function LockScreenPhone({ rest }) {
+  return (
+    <div className="phone">
+      {/* Wallpaper */}
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(160deg, oklch(9% 0.028 38) 0%, oklch(6% 0.018 42) 40%, oklch(9% 0.030 30) 75%, oklch(7% 0.022 38) 100%)' }}>
+        <div style={{ position:'absolute', top:-60, right:-40, width:240, height:240, borderRadius:'50%', background:'radial-gradient(circle, oklch(72% 0.22 52 / 0.18) 0%, transparent 70%)' }} />
+        <div style={{ position:'absolute', bottom:'22%', left:-40, width:180, height:180, borderRadius:'50%', background:'radial-gradient(circle, oklch(60% 0.22 28 / 0.10) 0%, transparent 70%)' }} />
+      </div>
+
+      <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column' }}>
+        <PhoneStatusBar time="9:41" />
+
+        {/* Clock */}
+        <div style={{ textAlign:'center', padding:'28px 0 6px', flexShrink:0 }}>
+          <div style={{ fontFamily:'-apple-system, system-ui', fontSize:82, fontWeight:200, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>9:41</div>
+          <div style={{ fontFamily:'-apple-system, system-ui', fontSize:17, fontWeight:400, color:'oklch(78% 0.005 55)', marginTop:3 }}>Thursday, May 22</div>
+        </div>
+
+        {/* Lock screen widget row */}
+        <div style={{ display:'flex', gap:8, padding:'14px 20px 0', justifyContent:'center', alignItems:'center' }}>
+          {/* Circular: rest */}
+          <div style={{ width:76, height:76, borderRadius:'50%', background:'oklch(100% 0 0 / 0.12)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'1px solid oklch(100% 0 0 / 0.16)', flexShrink:0 }}>
+            <Ring size={76} sw={4} value={rest.secs} max={rest.total} color={COOL} trackColor="oklch(100% 0 0 / 0.10)">
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:800, color:'#fff', lineHeight:1 }}>{rest.display}</div>
+                <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(68% 0.005 55)', fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', marginTop:2 }}>Rest</div>
+              </div>
+            </Ring>
+          </div>
+
+          {/* Rectangular: exercise */}
+          <div style={{ flex:1, height:76, borderRadius:16, background:'oklch(100% 0 0 / 0.12)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'1px solid oklch(100% 0 0 / 0.16)', padding:'10px 13px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+              <AppIcon size={12}/>
+              <span style={{ fontFamily:"'DM Sans'", fontSize:9, fontWeight:700, color:'oklch(58% 0.005 55)', letterSpacing:'0.05em', textTransform:'uppercase' }}>Se7en</span>
+            </div>
+            <div>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.01em', lineHeight:1 }}>Bench Press</div>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, marginTop:3, fontWeight:600 }}>Set 3/4 · 100 kg</div>
+            </div>
+          </div>
+
+          {/* Circular: sets */}
+          <div style={{ width:76, height:76, borderRadius:'50%', background:'oklch(100% 0 0 / 0.12)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'1px solid oklch(100% 0 0 / 0.16)', flexShrink:0 }}>
+            <Ring size={76} sw={4} value={7} max={11} color={GOLD} trackColor="oklch(100% 0 0 / 0.10)">
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:800, color:'#fff', lineHeight:1 }}>7/11</div>
+                <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(68% 0.005 55)', fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', marginTop:2 }}>Sets</div>
+              </div>
+            </Ring>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div style={{ padding:'16px 14px 0', display:'flex', flexDirection:'column', gap:8 }}>
+          {[
+            { icon:null, title:'🏆 New PR!', body:'Bench Press — 100 kg × 12', time:'now', accent:GOLD },
+            { icon:null, title:'⏱ Rest Over', body:'Ready for Set 4 · Bench Press', time:'1m ago', accent:COOL },
+          ].map((n,i) => (
+            <div key={i} style={{ background:'oklch(100% 0 0 / 0.12)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', border:`1px solid ${n.accent}22`, borderRadius:18, padding:'11px 14px', display:'flex', alignItems:'center', gap:11 }}>
+              <div style={{ width:34, height:34, borderRadius:10, background:'oklch(8% 0.022 38)', border:`1px solid ${n.accent}30`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <AppIcon size={32}/>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
+                  <span style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:700, color:'#fff' }}>{n.title}</span>
+                  <span style={{ fontFamily:"'DM Sans'", fontSize:11, color:'oklch(50% 0.005 55)' }}>{n.time}</span>
+                </div>
+                <div style={{ fontFamily:"'DM Sans'", fontSize:12, color:'oklch(72% 0.005 55)' }}>{n.body}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 03 — HOME SCREEN PHONE
+// ═══════════════════════════════════════════════════════════════
+function HomeScreenPhone({ rest, session }) {
+  return (
+    <div className="phone">
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(160deg, oklch(9% 0.028 38) 0%, oklch(6% 0.018 42) 40%, oklch(9% 0.030 30) 75%, oklch(7% 0.022 38) 100%)' }}>
+        <div style={{ position:'absolute', top:60, right:20, width:200, height:200, borderRadius:'50%', background:'radial-gradient(circle, oklch(72% 0.22 52 / 0.14) 0%, transparent 70%)' }} />
+      </div>
+      <div style={{ position:'relative', zIndex:1, height:'100%', display:'flex', flexDirection:'column' }}>
+        <PhoneStatusBar time="9:41" />
+
+        {/* Dynamic Island pill */}
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:4, paddingBottom:10, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, background:'#000', borderRadius:99, padding:'0 14px 0 7px', height:34, boxShadow:'0 4px 20px oklch(0% 0 0 / 0.65)' }}>
+            <Ring size={24} sw={2.5} value={rest.secs} max={rest.total} color={COOL} trackColor="oklch(100% 0 0 / 0.12)">
+              <span style={{ fontFamily:"'DM Mono'", fontSize:6, color:COOL }}>⏱</span>
+            </Ring>
+            <span style={{ fontFamily:"'DM Mono'", fontSize:12, fontWeight:700, color:'#fff' }}>{rest.display}</span>
+            <div style={{ width:1, height:13, background:'oklch(100% 0 0 / 0.14)' }} />
+            <span style={{ fontFamily:"'DM Sans'", fontSize:12, fontWeight:600, color:GOLD }}>Bench S3</span>
+          </div>
+        </div>
+
+        {/* Widgets */}
+        <div style={{ flex:1, padding:'0 14px', display:'flex', flexDirection:'column', gap:14, overflow:'hidden' }}>
+
+          {/* Medium */}
+          <div style={{ height:160, borderRadius:24, background:'linear-gradient(140deg, oklch(14% 0.07 52) 0%, oklch(7% 0.022 35) 100%)', border:`1px solid ${GOLD}20`, position:'relative', overflow:'hidden', padding:'14px 16px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+            <div style={{ position:'absolute', top:-20, right:30, width:120, height:120, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}12 0%, transparent 70%)` }} />
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+                  <AppIcon size={17}/>
+                  <span style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:'oklch(38% 0.006 48)', letterSpacing:'0.05em', textTransform:'uppercase' }}>Push Day · Day 3</span>
+                </div>
+                <div style={{ fontFamily:"'DM Sans'", fontSize:20, fontWeight:800, color:'#fff', letterSpacing:'-0.03em', lineHeight:1 }}>Bench Press</div>
+                <div style={{ fontFamily:"'DM Mono'", fontSize:11, color:GOLD, fontWeight:600, marginTop:3 }}>Set 3/4 · 100 kg × 8–12</div>
+              </div>
+              <Ring size={48} sw={4.5} value={7} max={11} color={GOLD} trackColor="oklch(100% 0 0 / 0.08)">
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontFamily:"'DM Mono'", fontSize:11, fontWeight:800, color:'#fff', lineHeight:1 }}>7/11</div>
+                  <div style={{ fontFamily:"'DM Sans'", fontSize:7, color:'oklch(36% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.04em' }}>sets</div>
+                </div>
+              </Ring>
+            </div>
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+                <span style={{ fontFamily:"'DM Sans'", fontSize:10, color:'oklch(38% 0.006 48)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em' }}>Session</span>
+                <span style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD }}>{session} · 2.1k kg</span>
+              </div>
+              <div style={{ height:4, borderRadius:99, background:'oklch(100% 0 0 / 0.10)', overflow:'hidden' }}>
+                <div style={{ width:'64%', height:'100%', background:`linear-gradient(90deg, ${FIRE}, ${GOLD})`, borderRadius:99, boxShadow:`0 0 6px ${GOLD}55`, transition:'width 0.5s ease' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Two smalls */}
+          <div style={{ display:'flex', gap:14 }}>
+            {/* Rest timer small */}
+            <div style={{ flex:1, aspectRatio:'1', borderRadius:24, background:'linear-gradient(140deg, oklch(11% 0.04 210) 0%, oklch(7% 0.022 35) 100%)', border:`1px solid ${COOL}22`, padding:'13px 12px', display:'flex', flexDirection:'column', justifyContent:'space-between', overflow:'hidden', position:'relative' }}>
+              <div style={{ position:'absolute', top:-8, right:-8, width:80, height:80, borderRadius:'50%', background:`radial-gradient(circle, ${COOL}20 0%, transparent 70%)` }} />
+              <div style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:'oklch(36% 0.006 48)', letterSpacing:'0.05em', textTransform:'uppercase' }}>Rest</div>
+              <Ring size={72} sw={5.5} value={rest.secs} max={rest.total} color={COOL} trackColor="oklch(100% 0 0 / 0.10)">
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontFamily:"'DM Mono'", fontSize:16, fontWeight:800, color:'#fff', letterSpacing:'-0.04em', lineHeight:1 }}>{rest.display}</div>
+                </div>
+              </Ring>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:9, color:COOL, fontWeight:600 }}>Next: S4 Bench</div>
+            </div>
+
+            {/* Session small */}
+            <div style={{ flex:1, aspectRatio:'1', borderRadius:24, background:`linear-gradient(140deg, oklch(15% 0.07 52) 0%, oklch(7% 0.030 35) 100%)`, border:`1px solid ${GOLD}22`, padding:'13px 12px', display:'flex', flexDirection:'column', justifyContent:'space-between', overflow:'hidden', position:'relative' }}>
+              <div style={{ position:'absolute', top:-8, right:-8, width:80, height:80, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}18 0%, transparent 70%)` }} />
+              <div style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:'oklch(36% 0.006 48)', letterSpacing:'0.05em', textTransform:'uppercase' }}>Session</div>
+              <div>
+                <div style={{ fontFamily:"'DM Mono'", fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.05em', lineHeight:1, textShadow:`0 0 18px ${GOLD}44` }}>{session}</div>
+                <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, fontWeight:600, marginTop:4 }}>2.1k kg vol.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom dock hint */}
+        <div style={{ height:56, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:134, height:5, borderRadius:99, background:'oklch(100% 0 0 / 0.20)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 04 — STANDALONE WIDGETS (size reference)
+// ═══════════════════════════════════════════════════════════════
+function WidgetSmall({ rest }) {
+  return (
+    <div className="widget-chrome" style={{ width:169, height:169, background:'linear-gradient(135deg, oklch(15% 0.07 52) 0%, oklch(7% 0.030 35) 100%)', border:`1px solid ${GOLD}22`, padding:'15px 14px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+      <div style={{ position:'absolute', top:-15, right:-15, width:90, height:90, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}18 0%, transparent 70%)` }} />
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <AppIcon size={26}/>
+        <span style={{ fontFamily:"'DM Mono'", fontSize:10, color:'oklch(38% 0.006 48)', fontWeight:600 }}>Day 3</span>
+      </div>
+      <div>
+        <div style={{ fontFamily:"'DM Mono'", fontSize:34, fontWeight:800, color:'#fff', letterSpacing:'-0.05em', lineHeight:1, textShadow:`0 0 22px ${GOLD}44` }}>{rest.display}</div>
+        <div style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:GOLD, marginTop:5, letterSpacing:'0.04em', textTransform:'uppercase' }}>Rest Timer</div>
+      </div>
+    </div>
+  );
+}
+
+function WidgetMedium({ rest, session }) {
+  return (
+    <div className="widget-chrome" style={{ width:358, height:169, background:'linear-gradient(135deg, oklch(13% 0.06 50) 0%, oklch(7% 0.022 35) 100%)', border:'1px solid oklch(100% 0 0 / 0.09)', padding:'15px 17px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+      <div style={{ position:'absolute', top:-24, right:60, width:140, height:140, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}0E 0%, transparent 70%)` }} />
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <AppIcon size={20}/>
+          <div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:14, fontWeight:800, color:'#fff', letterSpacing:'-0.02em' }}>Bench Press</div>
+            <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, fontWeight:600 }}>Set 3/4 · 100 kg × 8–12</div>
+          </div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontFamily:"'DM Mono'", fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-0.04em', lineHeight:1 }}>{session}</div>
+          <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(38% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600, marginTop:2 }}>Elapsed</div>
+        </div>
+      </div>
+      <div>
+        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:5 }}>
+          <span style={{ fontFamily:"'DM Sans'", fontSize:10, color:'oklch(38% 0.006 48)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em' }}>Push Day · Progress</span>
+          <span style={{ fontFamily:"'DM Mono'", fontSize:10, color:GOLD, fontWeight:700 }}>7/11 sets</span>
+        </div>
+        <div style={{ height:4, borderRadius:99, background:'oklch(100% 0 0 / 0.10)', overflow:'hidden' }}>
+          <div style={{ width:`${7/11*100}%`, height:'100%', background:`linear-gradient(90deg, ${FIRE}, ${GOLD})`, borderRadius:99, boxShadow:`0 0 7px ${GOLD}55` }} />
+        </div>
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div style={{ display:'flex', gap:16 }}>
+          {[{l:'Volume',v:'2.1k kg',c:'#fff'},{l:'Rest',v:rest.display,c:COOL}].map((s,i)=>(
+            <div key={i}>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:14, fontWeight:800, color:s.c, letterSpacing:'-0.03em', lineHeight:1 }}>{s.v}</div>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(36% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600, marginTop:2 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background:`${GOLD}1A`, border:`1px solid ${GOLD}33`, borderRadius:99, padding:'4px 10px' }}>
+          <span style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:GOLD, letterSpacing:'0.04em', textTransform:'uppercase' }}>Cycle 4</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WidgetLarge({ rest, session }) {
+  const exs = [
+    { name:'Bench Press',      active:true,  sets:4, curr:3, w:'100 kg'  },
+    { name:'Incline DB Press', active:false, sets:3, curr:0, w:'32 kg'   },
+    { name:'Cable Fly',        active:false, sets:4, curr:0, w:'22.5 kg' },
+  ];
+  return (
+    <div className="widget-chrome" style={{ width:358, height:379, background:'linear-gradient(160deg, oklch(13% 0.06 50) 0%, oklch(7% 0.022 35) 100%)', border:'1px solid oklch(100% 0 0 / 0.09)', padding:'17px 17px', display:'flex', flexDirection:'column', gap:14 }}>
+      <div style={{ position:'absolute', top:-30, right:20, width:180, height:180, borderRadius:'50%', background:`radial-gradient(circle, ${GOLD}0B 0%, transparent 70%)` }} />
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:4 }}>
+            <AppIcon size={18}/>
+            <span style={{ fontFamily:"'DM Sans'", fontSize:10, fontWeight:700, color:'oklch(38% 0.006 48)', letterSpacing:'0.06em', textTransform:'uppercase' }}>Push Day · Day 3</span>
+          </div>
+          <div style={{ fontFamily:"'DM Sans'", fontSize:24, fontWeight:800, color:'#fff', letterSpacing:'-0.04em' }}>Active Session</div>
+        </div>
+        <Ring size={52} sw={5} value={7} max={11} color={GOLD} trackColor="oklch(100% 0 0 / 0.10)">
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:"'DM Mono'", fontSize:12, fontWeight:800, color:'#fff', lineHeight:1 }}>7/11</div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:7, color:'oklch(38% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.04em' }}>sets</div>
+          </div>
+        </Ring>
+      </div>
+      {/* Stats */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+        {[{l:'Elapsed',v:session,c:'#fff'},{l:'Volume',v:'2.1k kg',c:'#fff'},{l:'Rest',v:rest.display,c:COOL}].map((s,i)=>(
+          <div key={i} style={{ background:'oklch(100% 0 0 / 0.06)', borderRadius:12, padding:'9px 10px' }}>
+            <div style={{ fontFamily:"'DM Mono'", fontSize:13, fontWeight:800, color:s.c, letterSpacing:'-0.03em', lineHeight:1 }}>{s.v}</div>
+            <div style={{ fontFamily:"'DM Sans'", fontSize:8, color:'oklch(36% 0.006 48)', textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600, marginTop:3 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      {/* Exercise rows */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:5 }}>
+        {exs.map((ex,i) => (
+          <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 11px', borderRadius:12, background:ex.active?`${GOLD}12`:'oklch(100% 0 0 / 0.04)', border:ex.active?`1px solid ${GOLD}22`:'1px solid oklch(100% 0 0 / 0.06)' }}>
+            <div style={{ width:7, height:7, borderRadius:'50%', flexShrink:0, background:ex.active?GOLD:'oklch(24% 0.008 48)', boxShadow:ex.active?`0 0 6px ${GOLD}`:'none' }} />
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:ex.active?700:500, color:ex.active?'#fff':'oklch(48% 0.006 48)', letterSpacing:'-0.01em' }}>{ex.name}</div>
+            </div>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:11, color:ex.active?GOLD:'oklch(30% 0.006 48)' }}>{ex.active?`Set ${ex.curr}/${ex.sets}`:`${ex.sets} sets`}</div>
+              <div style={{ fontFamily:"'DM Mono'", fontSize:10, color:'oklch(30% 0.006 48)' }}>{ex.w}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 05 — NOTIFICATION CARDS
+// ═══════════════════════════════════════════════════════════════
+function NotifCard({ icon, title, body, time, accentColor }) {
+  const ac = accentColor || GOLD;
+  return (
+    <div style={{ display:'flex', alignItems:'flex-start', gap:12, background:`${ac}08`, backdropFilter:'blur(24px) saturate(180%)', WebkitBackdropFilter:'blur(24px) saturate(180%)', border:`1px solid ${ac}25`, borderRadius:18, padding:'14px 16px', boxShadow:'0 4px 24px oklch(0% 0 0 / 0.28), inset 0 1px 0 oklch(100% 0 0 / 0.12)' }}>
+      <div style={{ width:40, height:40, borderRadius:12, background:'oklch(8% 0.022 38)', border:`1px solid ${ac}25`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+        <AppIcon size={38}/>
+      </div>
+      <div style={{ flex:1 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:3 }}>
+          <span style={{ fontFamily:"'DM Sans'", fontSize:13, fontWeight:700, color:'oklch(97% 0.005 55)' }}>{icon} {title}</span>
+          <span style={{ fontFamily:"'DM Sans'", fontSize:11, color:'oklch(42% 0.006 48)', marginLeft:8, flexShrink:0 }}>{time}</span>
+        </div>
+        <div style={{ fontFamily:"'DM Sans'", fontSize:13, color:'oklch(64% 0.008 50)', lineHeight:1.45 }}>{body}</div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════
+function App() {
+  const rest    = useCountdown(90);
+  const session = useSessionTimer(32 * 60 + 17);
+
+  return (
+    <div style={{ minHeight:'100vh', background:'oklch(7% 0.020 36)', color:'#fff', fontFamily:"'DM Sans', sans-serif" }}>
+      {/* Ambient orbs */}
+      <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0 }}>
+        <div style={{ position:'absolute', top:-80, right:'12%', width:440, height:440, borderRadius:'50%', background:'radial-gradient(circle, oklch(72% 0.22 52 / 0.07) 0%, transparent 70%)' }} />
+        <div style={{ position:'absolute', bottom:'8%', left:'4%', width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle, oklch(60% 0.22 28 / 0.05) 0%, transparent 70%)' }} />
+      </div>
+
+      <div style={{ position:'relative', zIndex:1, maxWidth:1080, margin:'0 auto', padding:'0 28px 80px' }}>
+
+        {/* ── PAGE HEADER ── */}
+        <div style={{ padding:'40px 0 36px', borderBottom:'1px solid oklch(100% 0 0 / 0.07)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:12 }}>
+            <AppIcon size={26}/>
+            <span style={{ fontFamily:"'DM Mono'", fontSize:11, fontWeight:600, color:GOLD, letterSpacing:'0.08em', textTransform:'uppercase' }}>Se7en · Widgets</span>
+          </div>
+          <h1 style={{ fontFamily:"'DM Sans'", fontSize:44, fontWeight:800, letterSpacing:'-0.05em', lineHeight:1.05, marginBottom:10 }}>
+            Off-screen<br/><span style={{ color:GOLD, textShadow:`0 0 44px ${GOLD}50` }}>Widgets</span>
+          </h1>
+          <p style={{ fontFamily:"'DM Sans'", fontSize:14, color:'oklch(46% 0.008 50)', lineHeight:1.7, maxWidth:480 }}>
+            Your workout, always visible — without opening the app. Dynamic Island, Lock Screen, Home Screen, and Notification types for the Se7en 7-day cycle tracker.
+          </p>
+        </div>
+
+        {/* 01 — DYNAMIC ISLAND */}
+        <section style={{ paddingTop:52 }}>
+          <div className="sec-label">
+            <span className="sec-num">01</span>
+            <span className="sec-title">Dynamic Island · Live Activity</span>
+            <div className="sec-line"/>
+          </div>
+          <DynamicIslandSection rest={rest} session={session} />
+        </section>
+
+        {/* 02 — PHONES */}
+        <section style={{ paddingTop:60 }}>
+          <div className="sec-label">
+            <span className="sec-num">02</span>
+            <span className="sec-title">Lock Screen &amp; Home Screen · In Context</span>
+            <div className="sec-line"/>
+          </div>
+          <div style={{ display:'flex', gap:32, flexWrap:'wrap', justifyContent:'center' }}>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+              <LockScreenPhone rest={rest}/>
+              <span className="widget-label">Lock Screen · Widgets + Notifications</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+              <HomeScreenPhone rest={rest} session={session}/>
+              <span className="widget-label">Home Screen · Medium + 2× Small</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 03 — SIZES */}
+        <section style={{ paddingTop:60 }}>
+          <div className="sec-label">
+            <span className="sec-num">03</span>
+            <span className="sec-title">Widget Sizes · Isolated</span>
+            <div className="sec-line"/>
+          </div>
+          <div style={{ display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-start' }}>
+            <div>
+              <WidgetSmall rest={rest}/>
+              <div className="widget-label" style={{ marginTop:8 }}>Small · 169×169</div>
+            </div>
+            <div>
+              <WidgetMedium rest={rest} session={session}/>
+              <div className="widget-label" style={{ marginTop:8 }}>Medium · 358×169</div>
+            </div>
+            <div>
+              <WidgetLarge rest={rest} session={session}/>
+              <div className="widget-label" style={{ marginTop:8 }}>Large · 358×379</div>
+            </div>
+          </div>
+        </section>
+
+        {/* 04 — NOTIFICATIONS */}
+        <section style={{ paddingTop:60 }}>
+          <div className="sec-label">
+            <span className="sec-num">04</span>
+            <span className="sec-title">Notification Types</span>
+            <div className="sec-line"/>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, maxWidth:540 }}>
+            <NotifCard icon="🏆" title="New PR — Bench Press" body="100 kg × 12 reps. That's +5 kg from your last session. All-time record." time="now" accentColor={GOLD}/>
+            <NotifCard icon="⏱" title="Rest Complete" body="Ready for Set 4 of Bench Press · 100 kg × 8–12 reps" time="1m ago" accentColor={COOL}/>
+            <NotifCard icon="💪" title="Push Day — Day 3" body="Your next workout is scheduled. Last session: 3 days ago. Cycle 4 in progress." time="8:00 AM" accentColor="oklch(100% 0 0 / 0.25)"/>
+            <NotifCard icon="🔁" title="Cycle 4 Complete!" body="7 days, 7 workouts. Total volume: 28,400 kg. Cycle 5 starts tomorrow." time="yesterday" accentColor={FIRE}/>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
