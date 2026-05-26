@@ -102,7 +102,7 @@ Rules:
 // Returns a compact plain-text block (~300 tokens).
 
 async function buildStructuredContext(uid: string): Promise<string> {
-  const { sessions }   = useSessionStore.getState();
+  const { sessions, activeSession } = useSessionStore.getState();
   const { activePlan } = usePlanStore.getState();
   const { settings }   = useSettingsStore.getState();
 
@@ -119,21 +119,35 @@ async function buildStructuredContext(uid: string): Promise<string> {
 
   // currentDayPos is 1-based slot index; look up by array position, not content dayPosition
   const todayDay = activePlan?.days[currentDayPos - 1] ?? null;
-  const todayLine = todayDay
-    ? todayDay.isRestDay
-      ? `Today (Day ${currentDayPos}): Rest day`
-      : `Today (Day ${currentDayPos}): ${todayDay.label} — ${todayDay.exercises.length} exercises`
-    : '';
+  let todayLines = '';
+  if (todayDay) {
+    if (todayDay.isRestDay) {
+      todayLines = `Today (Day ${currentDayPos}): Rest day`;
+    } else {
+      const exList = todayDay.exercises.map(ex => {
+        const muscles = ex.muscleTags?.join(', ');
+        return `  • ${ex.name}${muscles ? ` [${muscles}]` : ''}`;
+      }).join('\n');
+      todayLines = `Today (Day ${currentDayPos}): ${todayDay.label}\n${exList}`;
+    }
+  }
 
-  // Next non-rest day after today
+  // Next non-rest day — compare slot offsets, not content dayPosition IDs
   const nextDay = activePlan?.days
-    .filter(d => !d.isRestDay && d.dayPosition !== currentDayPos)
-    .sort((a, b) => {
-      const aOff = ((a.dayPosition - currentDayPos + 7) % 7) || 7;
-      const bOff = ((b.dayPosition - currentDayPos + 7) % 7) || 7;
-      return aOff - bOff;
-    })[0];
-  const nextLine = nextDay ? `Next session: ${nextDay.label} (Day ${nextDay.dayPosition})` : '';
+    .map((d, i) => ({ d, off: ((i - (currentDayPos - 1) + activePlan.days.length) % activePlan.days.length) }))
+    .filter(({ d, off }) => !d.isRestDay && off > 0)
+    .sort((a, b) => a.off - b.off)[0]?.d ?? null;
+  const nextLine = nextDay ? `Next session: ${nextDay.label}` : '';
+
+  // ── Active session (in-progress workout) ────────────────────────────────────
+  let activeSessionBlock = '';
+  if (activeSession) {
+    const exLines = activeSession.exercises.map(ex => {
+      const done = ex.sets.filter(s => s.isCompleted).length;
+      return `  • ${ex.exerciseName}: ${done}/${ex.sets.length} sets${ex.rpe ? ` · RPE ${ex.rpe}` : ''}`;
+    }).join('\n');
+    activeSessionBlock = `Active session in progress: ${activeSession.dayLabel}\n${exLines}`;
+  }
 
   // ── Session stats — last 30 days ────────────────────────────────────────────
   const recent    = sessions.filter(s => (s.finishedAt ?? '') >= cutoff30);
@@ -201,8 +215,9 @@ async function buildStructuredContext(uid: string): Promise<string> {
   // ── Assemble ─────────────────────────────────────────────────────────────────
   return [
     `Plan: ${planLine}`,
-    todayLine,
+    todayLines,
     nextLine,
+    activeSessionBlock,
     '',
     `Consistency (30d): ${completed.length} completed · ${missed.length} missed · ${pct}%`,
     streak > 1 ? `Streak: ${streak} consecutive sessions` : '',
@@ -223,9 +238,11 @@ async function buildNoteContext(uid: string, query?: string): Promise<string> {
 
     if (notes.length === 0) return '';
 
-    const lines = notes.map(n =>
-      `[${n.workout_date ?? '?'} · ${n.exercise_name}${n.rpe ? ` · RPE ${n.rpe}` : ''}] ${n.note_text}`
-    );
+    const lines = notes.map(n => {
+      const meta     = `[${n.workout_date ?? '?'} · ${n.exercise_name}${n.rpe ? ` · RPE ${n.rpe}` : ''}]`;
+      const noteText = n.note_text.trim();
+      return noteText ? `${meta} ${noteText}` : meta;
+    });
     return 'Recent workout notes:\n' + lines.join('\n');
   } catch (e) {
     __DEV__ && console.warn('[se7en/coach] Note context:', e);

@@ -202,7 +202,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     // 2. Fire-and-forget: embed the note and store it in Neon
     // Only runs when there is a non-trivial note and a valid RPE score.
-    if (!note.trim() || rpe <= 0) return;
+    if (rpe <= 0) return;
 
     const session = get().activeSession;
     if (!session) return;

@@ -138,7 +138,7 @@ function buildEmbedText(params: {
     `Exercise: ${params.exerciseName}`,
     params.muscleGroup ? `Muscles: ${params.muscleGroup}` : null,
     params.rpe > 0     ? `RPE: ${params.rpe}/10`          : null,
-    `Note: ${params.note}`,
+    params.note.trim() ? `Note: ${params.note}` : null,
   ].filter(Boolean).join(' | ');
 }
 
@@ -146,7 +146,6 @@ function buildEmbedText(params: {
 // Upserts on (session_id, exercise_id) so edits replace the previous embedding.
 
 export async function storeNoteEmbedding(params: StoreNoteParams): Promise<void> {
-  if (!params.note.trim()) return;
   if (!isEmbeddingConfigured()) {
     __DEV__ && console.warn('[se7en/embed] Skipped — env vars not configured');
     return;
