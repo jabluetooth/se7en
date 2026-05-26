@@ -443,6 +443,8 @@ export function OnboardingScreen({ onComplete }: Props) {
           placeholder="e.g. My PPL Plan"
           placeholderTextColor={colors.textMuted}
           maxLength={50}
+          autoComplete="off"
+          autoCorrect={false}
         />
 
         {/* Days preview */}
