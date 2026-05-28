@@ -2,14 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StatusBar, UIManager, Platform } from 'react-native';
 import type { User } from 'firebase/auth';
 import { useFonts } from 'expo-font';
-import {
-  Syne_400Regular, Syne_500Medium, Syne_600SemiBold,
-  Syne_700Bold, Syne_800ExtraBold,
-} from '@expo-google-fonts/syne';
-import {
-  JetBrainsMono_400Regular, JetBrainsMono_700Bold,
-  JetBrainsMono_800ExtraBold,
-} from '@expo-google-fonts/jetbrains-mono';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -29,10 +21,14 @@ import { COLORS }           from './src/constants';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Syne_400Regular, Syne_500Medium, Syne_600SemiBold,
-    Syne_700Bold, Syne_800ExtraBold,
-    JetBrainsMono_400Regular, JetBrainsMono_700Bold,
-    JetBrainsMono_800ExtraBold,
+    Syne_400Regular:           require('@expo-google-fonts/syne/400Regular/Syne_400Regular.ttf'),
+    Syne_500Medium:            require('@expo-google-fonts/syne/500Medium/Syne_500Medium.ttf'),
+    Syne_600SemiBold:          require('@expo-google-fonts/syne/600SemiBold/Syne_600SemiBold.ttf'),
+    Syne_700Bold:              require('@expo-google-fonts/syne/700Bold/Syne_700Bold.ttf'),
+    Syne_800ExtraBold:         require('@expo-google-fonts/syne/800ExtraBold/Syne_800ExtraBold.ttf'),
+    JetBrainsMono_400Regular:  require('@expo-google-fonts/jetbrains-mono/400Regular/JetBrainsMono_400Regular.ttf'),
+    JetBrainsMono_700Bold:     require('@expo-google-fonts/jetbrains-mono/700Bold/JetBrainsMono_700Bold.ttf'),
+    JetBrainsMono_800ExtraBold: require('@expo-google-fonts/jetbrains-mono/800ExtraBold/JetBrainsMono_800ExtraBold.ttf'),
   });
 
   const { initialised, startListener } = useAuthStore();
