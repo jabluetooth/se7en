@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WeightUnit } from '../../../types';
 import { fmtDate } from '../../../utils/format';
 import { ExerciseSessionPoint } from '../../../utils/exerciseHistory';
@@ -29,7 +29,7 @@ export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
   if (data.length < 2) {
     return (
       <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 11, color: COLORS.textMuted }}>Need 2+ sessions to chart</Text>
+        <Text style={{ fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted }}>Need 2+ sessions to chart</Text>
       </View>
     );
   }

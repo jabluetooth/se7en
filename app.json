@@ -54,7 +54,8 @@
           "savePhotosPermission": "Allow Se7en to save workout summary images to your photos.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

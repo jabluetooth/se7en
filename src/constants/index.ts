@@ -202,3 +202,15 @@ export const BORDER_RADIUS = {
 export const DOCK_HEIGHT              = 72;
 export const ANALYTICS_DEFAULT_DAYS  = 14;
 export const MAX_BACKUPS             = 7;
+
+export const FONTS = {
+  display:  'Syne_800ExtraBold',
+  headline: 'Syne_700Bold',
+  label:    'Syne_700Bold',      // same face as headline, used for ALL-CAPS labels
+  semibold: 'Syne_600SemiBold',
+  medium:   'Syne_500Medium',
+  body:     'Syne_400Regular',
+  data:     'JetBrainsMono_800ExtraBold',
+  dataBold: 'JetBrainsMono_700Bold',
+  dataSub:  'JetBrainsMono_400Regular',
+} as const;

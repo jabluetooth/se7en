@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { usePRStore } from '../../stores/prStore';
 import { WorkoutSession } from '../../types';
-import { COLORS, DAY_COLOR } from '../../constants';
+import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { fmtVol as fmtNum } from '../../utils/format';
 
@@ -26,9 +26,11 @@ function toRgba(hex: string, a: number): string {
 }
 
 interface Props {
-  sessions:   WorkoutSession[];
-  currentDay: number;
-  onNavigate: (tab: TabName) => void;
+  sessions:       WorkoutSession[];
+  currentDay:     number;
+  cycleStartDate: string | null;
+  planLength:     number;
+  onNavigate:     (tab: TabName) => void;
 }
 
 interface CardModel {
@@ -44,33 +46,41 @@ interface CardModel {
   tab:     TabName;
 }
 
-function weekVol(sessions: WorkoutSession[], daysBack: number, span: number): number {
-  const now   = Date.now();
-  const start = now - daysBack * 86_400_000;
-  const end   = now - (daysBack - span) * 86_400_000;
-  return sessions
-    .filter(s => s.status === 'completed' && s.finishedAt)
-    .filter(s => {
-      const t = new Date(s.finishedAt!).getTime();
-      return t >= start && t < end;
-    })
-    .reduce((a, s) => a + s.totalVolume, 0);
-}
-
 // Local wrapper so "no data yet" (v === 0) shows an em-dash instead of "0".
 function fmtVol(v: number): string {
   if (v === 0) return '—';
   return fmtNum(v);
 }
 
-export function HighlightSlideshow({ sessions, currentDay, onNavigate }: Props) {
+export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planLength, onNavigate }: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
   const { records } = usePRStore();
 
   const completed = sessions.filter(s => s.status === 'completed' && s.finishedAt);
 
-  const lastSession = completed.length > 0
-    ? [...completed].sort(
+  // ── Cycle boundaries ──────────────────────────────────────────────────────
+  const cycleStart    = cycleStartDate ? new Date(cycleStartDate + 'T00:00:00') : null;
+  const cycleEnd      = cycleStart ? new Date(+cycleStart + planLength * 86_400_000) : null;
+  const prevCycleStart = cycleStart ? new Date(+cycleStart - planLength * 86_400_000) : null;
+
+  const inWindow = (s: WorkoutSession, from: Date | null, to: Date | null) => {
+    if (!from || !to || !s.finishedAt) return false;
+    const t = new Date(s.finishedAt).getTime();
+    return t >= from.getTime() && t < to.getTime();
+  };
+
+  const thisCycleSessions = completed.filter(s => inWindow(s, cycleStart, cycleEnd));
+  const prevCycleSessions = completed.filter(s => inWindow(s, prevCycleStart, cycleStart));
+
+  const thisCycleVol  = thisCycleSessions.reduce((a, s) => a + s.totalVolume, 0);
+  const prevCycleVol  = prevCycleSessions.reduce((a, s) => a + s.totalVolume, 0);
+  const cycleVolDelta = prevCycleVol > 0
+    ? Math.round(((thisCycleVol - prevCycleVol) / prevCycleVol) * 100)
+    : thisCycleVol > 0 ? 100 : 0;
+
+  // Most recent completed session within the current cycle
+  const lastSession = thisCycleSessions.length > 0
+    ? [...thisCycleSessions].sort(
         (a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime(),
       )[0]
     : null;
@@ -81,56 +91,45 @@ export function HighlightSlideshow({ sessions, currentDay, onNavigate }: Props) 
       )[0]
     : null;
 
-  const thisWeek     = weekVol(sessions, 7, 7);
-  const lastWeek     = weekVol(sessions, 14, 7);
-  const weekSessions = completed.filter(
-    s => new Date(s.finishedAt!).getTime() >= Date.now() - 7 * 86_400_000,
-  );
-  const volDelta = lastWeek > 0
-    ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100)
-    : thisWeek > 0 ? 100 : 0;
-
   const cards: CardModel[] = [
     {
-      id:   'progress',
-      tag:  'PROGRESS',
-      icon: 'pulse',
-      hero: fmtVol(thisWeek),
-      unit: thisWeek > 0 ? 'kg this week' : 'no data yet',
+      id:    'progress',
+      tag:   'CYCLE PROGRESS',
+      icon:  'pulse',
+      hero:  fmtVol(thisCycleVol),
+      unit:  thisCycleVol > 0 ? 'kg this cycle' : 'no data yet',
       title: 'Progress',
-      sub:  weekSessions.length > 0
-        ? `${weekSessions.length} session${weekSessions.length !== 1 ? 's' : ''} · ${volDelta > 0 ? '+' : ''}${volDelta}% vs last week`
-        : 'No sessions this week yet',
+      sub:   thisCycleSessions.length > 0
+        ? `${thisCycleSessions.length} session${thisCycleSessions.length !== 1 ? 's' : ''} · ${cycleVolDelta > 0 ? '+' : ''}${cycleVolDelta}% vs last cycle`
+        : 'No sessions this cycle yet',
       grad: ['#CC4A00', '#FF8C00', '#FFA940'] as const,
       hi:   '#FFD080',
       tab:  'Progress',
     },
     {
-      id:   'pr',
-      tag:  'PERSONAL RECORD',
-      icon: 'trophy',
-      hero: latestPR ? `${latestPR.heaviestWeight}` : '—',
-      unit: latestPR ? 'kg' : 'no records yet',
+      id:    'pr',
+      tag:   'PERSONAL RECORD',
+      icon:  'trophy',
+      hero:  latestPR ? `${latestPR.heaviestWeight}` : '—',
+      unit:  latestPR ? 'kg' : 'no records yet',
       title: 'Records',
-      sub:  latestPR ? latestPR.exerciseName : 'Train to set your first PR',
-      grad: ['#2A0F9E', '#5B30D6', '#8B63FF'] as const,
-      hi:   '#C4AAFF',
-      tab:  'Progress',
+      sub:   latestPR ? latestPR.exerciseName : 'Train to set your first PR',
+      grad:  ['#2A0F9E', '#5B30D6', '#8B63FF'] as const,
+      hi:    '#C4AAFF',
+      tab:   'Progress',
     },
     {
-      id:   'prev',
-      tag:  'PREVIOUS SESSION',
-      icon: 'barbell',
-      hero: lastSession ? fmtVol(lastSession.totalVolume) : '—',
-      unit: lastSession ? 'kg lifted' : 'no sessions yet',
+      id:    'prev',
+      tag:   'LAST SESSION',
+      icon:  'barbell',
+      hero:  lastSession ? fmtVol(lastSession.totalVolume) : '—',
+      unit:  lastSession ? 'kg lifted' : 'no sessions yet',
       title: 'Last Session',
-      sub:  lastSession
-        ? `Day ${lastSession.dayPosition} · ${lastSession.exercises.length} exercise${lastSession.exercises.length !== 1 ? 's' : ''}`
+      sub:   lastSession
+        ? `${lastSession.dayLabel} · ${lastSession.exercises.length} exercise${lastSession.exercises.length !== 1 ? 's' : ''}`
         : 'Complete a workout to see history',
       grad: ['#062D6B', '#0D5BC4', '#3A94F5'] as const,
       hi:   '#8FCEFF',
-      // Last session lives in the cycle's day timeline — route there so the
-      // user lands on the day card they just completed.
       tab:  'Cycle',
     },
   ];
@@ -236,8 +235,8 @@ function PanelRow({ card }: { card: CardModel }) {
 const s = StyleSheet.create({
   wrap:  { marginBottom: 8 },
   label: {
-    fontSize: 11, fontWeight: '800', color: COLORS.textMuted,
-    letterSpacing: 1, textTransform: 'uppercase',
+    fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted,
+    letterSpacing: 0.88, textTransform: 'uppercase',
     marginBottom: 10, marginHorizontal: SIDE,
   },
 
@@ -255,7 +254,7 @@ const s = StyleSheet.create({
     borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
-  tagTxt:     { fontSize: 8, fontWeight: '800', color: 'rgba(255,255,255,0.78)', letterSpacing: 1.2, textTransform: 'uppercase' },
+  tagTxt:     { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.64, textTransform: 'uppercase' },
   iconCircle: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.24)',
@@ -264,14 +263,14 @@ const s = StyleSheet.create({
   },
 
   heroWrap: { paddingHorizontal: 16, paddingBottom: 8 },
-  heroNum:  { fontSize: 54, fontWeight: '900', color: '#fff', letterSpacing: -2, lineHeight: 58 },
-  heroUnit: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3, marginTop: -2 },
+  heroNum:  { fontSize: 54, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -2.16, lineHeight: 58 },
+  heroUnit: { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, letterSpacing: -0.36, marginTop: -2 },
 
   panel:      { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.09)', overflow: 'hidden' },
   panelRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   panelText:  { flex: 1 },
-  panelTitle: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  panelSub:   { fontSize: 11, color: 'rgba(255,255,255,0.52)', marginTop: 2 },
+  panelTitle: { fontSize: 14, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.56 },
+  panelSub:   { fontSize: 11, fontFamily: FONTS.body, color: 'rgba(255,255,255,0.52)', marginTop: 2 },
   arrow:      { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 
   dots:      { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 11 },

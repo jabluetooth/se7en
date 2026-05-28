@@ -9,7 +9,7 @@ import { GlassView } from '../../components/common/GlassView';
 import { AppBackground } from '../../components/ui/AppBackground';
 import {
   COLORS, MUSCLE_TAGS, MUSCLE_TAG_COLOR,
-  SET_TYPE_LABELS, BAR_WEIGHTS,
+  SET_TYPE_LABELS, BAR_WEIGHTS, FONTS,
 } from '../../constants';
 import { Exercise, SetType, WeightUnit } from '../../types';
 import { EXERCISE_LIBRARY } from '../../data/exercises';
@@ -75,7 +75,7 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 0 },
   btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
   val: { minWidth: 56, alignItems: 'center', paddingHorizontal: 12 },
-  num: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  num: { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.04 },
 });
 
 // ─── Search suggestions ───────────────────────────────────────────────────────
@@ -124,13 +124,13 @@ function Suggestions({
 
 const sg = StyleSheet.create({
   wrap:     { marginTop: 10, marginBottom: 6 },
-  label:    { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  label:    { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)', backgroundColor: 'rgba(255,240,220,0.04)', marginBottom: 6 },
   left:     { flex: 1 },
-  name:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  meta:     { fontSize: 11, color: COLORS.textMuted },
+  name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  meta:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
   badge:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  badgeTxt: { fontSize: 10, fontWeight: '700' },
+  badgeTxt: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
 });
 
 // ─── Form ──────────────────────────────────────────────────────────────────────
@@ -223,8 +223,8 @@ const sl = StyleSheet.create({
   tickWrap: { alignItems: 'center', gap: 3 },
   tick:     { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(255,240,220,0.18)' },
   tickActive:   { backgroundColor: COLORS.accent },
-  tickLbl:      { fontSize: 9, color: COLORS.textLabel, fontWeight: '500' },
-  tickLblActive:{ color: COLORS.accent, fontWeight: '700' },
+  tickLbl:      { fontSize: 9, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
+  tickLblActive:{ fontFamily: FONTS.headline, color: COLORS.accent, fontWeight: '700' },
 });
 
 const SET_TYPES: SetType[] = [
@@ -521,12 +521,12 @@ const f = StyleSheet.create({
   header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
   headerSide:  { width: 60 },
   headerRight: { alignItems: 'flex-end' },
-  cancel:      { fontSize: 16, color: COLORS.accent },
-  titleInput:  { flex: 1, fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, textAlign: 'center', padding: 0 },
-  save:        { fontSize: 16, fontWeight: '700', color: COLORS.accent },
+  cancel:      { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent },
+  titleInput:  { flex: 1, fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, textAlign: 'center', padding: 0 },
+  save:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:     { paddingHorizontal: 20, paddingTop: 4 },
-  fieldLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
 
   // Vertically stacked sections (sets, min reps, max reps)
   stackSection: { marginTop: 24 },
@@ -539,11 +539,11 @@ const f = StyleSheet.create({
 
   // Rest timer
   restHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  restCurrent: { fontSize: 13, fontWeight: '700', color: COLORS.accent },
+  restCurrent: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
 
   // Advanced toggle
   advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.09)' },
-  advancedLabel:  { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  advancedLabel:  { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   advancedRight:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tagDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
 
@@ -551,7 +551,7 @@ const f = StyleSheet.create({
   chipGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
   chipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.14)' },
-  chipTxt:    { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  chipTxt:    { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   chipTxtActive: { color: COLORS.accent },
 
   // Weight
@@ -562,10 +562,10 @@ const f = StyleSheet.create({
   unitCol:    { gap: 6 },
   unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', alignItems: 'center' },
   unitBtnActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.12)' },
-  unitTxt:    { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  unitTxt:    { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   unitTxtActive: { color: COLORS.accent },
 
   // Notes
   notesWrap:  { paddingHorizontal: 14, paddingVertical: 12 },
-  notesInput: { fontSize: 15, color: '#fff', padding: 0, minHeight: 60 },
+  notesInput: { fontSize: 15, fontFamily: FONTS.body, color: '#fff', padding: 0, minHeight: 60 },
 });

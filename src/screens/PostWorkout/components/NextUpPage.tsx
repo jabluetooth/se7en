@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated } from 'react-native';
 import { TrophyIcon } from '../../../components/common/TrophyIcon';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay, Exercise } from '../../../types';
 
 interface Props {
@@ -109,18 +109,18 @@ const s = StyleSheet.create({
   page:     { flex: 1, paddingHorizontal: 16, paddingTop: 8, justifyContent: 'space-between' },
 
   // Empty state
-  empty:    { fontSize: 16, fontWeight: '600', color: COLORS.textMuted, marginTop: 16 },
-  emptySub: { fontSize: 13, color: COLORS.textLabel, marginTop: 6 },
+  empty:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, marginTop: 16 },
+  emptySub: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6 },
 
   // Centered header
   head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 28, alignSelf: 'stretch' },
-  eyebrow:  { fontSize: 11, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
-  dayName:  { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, lineHeight: 36, textAlign: 'center' },
-  daySub:   { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
+  eyebrow:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.88, textTransform: 'uppercase' },
+  dayName:  { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
+  daySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
   // Animated list
   list:     { gap: 22, alignSelf: 'stretch', alignItems: 'center', paddingHorizontal: 8 },
   row:      { alignItems: 'center', gap: 5, alignSelf: 'stretch' },
-  exName:   { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, textAlign: 'center' },
-  exMeta:   { fontSize: 13, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.3, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  exName:   { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, textAlign: 'center' },
+  exMeta:   { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });

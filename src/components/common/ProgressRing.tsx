@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 
 interface Props {
   value: number;
@@ -40,7 +40,7 @@ export function ProgressRing({ value, max, size = 48, strokeWidth = 4, label }: 
       {label !== undefined && (
         <View style={StyleSheet.absoluteFill} pointerEvents='none'>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: done ? COLORS.accent : 'rgba(255,240,220,0.65)', letterSpacing: -0.3 }}>{label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '800', fontFamily: FONTS.display, color: done ? COLORS.accent : 'rgba(255,240,220,0.65)', letterSpacing: -0.44 }}>{label}</Text>
           </View>
         </View>
       )}

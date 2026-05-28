@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StatusBar, UIManager, Platform } from 'react-native';
 import type { User } from 'firebase/auth';
+import { useFonts } from 'expo-font';
+import {
+  Syne_400Regular, Syne_500Medium, Syne_600SemiBold,
+  Syne_700Bold, Syne_800ExtraBold,
+} from '@expo-google-fonts/syne';
+import {
+  JetBrainsMono_400Regular, JetBrainsMono_700Bold,
+  JetBrainsMono_800ExtraBold,
+} from '@expo-google-fonts/jetbrains-mono';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -19,6 +28,13 @@ import { AppNavigator }     from './src/navigation/AppNavigator';
 import { COLORS }           from './src/constants';
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Syne_400Regular, Syne_500Medium, Syne_600SemiBold,
+    Syne_700Bold, Syne_800ExtraBold,
+    JetBrainsMono_400Regular, JetBrainsMono_700Bold,
+    JetBrainsMono_800ExtraBold,
+  });
+
   const { initialised, startListener } = useAuthStore();
   const { settings, load: loadSettings, startSync: syncSettings, stopSync: stopSettings } = useSettingsStore();
   const { load: loadPlans,    startSync: syncPlans,    stopSync: stopPlans    } = usePlanStore();
@@ -58,6 +74,17 @@ export default function App() {
   }, []);
 
   const user = useAuthStore(s => s.user);
+
+  // Wait for custom fonts before rendering anything
+  if (!fontsLoaded) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+          <ActivityIndicator color={COLORS.accent} size="large" />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
 
   // Splash while Firebase resolves auth state
   if (!initialised) {

@@ -10,7 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { ViewShot, captureRef, isViewShotAvailable } from '../../compat/viewShot';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutDay } from '../../types';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { SummaryPage } from './components/SummaryPage';
@@ -47,7 +47,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const [menuOpen,  setMenuOpen]  = useState(false);
   const [busy,      setBusy]      = useState(false);
   const scrollRef  = useRef<ScrollView>(null);
-  const shotRef    = useRef<ViewShot>(null);
+  const shotRef    = useRef<InstanceType<typeof ViewShot>>(null);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const newPage = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -228,7 +228,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 const hd = StyleSheet.create({
   bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, height: 44 },
   backBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:      { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: -0.3, flex: 1, textAlign: 'center' },
+  title:      { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.45, flex: 1, textAlign: 'center' },
   rightSlot:  { width: 36, height: 36, alignItems: 'flex-end', justifyContent: 'center' },
   iconBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
   // Bottom-anchored page indicator (visible across all pages)
@@ -242,6 +242,6 @@ const mn = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 56, paddingRight: 12 },
   sheet:    { minWidth: 220, borderRadius: 14, backgroundColor: 'rgba(28,28,32,0.97)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', paddingVertical: 6 },
   item:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  itemTxt:  { fontSize: 14, fontWeight: '600', color: '#fff' },
+  itemTxt:  { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
   divider:  { height: 1, backgroundColor: 'rgba(255,240,220,0.08)', marginVertical: 2 },
 });

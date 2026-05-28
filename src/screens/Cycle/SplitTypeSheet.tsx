@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { GlassView } from '../../components/common/GlassView';
-import { COLORS, GRAD, DAY_COLOR } from '../../constants';
+import { COLORS, GRAD, DAY_COLOR, FONTS } from '../../constants';
 import { PlanPreset } from '../../types';
 
 // ─── Split preview data ───────────────────────────────────────────────────────
@@ -327,11 +327,11 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
 const c = StyleSheet.create({
   handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 4 },
-  cancel:      { fontSize: 16, color: COLORS.accent, width: 60 },
-  title:       { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  subtitle:    { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
+  cancel:      { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent, width: 60 },
+  title:       { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51 },
+  subtitle:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
 
-  sectionLabel: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
+  sectionLabel: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
 
   scroll:      { paddingHorizontal: 16 },
 
@@ -341,25 +341,25 @@ const c = StyleSheet.create({
 
   cardHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 },
   cardTitles:  { flex: 1, marginRight: 8 },
-  cardType:    { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: -0.4, marginBottom: 2 },
-  cardFreq:    { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
+  cardType:    { fontSize: 18, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.72, marginBottom: 2 },
+  cardFreq:    { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
   checkBadge:  { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
   // Preset-specific
   presetNameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   presetBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(255,140,0,0.20)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)' },
-  presetBadgeTxt: { fontSize: 8, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.8 },
+  presetBadgeTxt: { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.64, textTransform: 'uppercase' },
   presetActions:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteBtn:      { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.12)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)' },
-  presetSaved:    { fontSize: 10, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },
+  presetSaved:    { fontSize: 10, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },
 
   grid:        { flexDirection: 'row', gap: 4, marginBottom: 14 },
   gridCol:     { flex: 1, alignItems: 'center', gap: 5 },
-  dayLetter:   { fontSize: 10, fontWeight: '600', color: COLORS.textMuted },
+  dayLetter:   { fontSize: 10, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
   dayBlock:    { width: '100%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   dayDot:      { width: 6, height: 6, borderRadius: 3 },
-  dayLabel:    { fontSize: 8, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.2, textAlign: 'center' },
+  dayLabel:    { fontSize: 8, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, textAlign: 'center' },
   dayLabelRest:{ color: COLORS.textLabel },
 
-  desc:        { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
+  desc:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18 },
 });

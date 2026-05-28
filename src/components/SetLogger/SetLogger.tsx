@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../common/GlassView';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { SetLog, SessionExercise } from '../../types';
 
 interface Props {
@@ -215,21 +215,21 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
 
 const s = StyleSheet.create({
   row:          { flexDirection: 'row', alignItems: 'center', padding: 10, marginBottom: 6, gap: 8 },
-  setNum:       { fontSize: 12, fontWeight: '800', color: COLORS.accent, width: 24, letterSpacing: -0.3 },
+  setNum:       { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, width: 24, letterSpacing: -0.48 },
   fields:       { flex: 1, flexDirection: 'row', gap: 6 },
   field:        { flex: 1 },
-  fieldLbl:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  input:        { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 8, height: 40, textAlign: 'center', fontSize: 16, fontWeight: '700', color: '#fff' },
+  fieldLbl:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 },
+  input:        { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 8, height: 40, textAlign: 'center', fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
   checkWrap:    { borderRadius: 10, overflow: 'hidden' },
   checkBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
 
   doneRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, marginBottom: 0, gap: 8, backgroundColor: 'rgba(255,140,0,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
   doneCheck:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  doneLabel:    { fontSize: 12, fontWeight: '800', color: COLORS.accent, width: 24 },
-  doneVal:      { fontSize: 13, fontWeight: '600', color: '#fff' },
-  doneNote:     { fontSize: 11, color: COLORS.textMuted, flex: 1 },
+  doneLabel:    { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, width: 24 },
+  doneVal:      { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  doneNote:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, flex: 1 },
   restToggle:   { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.10)' },
-  restToggleTxt:{ fontSize: 9, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.8 },
+  restToggleTxt:{ fontSize: 9, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase' },
 });
 
 const r = StyleSheet.create({
@@ -239,17 +239,17 @@ const r = StyleSheet.create({
   icon:          { fontSize: 16, color: COLORS.rest },
   iconDone:      { color: COLORS.accent },
   centerCol:     { flex: 1, minWidth: 0 },
-  restLabel:     { fontSize: 8, fontWeight: '800', color: COLORS.rest, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2 },
+  restLabel:     { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.rest, letterSpacing: 0.64, textTransform: 'uppercase', marginBottom: 2 },
   countdownRow:  { gap: 4 },
-  countdown:     { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  countdown:     { fontSize: 20, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.80, fontVariant: ['tabular-nums'] },
   dotTrack:      { height: 3, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.10)', overflow: 'hidden', marginTop: 2 },
   dotFill:       { height: '100%', borderRadius: 99, backgroundColor: COLORS.rest },
-  doneText:      { fontSize: 15, fontWeight: '800', color: COLORS.accent },
+  doneText:      { fontSize: 15, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent },
   presetsCol:    { flexDirection: 'row', gap: 4 },
   preset:        { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },
   presetActive:  { borderColor: COLORS.rest, backgroundColor: 'rgba(100,210,255,0.13)' },
-  presetTxt:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted },
+  presetTxt:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
   presetTxtActive:{ color: COLORS.rest },
   closeBtn:      { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  closeTxt:      { fontSize: 12, color: COLORS.textMuted, fontWeight: '700' },
+  closeTxt:      { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.textMuted, fontWeight: '700' },
 });

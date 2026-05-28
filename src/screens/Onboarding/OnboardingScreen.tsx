@@ -19,7 +19,7 @@ import { Card } from '../../components/common/Card';
 import { validateImportJSON } from '../../utils/importValidator';
 import { recommendTemplates } from '../../utils/planRecommender';
 import { PLAN_TEMPLATES } from '../../data/planTemplates';
-import { BORDER_RADIUS, SPACING } from '../../constants';
+import { BORDER_RADIUS, SPACING, FONTS } from '../../constants';
 import { UserGoal, ExperienceLevel, EquipmentType, PlanTemplate } from '../../types';
 
 type Step = 1 | 2 | 3 | 4;
@@ -509,8 +509,8 @@ const styles = StyleSheet.create({
 
   // Welcome
   welcomeContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
-  logo: { fontSize: 64, fontWeight: '900', letterSpacing: -2, marginBottom: SPACING.sm },
-  welcomeSubtitle: { fontSize: 18, fontWeight: '600', marginBottom: SPACING.xl },
+  logo: { fontSize: 64, fontWeight: '800', fontFamily: FONTS.display, letterSpacing: -2.56, marginBottom: SPACING.sm },
+  welcomeSubtitle: { fontSize: 18, fontWeight: '600', fontFamily: FONTS.semibold, marginBottom: SPACING.xl },
   features: { width: '100%', gap: SPACING.md, marginBottom: SPACING.xxl },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
   featureIcon: { fontSize: 22, width: 32, textAlign: 'center' },
@@ -521,13 +521,14 @@ const styles = StyleSheet.create({
 
   // Shared
   scroll: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
-  stepTitle: { fontSize: 26, fontWeight: '800', marginBottom: SPACING.xs },
-  stepDesc: { fontSize: 15, lineHeight: 22, marginBottom: SPACING.lg },
+  stepTitle: { fontSize: 26, fontWeight: '800', fontFamily: FONTS.display, letterSpacing: -1.04, marginBottom: SPACING.xs },
+  stepDesc: { fontSize: 15, fontFamily: FONTS.body, lineHeight: 22, marginBottom: SPACING.lg },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
+    fontFamily: FONTS.label,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.88,
     marginBottom: SPACING.sm,
     marginTop: SPACING.md,
   },
@@ -546,8 +547,8 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
   },
-  quizCardLabel: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  quizCardDesc: { fontSize: 12 },
+  quizCardLabel: { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, marginBottom: 2 },
+  quizCardDesc: { fontSize: 12, fontFamily: FONTS.body },
   chipRow: { flexDirection: 'row', gap: SPACING.sm },
   chip: {
     borderWidth: 1.5,
@@ -555,8 +556,8 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     alignItems: 'center',
   },
-  chipText: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  chipDesc: { fontSize: 11, textAlign: 'center' },
+  chipText: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, marginBottom: 2 },
+  chipDesc: { fontSize: 11, fontFamily: FONTS.body, textAlign: 'center' },
   daysRow: { flexDirection: 'row', gap: SPACING.sm },
   dayChip: {
     flex: 1,
@@ -565,34 +566,35 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     alignItems: 'center',
   },
-  dayChipText: { fontSize: 20, fontWeight: '800' },
-  dayChipSub: { fontSize: 11, marginTop: 2 },
+  dayChipText: { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, letterSpacing: -0.80 },
+  dayChipSub: { fontSize: 11, fontFamily: FONTS.body, marginTop: 2 },
 
   // Recommendation
   primaryCard: { marginBottom: SPACING.md, borderWidth: 2 },
   recommendedBadge: { marginBottom: SPACING.xs },
-  recommendedText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
-  primaryName: { fontSize: 22, fontWeight: '800', marginBottom: SPACING.sm },
-  primaryDesc: { fontSize: 14, lineHeight: 20, marginBottom: SPACING.md },
+  recommendedText: { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, textTransform: 'uppercase', letterSpacing: 0.96 },
+  primaryName: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, letterSpacing: -0.88, marginBottom: SPACING.sm },
+  primaryDesc: { fontSize: 14, fontFamily: FONTS.body, lineHeight: 20, marginBottom: SPACING.md },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs, marginBottom: SPACING.md },
   tag: { borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.sm, paddingVertical: 4 },
-  tagText: { fontSize: 12, fontWeight: '600' },
+  tagText: { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold },
   primaryCta: {},
   altTitle: {
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: FONTS.label,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.88,
     marginBottom: SPACING.sm,
     marginTop: SPACING.md,
   },
   altCard: { marginBottom: SPACING.sm },
   altCardInner: { flexDirection: 'row', alignItems: 'center' },
-  altName: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  altMeta: { fontSize: 12 },
-  altArrow: { fontSize: 18, fontWeight: '700', paddingLeft: SPACING.sm },
+  altName: { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, letterSpacing: -0.45, marginBottom: 2 },
+  altMeta: { fontSize: 12, fontFamily: FONTS.body },
+  altArrow: { fontSize: 18, fontWeight: '700', fontFamily: FONTS.headline, paddingLeft: SPACING.sm },
   browseBtn: { alignItems: 'center', paddingVertical: SPACING.md },
-  browseBtnText: { fontSize: 14 },
+  browseBtnText: { fontSize: 14, fontFamily: FONTS.body },
   backRow: { marginTop: SPACING.md },
 
   // Preview
@@ -602,6 +604,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: FONTS.semibold,
     marginBottom: SPACING.lg,
   },
   previewCard: { marginBottom: SPACING.md, padding: 0, overflow: 'hidden' },
@@ -615,10 +618,10 @@ const styles = StyleSheet.create({
   },
   previewDayLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   dayDot: { width: 10, height: 10, borderRadius: 5 },
-  previewDayLabel: { fontSize: 14, fontWeight: '600' },
-  previewDayExCount: { fontSize: 12, marginTop: 1 },
-  restBadge: { fontSize: 12, fontWeight: '600' },
-  customizeHint: { fontSize: 13, lineHeight: 18, textAlign: 'center', marginBottom: SPACING.sm },
+  previewDayLabel: { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold },
+  previewDayExCount: { fontSize: 12, fontFamily: FONTS.body, marginTop: 1 },
+  restBadge: { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold },
+  customizeHint: { fontSize: 13, fontFamily: FONTS.body, lineHeight: 18, textAlign: 'center', marginBottom: SPACING.sm },
 });
 
 // Hoisted so the screen body doesn't remount the indicator on every keystroke.

@@ -7,7 +7,7 @@ import { GlassView } from '../common/GlassView';
 import { askCoachProactive, clearCoachCache } from '../../services/coachService';
 import { useAuthStore }    from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { COLORS, SPACING } from '../../constants';
+import { COLORS, SPACING, FONTS } from '../../constants';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -122,9 +122,9 @@ function RateLimitBanner({ secsLeft, onRetry }: { secsLeft: number; onRetry: () 
 
 const rl = StyleSheet.create({
   wrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.06)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.18)' },
-  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontWeight: '600' },
+  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontWeight: '600', fontFamily: FONTS.semibold },
   btn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.12)' },
-  btnTxt: { fontSize: 11, color: COLORS.accent, fontWeight: '800' },
+  btnTxt: { fontSize: 11, color: COLORS.accent, fontWeight: '800', fontFamily: FONTS.display },
 });
 
 // ─── InsightHeader ────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolea
 
 const ih = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.sm },
-  label:     { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.9, textTransform: 'uppercase' },
+  label:     { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
   line:      { flex: 1, height: 1, backgroundColor: 'rgba(255,140,0,0.15)' },
   cachedPill:{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
   cachedTxt: { fontSize: 9, color: COLORS.textLabel, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
@@ -320,12 +320,12 @@ const s = StyleSheet.create({
   card:        { marginHorizontal: 16, marginBottom: 8 },
   cardInner:   { padding: SPACING.md, paddingBottom: SPACING.sm, overflow: 'hidden' },
   accentBar:   { position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, backgroundColor: 'rgba(255,140,0,0.35)' },
-  messageText: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 21, letterSpacing: 0.1 },
+  messageText: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 21, letterSpacing: -0.13 },
   cursor:      { color: COLORS.accent, fontWeight: '900' },
-  errorText:   { fontSize: 12, color: COLORS.textMuted, fontStyle: 'italic', lineHeight: 18 },
+  errorText:   { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, fontStyle: 'italic', lineHeight: 18 },
   footer:      { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
   refreshBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingRight: 12 },
-  refreshTxt:  { fontSize: 11, color: COLORS.textLabel, fontWeight: '600', letterSpacing: 0.2 },
+  refreshTxt:  { fontSize: 11, color: COLORS.textLabel, fontWeight: '600', fontFamily: FONTS.semibold, letterSpacing: -0.11 },
   askBtn:      { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  askTxt:      { fontSize: 12, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.3 },
+  askTxt:      { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, letterSpacing: -0.48 },
 });

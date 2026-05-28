@@ -162,7 +162,7 @@ function AppShell({
         <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
       </Modal>
 
-      <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen">
+      <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
         <CoachScreen
           onClose={onCloseCoach}
           initialMessage={coachInitialMsg}

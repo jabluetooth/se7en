@@ -7,7 +7,7 @@ import { AppBackground } from '../../components/ui/AppBackground';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { WorkoutSession } from '../../types';
 import { sessionTotalVolume } from '../../utils/volume';
 import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
@@ -232,30 +232,30 @@ const s = StyleSheet.create({
   safe:          { flex: 1 },
 
   header:        { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
-  headerSup:     { fontSize: 12, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 },
-  headerTitle:   { fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -0.9, lineHeight: 33 },
+  headerSup:     { fontSize: 12, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
+  headerTitle:   { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20, lineHeight: 33 },
 
   statsRow:      { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 10 },
   statChip:      { flex: 1, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
-  statValue:     { fontSize: 17, fontWeight: '800', color: COLORS.text, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
-  statValueAccent: { fontSize: 17, fontWeight: '800', color: COLORS.accent, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
-  statLabel:     { fontSize: 10, fontWeight: '600', color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.4 },
+  statValue:     { fontSize: 17, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.68, fontVariant: ['tabular-nums'] },
+  statValueAccent: { fontSize: 17, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.68, fontVariant: ['tabular-nums'] },
+  statLabel:     { fontSize: 10, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80 },
   timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
   glowDot:       { width: 7, height: 7, borderRadius: 99, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 4 },
 
   progressCard:      { marginHorizontal: 20, marginBottom: 12, padding: 14 },
   progressHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  progressSetsLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
-  progressPct:       { fontSize: 12, fontWeight: '700', color: COLORS.accent, fontVariant: ['tabular-nums'] },
+  progressSetsLabel: { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  progressPct:       { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, fontVariant: ['tabular-nums'] },
   progressTrack:     { height: 3, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.08)', overflow: 'hidden' },
   progressFill:      { height: '100%', borderRadius: 99 },
   divider:           { height: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginTop: 12, marginBottom: 8 },
   exRow:             { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 8 },
-  exName:            { flex: 1, fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  exName:            { flex: 1, fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   dotRow:            { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
   dot:               { width: 7, height: 7, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.15)' },
   dotDone:           { backgroundColor: COLORS.accent },
-  exCount:           { fontSize: 11, fontWeight: '700', color: COLORS.textLabel, fontVariant: ['tabular-nums'], minWidth: 28, textAlign: 'right' },
+  exCount:           { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textLabel, fontVariant: ['tabular-nums'], minWidth: 28, textAlign: 'right' },
   exCountDone:       { color: COLORS.accent },
 
   scroll:        { flex: 1 },
@@ -264,8 +264,8 @@ const s = StyleSheet.create({
   finishSection: { marginTop: 24, gap: 10 },
   finishBtn:     { borderRadius: 16, overflow: 'hidden' },
   finishGrad:    { height: 56, alignItems: 'center', justifyContent: 'center' },
-  finishTxt:     { fontSize: 16, fontWeight: '900', color: '#000', letterSpacing: 0.5 },
+  finishTxt:     { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.64 },
   skipBtn:       { borderRadius: 16 },
   skipInner:     { height: 50, alignItems: 'center', justifyContent: 'center' },
-  skipTxt:       { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  skipTxt:       { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 });

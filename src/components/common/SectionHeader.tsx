@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS, SPACING } from '../../constants';
+import { COLORS, SPACING, FONTS } from '../../constants';
 
 interface Props { title: string; actionLabel?: string; onAction?: () => void; }
 
@@ -15,6 +15,6 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
 
 const s = StyleSheet.create({
   row:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  title: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1.0, textTransform: 'uppercase' },
-  action:{ fontSize: 13, fontWeight: '600', color: COLORS.accent },
+  title: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase' },
+  action:{ fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent },
 });

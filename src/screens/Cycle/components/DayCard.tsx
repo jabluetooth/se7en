@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../../components/common/GlassView';
 import { Badge } from '../../../components/common/Badge';
 import { usePlanStore } from '../../../stores/planStore';
-import { GRAD, COLORS, MUSCLE_TAG_COLOR, BAR_WEIGHTS } from '../../../constants';
+import { GRAD, COLORS, MUSCLE_TAG_COLOR, BAR_WEIGHTS, FONTS } from '../../../constants';
 import { WorkoutDay, Exercise, ExerciseLibraryItem } from '../../../types';
 import { ExerciseFormSheet } from '../ExerciseFormSheet';
 import { DayStatus, STATUS_BADGE, dayIsRest, topTags, getRecommended, LIB_GROUP_TO_TAGS } from '../helpers';
@@ -344,43 +344,43 @@ export const dc = StyleSheet.create({
   cardCurrent:  {},
   numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   numBadgeMuted:{ backgroundColor: 'rgba(255,240,220,0.07)' },
-  num:          { fontSize: 17, fontWeight: '700', color: COLORS.textSecondary },
-  numActive:    { fontSize: 17, fontWeight: '700', color: '#fff' },
+  num:          { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  numActive:    { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
   content:      { flex: 1, minWidth: 0 },
   nameRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  label:        { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3, flexShrink: 1 },
+  label:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48, flexShrink: 1 },
   todayDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
-  sub:          { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
+  sub:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, marginBottom: 6 },
   tagsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   tag:          { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:       { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  tagTxt:       { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
   right:        { alignItems: 'flex-end', justifyContent: 'center', gap: 0 },
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  labelHint:    { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 7 },
+  labelHint:    { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 7 },
   labelField:   { paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
-  labelInput:   { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3, padding: 0 },
+  labelInput:   { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, padding: 0 },
   recSection:   { marginBottom: 12 },
-  recLabel:     { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  recLabel:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
   recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.10)' },
-  recChipTxt:   { fontSize: 12, fontWeight: '600', color: COLORS.accent, maxWidth: 120 },
+  recChipTxt:   { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent, maxWidth: 120 },
   exList:       { marginBottom: 8 },
 
   // Read-only row
   readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.05)' },
   readInfo:     { flex: 1 },
-  readName:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  readMeta:     { fontSize: 12, color: COLORS.textMuted },
+  readName:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  readMeta:     { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   readTag:      { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, marginLeft: 8 },
-  readTagTxt:   { fontSize: 10, fontWeight: '700' },
-  emptyTxt:     { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
+  readTagTxt:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  emptyTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
   addBtn:       { borderRadius: 12, overflow: 'hidden', marginBottom: 12, marginTop: 4 },
   addGrad:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
-  addTxt:       { fontSize: 14, fontWeight: '700', color: '#fff' },
-  restTxt:       { fontSize: 13, color: COLORS.textSecondary },
+  addTxt:       { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  restTxt:       { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
   capBottom:     { height: 0 },
   restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
-  restToggleLbl: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  restToggleLbl: { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 });

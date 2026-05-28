@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { GlassView } from '../../../components/common/GlassView';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
 import { fmtVol } from '../../../utils/format';
 
@@ -217,41 +217,41 @@ const s = StyleSheet.create({
 
   // Section header
   header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  headerTitle:      { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.9 },
+  headerTitle:      { fontSize: 12, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.96 },
 
   // Sort toggle
   toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 9, padding: 3, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
   togglePill:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
-  toggleTxt:        { fontSize: 11, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.2 },
-  toggleTxtActive:  { color: '#fff', fontWeight: '800' },
+  toggleTxt:        { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  toggleTxtActive:  { color: '#fff', fontWeight: '800', fontFamily: FONTS.display },
 
   // Stacked bar
   bar:      { flexDirection: 'row', height: 32, marginBottom: 14, gap: 2 },
   barSeg:   { justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  barLabel: { fontSize: 11, fontWeight: '800', color: '#0d0d0f', letterSpacing: 0.3 },
+  barLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display, color: '#0d0d0f' },
 
   // Card
   card:     { overflow: 'hidden' },
   row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
   marker:   { width: 5, alignSelf: 'stretch', borderRadius: 3 },
   info:     { flex: 1, minWidth: 0, gap: 7 },
-  name:     { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  name:     { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
 
   chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   chip:     { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },
-  chipTxt:  { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, letterSpacing: 0.1 },
+  chipTxt:  { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 
   // Expanded set table
   table:     { borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
   tableHead: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9 },
-  th:        { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
+  th:        { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.88, flex: 1 },
   thRight:   { textAlign: 'right' },
   tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  td:        { fontSize: 14, fontWeight: '600', color: '#fff', flex: 1 },
+  td:        { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', flex: 1 },
   tdRight:   { textAlign: 'right' },
   // Exercise note
   noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  noteLabel: { fontSize: 10, fontWeight: '800', color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2, width: 34 },
-  noteTxt:   { flex: 1, fontSize: 13, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
+  noteLabel: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 2, width: 34 },
+  noteTxt:   { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
 });

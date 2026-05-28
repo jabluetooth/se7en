@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
-import { COLORS, MUSCLE_TAG_COLOR } from '../../constants';
+import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { Exercise, WorkoutDay } from '../../types';
 
@@ -185,13 +185,13 @@ const dl = StyleSheet.create({
   rowLifted:{ backgroundColor: 'rgba(255,140,0,0.09)', borderRadius: 12 },
   handle:   { paddingHorizontal: 2 },
   badge:    { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,240,220,0.08)', alignItems: 'center', justifyContent: 'center' },
-  badgeNum: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary },
+  badgeNum: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
   info:     { flex: 1, minWidth: 0 },
-  name:     { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
+  name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 3 },
   tagsRow:  { flexDirection: 'row', gap: 4 },
   tag:      { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:   { fontSize: 9, fontWeight: '700' },
-  setInfo:  { fontSize: 12, color: COLORS.textMuted, flexShrink: 0 },
+  tagTxt:   { fontSize: 9, fontWeight: '700', fontFamily: FONTS.headline },
+  setInfo:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, flexShrink: 0 },
   line:     { height: 2, marginHorizontal: 8, borderRadius: 1, backgroundColor: COLORS.accent },
   float:    {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
@@ -306,25 +306,25 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
 const s = StyleSheet.create({
   header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 },
   backBtn:    { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTxt:    { fontSize: 16, fontWeight: '600', color: COLORS.accent },
-  dayPos:     { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
+  backTxt:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent },
+  dayPos:     { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
   scroll:     { paddingHorizontal: 16, paddingTop: 4 },
 
   nameCard:   { padding: 14, marginBottom: 10 },
-  fieldLbl:   { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
-  nameInput:  { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.3, paddingVertical: 2 },
+  fieldLbl:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
+  nameInput:  { fontSize: 18, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.54, paddingVertical: 2 },
 
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20 },
-  toggleLbl:  { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  toggleSub:  { fontSize: 12, color: COLORS.textMuted },
+  toggleLbl:  { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  toggleSub:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   exHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
-  exTitle:    { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  exHint:     { fontSize: 11, color: COLORS.textLabel },
+  exTitle:    { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  exHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   exCard:     { paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12 },
-  tip:        { fontSize: 11, color: COLORS.textLabel, textAlign: 'center', lineHeight: 16 },
+  tip:        { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 16 },
 
   emptyCard:  { padding: 32, alignItems: 'center', marginTop: 4 },
-  emptyTxt:   { fontSize: 16, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6 },
-  emptySub:   { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
+  emptyTxt:   { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 6 },
+  emptySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
 });

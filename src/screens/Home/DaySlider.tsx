@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WorkoutDay, WorkoutSession } from '../../types';
-import { COLORS, GRAD } from '../../constants';
+import { COLORS, GRAD, FONTS } from '../../constants';
 
 interface Props {
   days:       WorkoutDay[];
@@ -124,8 +124,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     gap: 3,
   },
-  activeNum: { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -0.5 },
-  activeSub: { fontSize: 8,  fontWeight: '800', color: 'rgba(0,0,0,0.55)', letterSpacing: 0.5 },
+  activeNum: { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.80 },
+  activeSub: { fontSize: 8,  fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(0,0,0,0.55)', letterSpacing: 0.64, textTransform: 'uppercase' },
 
   item: {
     width: ITEM_W, height: ITEM_H,
@@ -145,8 +145,8 @@ const s = StyleSheet.create({
     width: 5, height: 5, borderRadius: 3,
     backgroundColor: COLORS.accent,
   },
-  num:     { fontSize: 18, fontWeight: '800', color: COLORS.textMuted },
+  num:     { fontSize: 18, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.textMuted },
   numPast: { color: COLORS.accent },
-  sub:     { fontSize: 8, fontWeight: '600', color: COLORS.textMuted, textTransform: 'uppercase' },
+  sub:     { fontSize: 8, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase' },
   subPast: { color: 'rgba(255,140,0,0.70)' },
 });

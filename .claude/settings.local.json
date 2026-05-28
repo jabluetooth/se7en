@@ -28,7 +28,12 @@
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\bonny-ai\" -Depth 2 | Where-Object { $_.PSIsContainer } | Select-Object FullName)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\n8n\" -Recurse -Depth 2 | Where-Object { -not \\($_.FullName -match \"node_modules\"\\) } | Select-Object Name, FullName | Select-Object -First 30)",
       "Bash(mkdir -p \"C:/Users/frelatorre/Desktop/Projects/se7en/android/app/src/main/java/com/se7en/gymtracker/widget\")",
-      "Bash(Get-Content \"C:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\\\\babel.config.js\")"
+      "Bash(Get-Content \"C:\\\\Users\\\\frelatorre\\\\Desktop\\\\Projects\\\\se7en\\\\babel.config.js\")",
+      "Bash(python -c \"import sys,json; p=json.load\\(sys.stdin\\); deps={**p.get\\('dependencies',{}\\), **p.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\) if 'font' in k.lower\\(\\) or 'syne' in k.lower\\(\\) or 'jetbrains' in k.lower\\(\\) or 'expo-font' in k.lower\\(\\)]\")",
+      "Bash(python -c \"import json; p=json.load\\(open\\('package.json'\\)\\); deps={**p.get\\('dependencies',{}\\), **p.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\) if any\\(x in k for x in ['expo-font','google-font','syne','jetbrains']\\)]\")",
+      "Bash(node -e \"const s=require\\('@expo-google-fonts/syne'\\); console.log\\(Object.keys\\(s\\).filter\\(k=>k!=='__metadata__'\\)\\)\")",
+      "Bash(node -e \"require\\('@expo-google-fonts/syne'\\); console.log\\('syne ok'\\)\")",
+      "Bash(node -e \"require\\('@expo-google-fonts/jetbrains-mono'\\); console.log\\('jbm ok'\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\frelatorre\\Desktop\\Projects\\se7en\\android\\app\\src\\main\\java\\com\\se7en\\gymtracker"

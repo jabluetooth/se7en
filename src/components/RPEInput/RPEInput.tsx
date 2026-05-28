@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRAD, SPACING } from '../../constants';
+import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
 
 // RPE color bands: 1-4 easy, 5-6 moderate, 7-8 hard, 9-10 max
 function rpeColor(n: number): string {
@@ -105,15 +105,15 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
 const s = StyleSheet.create({
   container:   { paddingTop: SPACING.md, paddingBottom: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
   headerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
-  title:       { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 0.2 },
-  skip:        { fontSize: 12, color: COLORS.textLabel, fontWeight: '600' },
+  title:       { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  skip:        { fontSize: 12, color: COLORS.textLabel, fontWeight: '600', fontFamily: FONTS.semibold },
   grid:        { flexDirection: 'row', gap: 5, marginBottom: SPACING.sm },
   cell:        { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.04)' },
-  cellNum:     { fontSize: 14, fontWeight: '800' },
-  rpeLabel:    { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, marginBottom: SPACING.sm, textAlign: 'center' },
-  noteInput:   { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 10, padding: 10, fontSize: 13, color: COLORS.text, minHeight: 52, textAlignVertical: 'top', marginBottom: SPACING.sm },
+  cellNum:     { fontSize: 14, fontWeight: '800', fontFamily: FONTS.data, letterSpacing: -0.56 },
+  rpeLabel:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, marginBottom: SPACING.sm, textAlign: 'center' },
+  noteInput:   { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 10, padding: 10, fontSize: 13, fontFamily: FONTS.body, color: COLORS.text, minHeight: 52, textAlignVertical: 'top', marginBottom: SPACING.sm },
   saveWrap:    { borderRadius: 10, overflow: 'hidden' },
   saveDisabled:{ opacity: 0.35 },
   saveBtn:     { height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-  saveTxt:     { fontSize: 14, fontWeight: '800', color: '#000', letterSpacing: 0.3 },
+  saveTxt:     { fontSize: 14, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.56 },
 });

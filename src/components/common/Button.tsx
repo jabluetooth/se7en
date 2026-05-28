@@ -4,7 +4,7 @@ import {
   ViewStyle, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GRAD, COLORS, BORDER_RADIUS, SPACING } from '../../constants';
+import { GRAD, COLORS, BORDER_RADIUS, SPACING, FONTS } from '../../constants';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent_ghost';
 
@@ -133,5 +133,5 @@ export function Button({
 
 const styles = StyleSheet.create({
   inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  label: { fontWeight: '600', letterSpacing: -0.2 },
+  label: { fontWeight: '600', fontFamily: FONTS.semibold, letterSpacing: -0.2 },
 });

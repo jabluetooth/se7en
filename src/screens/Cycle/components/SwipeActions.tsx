@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 
 // ─── Swipe-LEFT actions: Edit / Clear (revealed from the right edge) ─────────
 
@@ -35,9 +35,9 @@ const sw = StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   rowRight: { paddingLeft: 10, paddingRight: 16 },
   editBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.accent, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, marginRight: 6 },
-  editTxt:  { fontSize: 13, fontWeight: '700', color: '#fff' },
+  editTxt:  { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.danger, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
-  clearTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  clearTxt: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 });
 
 // ─── Swipe-RIGHT action: Done button ─────────────────────────────────────────
@@ -66,5 +66,5 @@ export function DoneAction({
 const sd = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', paddingLeft: 12, paddingRight: 10, marginBottom: 8 },
   btn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#34D399', paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14 },
-  txt:  { fontSize: 13, fontWeight: '800', color: '#000' },
+  txt:  { fontSize: 13, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
 });

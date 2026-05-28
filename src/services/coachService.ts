@@ -133,8 +133,9 @@ async function buildStructuredContext(uid: string): Promise<string> {
   }
 
   // Next non-rest day — compare slot offsets, not content dayPosition IDs
-  const nextDay = activePlan?.days
-    .map((d, i) => ({ d, off: ((i - (currentDayPos - 1) + activePlan.days.length) % activePlan.days.length) }))
+  const planLen = activePlan?.days.length ?? 0;
+  const nextDay = (planLen > 0 ? activePlan!.days : [])
+    .map((d, i) => ({ d, off: ((i - (currentDayPos - 1) + planLen) % planLen) }))
     .filter(({ d, off }) => !d.isRestDay && off > 0)
     .sort((a, b) => a.off - b.off)[0]?.d ?? null;
   const nextLine = nextDay ? `Next session: ${nextDay.label}` : '';

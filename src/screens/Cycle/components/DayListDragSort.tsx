@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { GlassView } from '../../../components/common/GlassView';
 import { usePlanStore } from '../../../stores/planStore';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay, WorkoutSession } from '../../../types';
 import { getStatus } from '../helpers';
 import { DayCard, dc } from './DayCard';
@@ -209,7 +209,7 @@ export function DayListDragSort({
 const dl = StyleSheet.create({
   line:       { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 2, marginHorizontal: 16 },
   floatCard:  { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  floatLabel: { flex: 1, fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  floatLabel: { flex: 1, fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
   float: {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
     ...Platform.select({

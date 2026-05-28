@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { GRAD, COLORS, SPLIT_TYPES } from '../../constants';
+import { GRAD, COLORS, SPLIT_TYPES, FONTS } from '../../constants';
 import { WorkoutDay, WorkoutPlan } from '../../types';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -184,10 +184,10 @@ const dd = StyleSheet.create({
   dayRowLifted:{ backgroundColor: 'rgba(255,140,0,0.08)', borderRadius: 12 },
   badge:       { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,140,0,0.18)', alignItems: 'center', justifyContent: 'center' },
   badgeRest:   { backgroundColor: 'rgba(100,210,255,0.12)' },
-  badgeNum:    { fontSize: 12, fontWeight: '700', color: COLORS.accent },
+  badgeNum:    { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
   badgeNumRest:{ color: COLORS.rest },
-  label:       { flex: 1, fontSize: 14, fontWeight: '600', color: '#fff' },
-  sub:         { fontSize: 12, color: COLORS.textMuted },
+  label:       { flex: 1, fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  sub:         { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   line:        { height: 2, marginHorizontal: 14, borderRadius: 1, backgroundColor: COLORS.accent },
   float:       {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
@@ -418,28 +418,28 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
 const f = StyleSheet.create({
   handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 },
-  cancel:       { fontSize: 16, color: COLORS.accent },
-  title:        { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
-  save:         { fontSize: 16, fontWeight: '700', color: COLORS.accent },
+  cancel:       { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent },
+  title:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  save:         { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:       { paddingHorizontal: 20, paddingTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 10, marginTop: 20 },
-  subLabel:     { fontSize: 11, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 10, marginTop: 20 },
+  subLabel:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
 
   inputCard:    { paddingHorizontal: 14, paddingVertical: 13 },
-  textInput:    { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
+  textInput:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
 
   chipGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.07)' },
   chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.15)' },
-  chipTxt:      { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-  chipTxtActive:{ color: COLORS.accent, fontWeight: '700' },
+  chipTxt:      { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  chipTxtActive:{ color: COLORS.accent, fontWeight: '700', fontFamily: FONTS.headline },
 
   daysHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, marginTop: 20 },
-  daysHint:     { fontSize: 11, color: COLORS.textLabel },
+  daysHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   daysCard:     { paddingVertical: 4, overflow: 'hidden' },
 
   dangerSection:{ marginTop: 32, alignItems: 'center' },
   deleteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', backgroundColor: 'rgba(255,69,58,0.08)' },
-  deleteTxt:    { fontSize: 15, fontWeight: '600', color: COLORS.danger },
+  deleteTxt:    { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.danger },
 });

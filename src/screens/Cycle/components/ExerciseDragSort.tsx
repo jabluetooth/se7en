@@ -4,7 +4,7 @@ import {
   Animated, PanResponder, LayoutAnimation, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, MUSCLE_TAG_COLOR } from '../../../constants';
+import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../../constants';
 import { Exercise } from '../../../types';
 import { usePlanStore } from '../../../stores/planStore';
 
@@ -15,11 +15,11 @@ const EX_H = 56;
 const er = StyleSheet.create({
   row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
   info:    { flex: 1, minWidth: 0 },
-  name:    { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 3 },
+  name:    { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  setInfo: { fontSize: 12, color: COLORS.textSecondary },
+  setInfo: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textSecondary },
   tag:     { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:  { fontSize: 10, fontWeight: '700' },
+  tagTxt:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
   iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 });
 

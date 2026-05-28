@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
 
 const HM_WEEKS    = 8;
@@ -168,16 +168,16 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
 const s = StyleSheet.create({
   navRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   navBtn:     { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
-  navLabel:   { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  navLabel:   { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.48 },
   metaRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  metaTxt:    { fontSize: 11, color: COLORS.textMuted, fontWeight: '600' },
+  metaTxt:    { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
   wrap:       { flexDirection: 'row', gap: 8, alignItems: 'flex-start', justifyContent: 'center' },
   dayCol:     { gap: HM_GAP },
-  dayLbl:     { fontSize: 11, color: COLORS.textMuted, fontWeight: '700', height: HM_CELL, lineHeight: HM_CELL, textAlign: 'right', width: 14 },
+  dayLbl:     { fontSize: 11, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline, height: HM_CELL, lineHeight: HM_CELL, textAlign: 'right', width: 14 },
   grid:       { flexDirection: 'row', gap: HM_GAP },
   weekCol:    { gap: HM_GAP },
   cell:       { width: HM_CELL, height: HM_CELL, borderRadius: 5 },
   legendRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12, justifyContent: 'flex-end' },
-  legendTxt:  { fontSize: 9, color: COLORS.textMuted, fontWeight: '600' },
+  legendTxt:  { fontSize: 9, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
   legendCell: { width: 12, height: 12, borderRadius: 3 },
 });

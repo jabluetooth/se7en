@@ -5,7 +5,7 @@ import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { CycleOrbitWidget } from './CycleOrbitWidget';
 import { DaySlider } from './DaySlider';
@@ -213,6 +213,8 @@ export function HomeScreen({ onNavigate, onOpenCoach }: Props) {
           <HighlightSlideshow
             sessions={planSessions}
             currentDay={currentDayPos}
+            cycleStartDate={effectiveCycleStartDate}
+            planLength={activePlan.days.length}
             onNavigate={onNavigate}
           />
 
@@ -227,13 +229,13 @@ const s = StyleSheet.create({
   root:       { flex: 1 },
   safe:       { flex: 1 },
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', marginBottom: 8 },
+  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14 },
   header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  planLabel:  { fontSize: 11, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
-  dateText:   { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  planLabel:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
+  dateText:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88 },
   logoBadge:  { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
-  logoNum:    { fontSize: 22, fontWeight: '900', color: COLORS.accent },
+  logoNum:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent },
   scroll:      { flex: 1 },
   scrollContent: { paddingTop: 4, paddingBottom: 8 },
   sectionGap:  { height: 8 },

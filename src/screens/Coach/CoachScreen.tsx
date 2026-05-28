@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { GlassView } from '../../components/common/GlassView';
-import { COLORS, GRAD, SPACING } from '../../constants';
+import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
 import { continueConversation, ConversationMessage } from '../../services/coachService';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -51,7 +51,6 @@ function BoltSvg({ size = 16, color = COLORS.accent }: { size?: number; color?: 
     </Svg>
   );
 }
-
 function BackSvg() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
@@ -116,21 +115,20 @@ function ContextStrip({ activeSession }: { activeSession: any | null }) {
 const cx = StyleSheet.create({
   strip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)', backgroundColor: 'rgba(255,140,0,0.04)' },
   dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
-  exercise: { fontSize: 11, fontWeight: '700', color: COLORS.accent, flex: 1 },
-  sep:      { fontSize: 11, color: 'rgba(255,240,220,0.25)' },
-  meta:     { fontSize: 11, color: COLORS.textLabel, fontWeight: '500' },
+  exercise: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, flex: 1 },
+  sep:      { fontSize: 11, fontFamily: FONTS.body, color: 'rgba(255,240,220,0.25)' },
+  meta:     { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
 });
 
 // ─── Typing indicator ─────────────────────────────────────────────────────────
 
 function TypingIndicator() {
-  const dots = [
-    useRef(new Animated.Value(0.25)).current,
-    useRef(new Animated.Value(0.25)).current,
-    useRef(new Animated.Value(0.25)).current,
-  ];
+  const dot0 = useRef(new Animated.Value(0.25)).current;
+  const dot1 = useRef(new Animated.Value(0.25)).current;
+  const dot2 = useRef(new Animated.Value(0.25)).current;
 
   useEffect(() => {
+    const dots  = [dot0, dot1, dot2];
     const anims = dots.map((dot, i) =>
       Animated.loop(
         Animated.sequence([
@@ -143,14 +141,14 @@ function TypingIndicator() {
     );
     anims.forEach(a => a.start());
     return () => anims.forEach(a => a.stop());
-  }, []);
+  }, [dot0, dot1, dot2]);
 
   return (
     <View style={b.coachRow}>
       <BoltAvatar size={26} />
       <GlassView radius={14} style={b.coachBubble}>
         <View style={b.dotRow}>
-          {dots.map((op, i) => (
+          {([dot0, dot1, dot2] as Animated.Value[]).map((op, i) => (
             <Animated.View key={i} style={[b.dot, { opacity: op }]} />
           ))}
         </View>
@@ -201,11 +199,11 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMess
 const b = StyleSheet.create({
   userRow:    { alignItems: 'flex-end', marginBottom: 10 },
   userBubble: { borderRadius: 16, borderTopRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '82%' },
-  userText:   { fontSize: 14, color: '#000', fontWeight: '600', lineHeight: 20 },
+  userText:   { fontSize: 14, fontFamily: FONTS.semibold, color: '#000', fontWeight: '600', lineHeight: 20 },
 
   coachRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
   coachBubble:{ borderRadius: 16, borderTopLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '78%' },
-  coachText:  { fontSize: 14, color: COLORS.textSecondary, lineHeight: 21 },
+  coachText:  { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 21 },
 
   dotRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4, paddingVertical: 2 },
   dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent, opacity: 0.5 },
@@ -231,15 +229,15 @@ function EmptyState() {
 const em = StyleSheet.create({
   wrap:    { alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 28, gap: 12 },
   iconWrap:{ marginBottom: 4 },
-  title:   { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  body:    { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+  title:   { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.80 },
+  body:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
 });
 
 // ─── CoachScreen ──────────────────────────────────────────────────────────────
 
 export function CoachScreen({ onClose, initialMessage }: Props) {
-  const { user }           = useAuthStore();
-  const { activeSession }  = useSessionStore();
+  const { user }          = useAuthStore();
+  const activeSession     = useSessionStore(state => state.activeSession);
 
   const [messages,     setMessages    ] = useState<ChatMessage[]>(() =>
     initialMessage
@@ -299,7 +297,12 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 
         {/* ── Header ── */}
         <View style={s.header}>
-          <TouchableOpacity onPress={onClose} style={s.backBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={s.backBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+          >
             <BackSvg />
           </TouchableOpacity>
 
@@ -312,6 +315,9 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
               </Text>
             </View>
           </View>
+
+          {/* Right spacer — same width as backBtn so the title stays centred */}
+          <View style={s.backBtn} />
         </View>
 
         {/* ── Context strip (active session only) ── */}
@@ -424,11 +430,11 @@ const s = StyleSheet.create({
   flex: { flex: 1 },
 
   // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, gap: SPACING.sm, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
-  backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  titleText:    { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.4 },
-  subtitleText: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
+  backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
+  titleText:    { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.64 },
+  subtitleText: { fontSize: 10, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
 
   // Message list
   listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },
@@ -437,16 +443,16 @@ const s = StyleSheet.create({
   chips:        { maxHeight: 44, flexGrow: 0, flexShrink: 0 },
   chipsContent: { paddingHorizontal: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
   chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,140,0,0.25)', backgroundColor: 'rgba(255,140,0,0.07)' },
-  chipTxt:      { fontSize: 12, color: COLORS.accent, fontWeight: '600' },
+  chipTxt:      { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, fontWeight: '600' },
   chipTxtDisabled: { color: 'rgba(255,140,0,0.35)' },
 
   // Error banner
   errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
-  errorTxt:     { fontSize: 12, color: COLORS.accent, fontWeight: '600', lineHeight: 17 },
+  errorTxt:     { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, fontWeight: '600', lineHeight: 17 },
 
   // Input bar
   inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
-  input:       { flex: 1, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, color: '#fff', maxHeight: 100, lineHeight: 20 },
+  input:       { flex: 1, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, fontFamily: FONTS.body, color: '#fff', maxHeight: 100, lineHeight: 20 },
   inputFocused:{ borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.04)' },
   sendWrap:    { borderRadius: 18, overflow: 'hidden' },
   sendBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },

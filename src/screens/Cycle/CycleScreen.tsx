@@ -13,7 +13,7 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { usePresetStore } from '../../stores/presetStore';
 import { computeDayPosition } from '../../utils/cycleUtils';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { WorkoutDay, PlanPreset } from '../../types';
 import { generateId } from '../../utils/idGen';
@@ -376,43 +376,43 @@ export function CycleScreen() {
 
 const s = StyleSheet.create({
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8 },
-  emptySub:   { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 8 },
+  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
   // Header
   header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  planLabel:      { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2 },
-  title:          { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  planLabel:      { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
+  title:          { fontSize: 28, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.12 },
   editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
   editBtnActive:  { borderColor: 'rgba(255,140,0,0.50)', backgroundColor: 'rgba(255,140,0,0.12)' },
 
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
-  cabinetLabel:   { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
+  cabinetLabel:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
   nameField:      { paddingHorizontal: 12, paddingVertical: 11 },
-  nameInput:      { fontSize: 16, fontWeight: '600', color: '#fff', padding: 0 },
+  nameInput:      { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
   splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.07)' },
   splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   splitDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
-  splitBtnTxt:    { fontSize: 15, fontWeight: '600', color: '#fff' },
+  splitBtnTxt:    { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
   cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
   presetBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  presetBtnTxt:   { fontSize: 13, fontWeight: '700', color: COLORS.accent },
+  presetBtnTxt:   { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
   saveBtn:        { borderRadius: 10, overflow: 'hidden' },
   saveGrad:       { paddingHorizontal: 22, paddingVertical: 9 },
-  saveTxt:        { fontSize: 14, fontWeight: '700', color: '#fff' },
+  saveTxt:        { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 
   // Completion card
   rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },
   rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  rateLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
+  rateLabel:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 4 },
   rateNumRow: { flexDirection: 'row', alignItems: 'baseline' },
-  rateVal:    { fontSize: 30, fontWeight: '800', color: '#34D399', letterSpacing: -0.5 },
-  rateSub:    { fontSize: 13, color: COLORS.textSecondary },
+  rateVal:    { fontSize: 30, fontWeight: '800', fontFamily: FONTS.data, color: '#34D399', letterSpacing: -1.20 },
+  rateSub:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
   bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
   barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
   barFill:    { flex: 1, borderRadius: 3 },
 
-  hint:       { fontSize: 11, color: COLORS.textLabel, textAlign: 'center', marginBottom: 8, letterSpacing: 0.2 },
+  hint:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', marginBottom: 8 },
   list:       { paddingHorizontal: 16 },
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { WorkoutSession, PersonalRecord } from '../../types';
-import { COLORS, GRAD } from '../../constants';
+import { COLORS, GRAD, FONTS } from '../../constants';
 
 interface Props {
   sessions:  WorkoutSession[];
@@ -127,7 +127,7 @@ export function BentoGrid({ sessions, latestPR, streak }: Props) {
 
 const s = StyleSheet.create({
   wrap:         { marginHorizontal: 16, gap: 8, marginBottom: 8 },
-  sectionTitle: { fontSize: 11, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+  sectionTitle: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
 
   // Two-column row
   row:          { flexDirection: 'row', gap: 8 },
@@ -147,24 +147,24 @@ const s = StyleSheet.create({
   // Icon box
   iconBox:      { width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(123,94,250,0.18)', alignItems: 'center', justifyContent: 'center' },
   iconBoxBlue:  { backgroundColor: 'rgba(76,170,240,0.18)' },
-  iconTxt:      { fontSize: 20, fontWeight: '900', color: COLORS.accent },
+  iconTxt:      { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent },
   iconTxtBlue:  { color: COLORS.rest },
 
   // Text styles
-  tileLabel:    { fontSize: 9,  fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-  tileBigNum:   { fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: -1.5, lineHeight: 36 },
-  tileMedNum:   { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.8, lineHeight: 26 },
-  tileUnit:     { fontSize: 10, color: COLORS.textSecondary, marginTop: 3 },
+  tileLabel:    { fontSize: 9,  fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.72, textTransform: 'uppercase', marginBottom: 4 },
+  tileBigNum:   { fontSize: 32, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.28, lineHeight: 36 },
+  tileMedNum:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88, lineHeight: 26 },
+  tileUnit:     { fontSize: 10, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 3 },
 
   numAccent:    { color: COLORS.accent },
   numGood:      { color: COLORS.gradientEnd },
   numBad:       { color: COLORS.danger },
 
-  noteText:     { fontSize: 13, color: 'rgba(255,240,220,0.78)', fontStyle: 'italic', lineHeight: 19 },
+  noteText:     { fontSize: 13, fontFamily: FONTS.body, color: 'rgba(255,240,220,0.78)', fontStyle: 'italic', lineHeight: 19 },
 
   // PR badge (LinearGradient as a standalone block — no absoluteFill)
   prBadge:      { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  prBadgeTxt:   { fontSize: 13, fontWeight: '900', color: '#000' },
-  prName:       { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 1 },
-  prVal:        { fontSize: 20, fontWeight: '900', color: COLORS.accent, letterSpacing: -0.5, marginTop: 2 },
+  prBadgeTxt:   { fontSize: 13, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
+  prName:       { fontSize: 14, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', marginTop: 1 },
+  prVal:        { fontSize: 20, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.80, marginTop: 2 },
 });

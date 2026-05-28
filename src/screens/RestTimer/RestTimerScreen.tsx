@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { widgetService } from '../../services/widgetService';
 import {
@@ -298,41 +298,41 @@ export function RestTimerScreen({
 const s = StyleSheet.create({
   header:           { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   headerTextWrap:   { flex: 1, minWidth: 0 },
-  headerSub:        { fontSize: 13, fontWeight: '600', color: COLORS.textMuted, marginBottom: 2 },
-  headerTitle:      { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  headerSub:        { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, marginBottom: 2 },
+  headerTitle:      { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.80 },
 
   summaryCard:      { marginHorizontal: 20, marginBottom: 4, paddingVertical: 14, flexDirection: 'row', alignItems: 'center' },
   summaryItem:      { flex: 1, alignItems: 'center', gap: 3 },
-  summaryLbl:       { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.6 },
-  summaryVal:       { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  summaryLbl:       { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80 },
+  summaryVal:       { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
   summaryValAccent: { color: COLORS.accent },
-  summarySub:       { fontSize: 11, color: COLORS.textMuted },
+  summarySub:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
   summaryLine:      { width: 1, height: 40, backgroundColor: 'rgba(255,240,220,0.10)' },
 
   timerWrap:        { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingBottom: 8 },
   ringWrap:         { position: 'relative', width: 260, height: 260, alignItems: 'center', justifyContent: 'center' },
   ringCenter:       { position: 'absolute', alignItems: 'center' },
   doneCheck:        { fontSize: 48, color: COLORS.accent, lineHeight: 56 },
-  doneLbl:          { fontSize: 16, fontWeight: '700', color: COLORS.accent },
-  time:             { fontSize: 54, fontWeight: '900', color: '#fff', letterSpacing: -2 },
+  doneLbl:          { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  time:             { fontSize: 54, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -2.16 },
   timeUrgent:       { color: COLORS.danger },
-  timeSub:          { fontSize: 13, color: COLORS.textSecondary },
+  timeSub:          { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
 
   adjust:           { flexDirection: 'row', alignItems: 'center', gap: 12 },
   adjustBtn:        { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', alignItems: 'center', justifyContent: 'center' },
-  adjustText:       { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
-  adjustLabel:      { fontSize: 12, color: COLORS.textMuted },
+  adjustText:       { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  adjustLabel:      { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   nextPill:         { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 8 },
-  nextText:         { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  nextText:         { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500', fontFamily: FONTS.medium },
 
   controls:         { paddingHorizontal: 16, paddingBottom: 48, flexDirection: 'row', gap: 10 },
   skipBtn:          { borderRadius: 14 },
   skipInner:        { height: 54, paddingHorizontal: 22, alignItems: 'center', justifyContent: 'center' },
-  skipText:         { fontSize: 15, fontWeight: '600', color: COLORS.textSecondary },
+  skipText:         { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   mainBtn:          { flex: 1, borderRadius: 14, overflow: 'hidden' },
   mainGrad:         { height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
   mainGlass:        { height: 54, alignItems: 'center', justifyContent: 'center' },
-  mainText:         { fontSize: 16, fontWeight: '900', color: '#000' },
-  pauseText:        { fontSize: 16, fontWeight: '700', color: '#fff' },
+  mainText:         { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
+  pauseText:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 });

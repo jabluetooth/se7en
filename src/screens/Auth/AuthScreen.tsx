@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { useAuthStore } from '../../stores/authStore';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 
 type Tab = 'login' | 'signup';
@@ -273,10 +273,10 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
 
 const fi = StyleSheet.create({
   wrap:  { marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 6 },
   row:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   icon:  {},
-  input: { flex: 1, fontSize: 15, fontWeight: '500', color: '#fff', padding: 0 },
+  input: { flex: 1, fontSize: 15, fontWeight: '500', fontFamily: FONTS.medium, color: '#fff', padding: 0 },
 });
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -287,27 +287,27 @@ const s = StyleSheet.create({
 
   logoWrap:     { alignItems: 'center', marginBottom: 36 },
   logoBadge:    { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  logoNum:      { fontSize: 36, fontWeight: '900', color: '#fff' },
-  logoWordmark: { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, marginBottom: 6 },
-  logoTagline:  { fontSize: 14, fontWeight: '500', color: COLORS.textSecondary, lineHeight: 20 },
+  logoNum:      { fontSize: 36, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.44 },
+  logoWordmark: { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, marginBottom: 6 },
+  logoTagline:  { fontSize: 14, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 20 },
 
   tabs:         { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.07)', borderRadius: 12, padding: 3, marginBottom: 20 },
   tab:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   tabActive:    { backgroundColor: 'rgba(255,240,220,0.12)' },
-  tabTxt:       { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
-  tabTxtActive: { color: '#fff', fontWeight: '700' },
+  tabTxt:       { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  tabTxtActive: { color: '#fff', fontWeight: '700', fontFamily: FONTS.headline },
 
   card:         { padding: 20, marginBottom: 24 },
 
   errorBanner:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,69,58,0.10)', borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', borderRadius: 10, padding: 12, marginBottom: 16 },
-  errorTxt:     { fontSize: 13, color: COLORS.danger, flex: 1 },
+  errorTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.danger, flex: 1 },
 
   forgotBtn:    { alignSelf: 'flex-end', marginBottom: 20, marginTop: -6 },
-  forgotTxt:    { fontSize: 13, color: COLORS.accent },
+  forgotTxt:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.accent },
 
   ctaWrap:      { borderRadius: 14, overflow: 'hidden' },
   ctaGrad:      { height: 52, alignItems: 'center', justifyContent: 'center' },
-  ctaTxt:       { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
+  ctaTxt:       { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
 
-  footer:       { textAlign: 'center', fontSize: 12, fontWeight: '500', color: COLORS.textMuted, lineHeight: 20 },
+  footer:       { textAlign: 'center', fontSize: 12, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textMuted, lineHeight: 20 },
 });

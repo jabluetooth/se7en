@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GlassView } from '../../../components/common/GlassView';
 import { TrophyIcon } from '../../../components/common/TrophyIcon';
-import { COLORS } from '../../../constants';
+import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
 import { fmtVol } from '../../../utils/format';
 import { VolumeLineGraph, SetPoint } from './VolumeLineGraph';
@@ -127,29 +127,29 @@ const s = StyleSheet.create({
   // Top identity block
   top:           { alignItems: 'center', gap: 4 },
   chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
-  chipText:      { fontSize: 11, fontWeight: '800', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase' },
-  chipDot:       { fontSize: 11, fontWeight: '700', color: COLORS.textMuted },
-  chipDate:      { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
-  name:          { fontSize: 32, fontWeight: '800', color: '#fff', letterSpacing: -1, lineHeight: 36, textAlign: 'center' },
-  nameSub:       { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
+  chipText:      { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  chipDot:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
+  chipDate:      { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  name:          { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
+  nameSub:       { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
   // Hero
   hero:          { alignItems: 'center', alignSelf: 'stretch', gap: 10 },
   graphLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 },
-  graphTitle:    { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8 },
-  graphAxis:     { fontSize: 10, color: COLORS.textMuted, letterSpacing: 0.3 },
+  graphTitle:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
+  graphAxis:     { fontSize: 10, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   // Peak set pills — wrap row holds both highest-volume + heaviest-weight callouts
   pillRow:  { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
   peakPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,140,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.30)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 },
-  peakLbl:  { fontSize: 10, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.6, textTransform: 'uppercase' },
-  peakVal:  { fontSize: 12, fontWeight: '700', color: '#fff' },
+  peakLbl:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
+  peakVal:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 
   // Stats strip
   statsStrip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   statCell:   { flex: 1, alignItems: 'center', paddingVertical: 14 },
   statOp:     { paddingHorizontal: 2, alignItems: 'center', justifyContent: 'center' },
-  statOpTxt:  { fontSize: 16, fontWeight: '600', color: COLORS.textMuted },
-  statVal:    { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  statLabel:  { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 3 },
+  statOpTxt:  { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  statVal:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
+  statLabel:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 3 },
 });

@@ -5,7 +5,7 @@ import { ProgressRing } from '../common/ProgressRing';
 import { SetTypeBadge } from '../common/SetTypeBadge';
 import { SetLogger } from '../SetLogger/SetLogger';
 import { RPEInput } from '../RPEInput/RPEInput';
-import { COLORS, SPACING, MUSCLE_TAG_COLOR } from '../../constants';
+import { COLORS, SPACING, MUSCLE_TAG_COLOR, FONTS } from '../../constants';
 import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
@@ -174,23 +174,23 @@ const s = StyleSheet.create({
   header:        { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, gap: SPACING.sm },
   info:          { flex: 1, minWidth: 0 },
   nameRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  name:          { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  name:          { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
   nameDone:      { color: COLORS.accent },
   metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  meta:          { fontSize: 12, color: COLORS.textMuted },
+  meta:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   musclePill:    { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  musclePillText:{ fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  musclePillText:{ fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
   rpePill:       { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  rpePillText:   { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  rpePillText:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.display },
   chevron:       { transform: [{ rotate: '90deg' }] },
   chevronUp:     { transform: [{ rotate: '270deg' }] },
-  chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700' },
+  chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline },
   sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
   // RPE saved summary
   rpeSaved:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)', marginTop: SPACING.xs },
   rpeSavedBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  rpeSavedNum:   { fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
-  rpeSavedNote:  { flex: 1, fontSize: 12, color: COLORS.textMuted, fontStyle: 'italic' },
+  rpeSavedNum:   { fontSize: 13, fontWeight: '800', fontFamily: FONTS.display },
+  rpeSavedNote:  { flex: 1, fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, fontStyle: 'italic' },
   rpeEditBtn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.05)' },
-  rpeEditTxt:    { fontSize: 11, fontWeight: '700', color: COLORS.textLabel },
+  rpeEditTxt:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textLabel },
 });

@@ -8,7 +8,7 @@ import { Badge } from '../../components/common/Badge';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { GRAD, COLORS } from '../../constants';
+import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import {
@@ -280,34 +280,34 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
 
 const s = StyleSheet.create({
   header:         { paddingHorizontal: 20, paddingBottom: 16 },
-  title:          { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  title:          { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20 },
   scroll:         { paddingHorizontal: 16 },
 
   planCard:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, marginBottom: 24 },
   planIcon:       { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  planIconText:   { fontSize: 24, fontWeight: '900', color: '#000' },
-  planName:       { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  planSub:        { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  planIconText:   { fontSize: 24, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
+  planName:       { fontSize: 17, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.68 },
+  planSub:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
 
   section:        { marginBottom: 24 },
-  sectionTitle:   { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1.0, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 },
+  sectionTitle:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 },
   sectionCard:    { overflow: 'hidden', padding: 0 },
 
   row:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   rowBorder:      { borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.09)' },
-  rowLabel:       { fontSize: 15, fontWeight: '600', color: '#fff' },
-  rowSub:         { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary, marginTop: 2 },
+  rowLabel:       { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  rowSub:         { fontSize: 12, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
 
   seg:            { flexDirection: 'row', padding: 2, gap: 2 },
   segBtn:         { borderRadius: 6, overflow: 'hidden' },
   segGrad:        { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 6 },
-  segText:        { paddingHorizontal: 11, paddingVertical: 5, fontSize: 13, fontWeight: '700', color: COLORS.textSecondary },
-  segTextActive:  { fontSize: 13, fontWeight: '700', color: '#000' },
+  segText:        { paddingHorizontal: 11, paddingVertical: 5, fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  segTextActive:  { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#000' },
 
   toggle:         { width: 48, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,240,220,0.12)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,240,220,0.16)', position: 'relative' },
   toggleOn:       { borderColor: 'transparent' },
   toggleThumb:    { position: 'absolute', top: 4, left: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.textSecondary },
   toggleThumbOn:  { left: 24, backgroundColor: '#000' },
 
-  version:        { textAlign: 'center', fontSize: 11, color: COLORS.textMuted, paddingTop: 8 },
+  version:        { textAlign: 'center', fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, paddingTop: 8 },
 });

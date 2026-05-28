@@ -20,7 +20,7 @@ const TABS: Tab[] = [
 // magnification, so all icons stay at base size; active state uses the orange gradient fill.
 const ICON_SIZE   = 48;
 const DOCK_HEIGHT = 72;   // 72 - 2*12 padding = 48 icon content area, fits exactly
-const DOCK_RADIUS = 28;   // softer corners — closer to pill but still rectangular
+const DOCK_RADIUS = 40;   // pill-shaped corners
 
 interface Props { activeTab: TabName; onTabPress: (tab: TabName) => void; }
 

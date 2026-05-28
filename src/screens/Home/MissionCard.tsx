@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { WorkoutDay } from '../../types';
-import { COLORS, GRAD } from '../../constants';
+import { COLORS, GRAD, FONTS } from '../../constants';
 
 // "Ready" indicator dot — was green, switched to the accent orange so the
 // home cycle palette stays warm.
@@ -124,13 +124,13 @@ const s = StyleSheet.create({
   dotRing:  { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN },
   dot:      { width: 8, height: 8, borderRadius: 4 },
 
-  badgeTxt: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.3, textTransform: 'uppercase' },
-  title:    { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
+  badgeTxt: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
+  title:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 4 },
+  subtitle: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
   ctaWrap:  { borderRadius: 14, overflow: 'hidden' },
   ctaGrad:  { height: 50, alignItems: 'center', justifyContent: 'center' },
-  ctaTxt:   { fontSize: 14, fontWeight: '900', color: '#000', letterSpacing: 0.8 },
+  ctaTxt:   { fontSize: 14, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 1.12, textTransform: 'uppercase' },
 
   doneFooter:    { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  doneFooterTxt: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', fontStyle: 'italic' },
+  doneFooterTxt: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', fontStyle: 'italic' },
 });

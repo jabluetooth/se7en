@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GlassView } from '../../components/common/GlassView';
-import { COLORS, DAY_COLOR } from '../../constants';
+import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
@@ -565,21 +565,21 @@ const s = StyleSheet.create({
   root: { marginHorizontal: 20, marginBottom: 8 },
 
   header:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
-  title:     { fontSize: 17, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4, marginBottom: 3 },
-  sub:       { fontSize: 11, color: COLORS.textMuted },
-  subAccent: { fontWeight: '700', color: COLORS.textSecondary },
+  title:     { fontSize: 17, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.68, marginBottom: 3 },
+  sub:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
+  subAccent: { fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
   navRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navArrow:  { fontSize: 22, color: COLORS.textSecondary, lineHeight: 26, fontWeight: '300' },
-  navLabel:  { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary, letterSpacing: 1, minWidth: 68, textAlign: 'center' },
+  navLabel:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase', minWidth: 68, textAlign: 'center' },
 
   enclosure: { borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 16, padding: 12, marginBottom: 10 },
 
   dayNameRow: { flexDirection: 'row', marginBottom: 4 },
-  dayName:    { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', color: 'rgba(255,240,220,0.22)', letterSpacing: 0.8 },
+  dayName:    { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', fontFamily: FONTS.headline, color: 'rgba(255,240,220,0.22)' },
 
   activeCycleRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
   activeCycleBanner: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  activeCycleName:   { fontSize: 10, fontWeight: '900', color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase', textAlign: 'center' },
+  activeCycleName:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase', textAlign: 'center' },
 
   grid:          { gap: GAP },
   weekWrap:      {},
@@ -604,26 +604,26 @@ const s = StyleSheet.create({
   card:        { marginTop: 10 },
   cardBody:    { padding: 14, gap: 5 },
   cardTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  cardDateTxt: { fontSize: 10, fontWeight: '700', color: COLORS.textLabel, letterSpacing: 1.2 },
+  cardDateTxt: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0.80, textTransform: 'uppercase' },
   cardPill:    { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
-  cardPillTxt: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
+  cardPillTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   cardVolRow:  { flexDirection: 'row', alignItems: 'baseline' },
-  cardVolNum:  { fontSize: 30, fontWeight: '900', letterSpacing: -1 },
-  cardVolUnit: { fontSize: 14, fontWeight: '500', color: COLORS.textMuted },
-  cardMeta:    { fontSize: 12, color: COLORS.textLabel },
+  cardVolNum:  { fontSize: 30, fontWeight: '800', fontFamily: FONTS.data, letterSpacing: -1.20 },
+  cardVolUnit: { fontSize: 14, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textMuted },
+  cardMeta:    { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel },
   cardExWrap:  { marginTop: 8, gap: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingTop: 10 },
   cardExRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardExName:  { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, flex: 1 },
-  cardExDetail:{ fontSize: 12, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
-  cardExMore:  { fontSize: 11, color: COLORS.textLabel },
+  cardExName:  { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary, flex: 1 },
+  cardExDetail:{ fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
+  cardExMore:  { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   cardEmpty:     { padding: 16, alignItems: 'center' },
-  cardEmptyDate: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 4 },
-  cardEmptyTxt:  { fontSize: 12, color: COLORS.textLabel },
+  cardEmptyDate: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 4 },
+  cardEmptyTxt:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel },
 
   legend:         { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
   legendWorkout:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendCell:     { width: 16, height: 16, borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   legendFill:     { width: '100%' },
-  legendWorkoutTxt:{ fontSize: 10, fontWeight: '700', maxWidth: 70 },
-  legendNote:     { fontSize: 9, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
+  legendWorkoutTxt:{ fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, maxWidth: 70 },
+  legendNote:     { fontSize: 9, fontFamily: FONTS.body, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
 });

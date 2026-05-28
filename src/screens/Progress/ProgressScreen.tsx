@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { fmtVol } from '../../utils/format';
 import { aggregateExercises } from '../../utils/exerciseHistory';
@@ -250,46 +250,46 @@ export function ProgressScreen() {
 
 const s = StyleSheet.create({
   header:           { paddingHorizontal: 20, paddingBottom: 14 },
-  title:            { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  sub:              { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  title:            { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20 },
+  sub:              { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
   scroll:           { paddingHorizontal: 16 },
 
   // Stats row
   statsRow:         { flexDirection: 'row', gap: 8, marginBottom: 12 },
   statCard:         { flex: 1, padding: 12 },
   statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  statLabel:        { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.9, textTransform: 'uppercase' },
-  statValue:        { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
+  statLabel:        { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
+  statValue:        { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
   statAccent:       { color: PROGRESS_GREEN_TXT },
-  statUnit:         { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  statUnit:         { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 
   // Activity card
   activityCard:     { padding: 14, marginBottom: 14 },
-  cardTitle:        { fontSize: 12, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0, marginBottom: 12 },
+  cardTitle:        { fontSize: 12, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.96, marginBottom: 12 },
 
   // Section header + sort toggle
   progressHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2, marginBottom: 10, paddingHorizontal: 2 },
   titleRow:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle:     { fontSize: 11, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 1.0 },
+  sectionTitle:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
   searchIcon:       { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
   toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 8, padding: 2, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
   togglePill:       { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
   togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
-  toggleTxt:        { fontSize: 10, fontWeight: '600', color: COLORS.textMuted, letterSpacing: 0.2 },
-  toggleTxtActive:  { color: '#fff', fontWeight: '800' },
+  toggleTxt:        { fontSize: 10, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  toggleTxtActive:  { color: '#fff', fontWeight: '800', fontFamily: FONTS.display },
 
   // Search bar (replaces section header when active)
   searchRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
-  searchInput:      { flex: 1, fontSize: 14, color: '#fff', padding: 0, fontWeight: '500' },
+  searchInput:      { flex: 1, fontSize: 14, color: '#fff', padding: 0, fontWeight: '500', fontFamily: FONTS.medium },
   searchClose:      { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  searchHint:       { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, paddingHorizontal: 4, fontWeight: '600' },
+  searchHint:       { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, paddingHorizontal: 4, fontWeight: '600', fontFamily: FONTS.semibold },
 
   // Card list
   cardList:         { gap: 8 },
   emptyCard:        { padding: 20, alignItems: 'center' },
-  emptyText:        { fontSize: 13, color: COLORS.textMuted, textAlign: 'center' },
+  emptyText:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center' },
 
   // See more / less control
   seeMoreBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, marginTop: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.06)' },
-  seeMoreTxt:       { fontSize: 12, fontWeight: '700', color: COLORS.accent, letterSpacing: 0.4 },
+  seeMoreTxt:       { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
 });

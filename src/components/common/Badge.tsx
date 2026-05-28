@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 
 export type BadgeVariant =
   | 'accent' | 'danger' | 'warn' | 'rest'
@@ -47,5 +47,5 @@ export function Badge({ label, variant = 'accent', size = 'sm' }: Props) {
 
 const styles = StyleSheet.create({
   badge: { borderRadius: 5, borderWidth: 1, alignSelf: 'flex-start' },
-  text:  { fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  text:  { fontWeight: '700', fontFamily: FONTS.label, letterSpacing: 0.5, textTransform: 'uppercase' },
 });

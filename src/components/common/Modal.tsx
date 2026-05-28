@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal as RNModal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GlassView } from './GlassView';
-import { BORDER_RADIUS, SPACING, COLORS } from '../../constants';
+import { BORDER_RADIUS, SPACING, COLORS, FONTS } from '../../constants';
 
 interface Props { visible: boolean; title: string; onClose: () => void; children: React.ReactNode; }
 
@@ -25,6 +25,6 @@ const s = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
   sheet:   { width: '100%', padding: SPACING.lg },
   header:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
-  title:   { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
-  close:   { fontSize: 18, color: COLORS.textSecondary, padding: SPACING.xs },
+  title:   { fontSize: 17, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.68 },
+  close:   { fontSize: 18, fontFamily: FONTS.body, color: COLORS.textSecondary, padding: SPACING.xs },
 });
