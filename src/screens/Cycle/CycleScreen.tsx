@@ -222,19 +222,31 @@ export function CycleScreen() {
   };
 
   const handleQuickDone = (day: WorkoutDay) => {
-    // Use SLOT INDEX (position in the days array) not day.dayPosition.
-    // After drag-and-drop reordering, dayPosition is a stable content-id that
-    // no longer matches the calendar offset from cycleStartDate. The slot index
-    // is the correct offset: cycleStartDate + slotIdx = the calendar date for
-    // that slot's workout.
-    const dayIdx       = days.findIndex(d => d.id === day.id);
-    const todaySlotIdx = currentDayPos - 1;
+    Alert.alert(
+      `Mark ${day.label} as done?`,
+      'This will log a completed session for this day.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Done',
+          onPress: () => {
+            // Use SLOT INDEX (position in the days array) not day.dayPosition.
+            // After drag-and-drop reordering, dayPosition is a stable content-id that
+            // no longer matches the calendar offset from cycleStartDate. The slot index
+            // is the correct offset: cycleStartDate + slotIdx = the calendar date for
+            // that slot's workout.
+            const dayIdx       = days.findIndex(d => d.id === day.id);
+            const todaySlotIdx = currentDayPos - 1;
 
-    quickCompleteDay(activePlan.id, day, settings.cycleStartDate, dayIdx)
-      .then(() => {
-        if (dayIdx === todaySlotIdx) shiftCycle(-1);
-      })
-      .catch(() => Alert.alert('Error', 'Could not log the session. Please try again.'));
+            quickCompleteDay(activePlan.id, day, settings.cycleStartDate, dayIdx)
+              .then(() => {
+                if (dayIdx === todaySlotIdx) shiftCycle(-1);
+              })
+              .catch(() => Alert.alert('Error', 'Could not log the session. Please try again.'));
+          },
+        },
+      ],
+    );
   };
 
   return (

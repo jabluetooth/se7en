@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FloatingDock, TabName }    from '../components/FloatingDock/FloatingDock';
@@ -29,10 +29,15 @@ export function AppNavigator() {
   const [showCoach,          setShowCoach         ] = useState(false);
   const [coachInitialMsg,    setCoachInitialMsg   ] = useState<string | undefined>();
   const [finishedSession,    setFinishedSession   ] = useState<WorkoutSession | null>(null);
+  const [sessionVisible,     setSessionVisible    ] = useState(true);
 
   const { activeSession }            = useSessionStore();
   const { activePlan }               = usePlanStore();
   const { signOut, user }            = useAuthStore();
+
+  useEffect(() => {
+    if (activeSession) setSessionVisible(true);
+  }, [activeSession]);
 
   // "Next Up" must mirror the Cycle screen's slot order — NOT dayPosition+1.
   // After a drag-reorder on the Cycle screen, slot N+1 holds whatever workout
@@ -51,7 +56,7 @@ export function AppNavigator() {
     }
     return undefined; // plan is all rest days — NextUpPage shows empty state
   })();
-  const showActiveSession            = activeSession !== null;
+  const showActiveSession            = activeSession !== null && sessionVisible;
 
   const handleSessionFinish = (session: WorkoutSession) => {
     setFinishedSession(session);
@@ -65,7 +70,7 @@ export function AppNavigator() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'Home':     return <HomeScreen onNavigate={setActiveTab} onOpenCoach={handleOpenCoach} />;
+      case 'Home':     return <HomeScreen onNavigate={setActiveTab} onOpenCoach={handleOpenCoach} onResumeSession={() => setSessionVisible(true)} />;
       case 'Cycle':    return <CycleScreen />;
       case 'Progress': return <ProgressScreen />;
       case 'Settings': return (
@@ -86,6 +91,7 @@ export function AppNavigator() {
         setActiveTab={setActiveTab}
         renderTab={renderTab}
         showActiveSession={showActiveSession}
+        onBackSession={() => setSessionVisible(false)}
         handleSessionFinish={handleSessionFinish}
         showPostWorkout={showPostWorkout}
         finishedSession={finishedSession}
@@ -111,6 +117,7 @@ interface ShellProps {
   setActiveTab: (t: TabName) => void;
   renderTab: () => React.ReactNode;
   showActiveSession: boolean;
+  onBackSession: () => void;
   handleSessionFinish: (session: WorkoutSession) => void;
   showPostWorkout: boolean;
   finishedSession: WorkoutSession | null;
@@ -127,7 +134,8 @@ interface ShellProps {
 
 function AppShell({
   activeTab, setActiveTab, renderTab,
-  showActiveSession, handleSessionFinish,
+  showActiveSession, onBackSession,
+  handleSessionFinish,
   showPostWorkout, finishedSession, nextDay, onPostWorkoutDone,
   showRestTimer, setShowRestTimer,
   showBuilder, setShowBuilder,
@@ -141,7 +149,7 @@ function AppShell({
       <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
 
       <Modal visible={showActiveSession} animationType="slide" presentationStyle="fullScreen">
-        <ActiveSessionScreen onFinish={handleSessionFinish} />
+        <ActiveSessionScreen onFinish={handleSessionFinish} onBack={onBackSession} />
       </Modal>
 
       <Modal visible={showPostWorkout} animationType="slide" presentationStyle="fullScreen">

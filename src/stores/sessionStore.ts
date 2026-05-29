@@ -46,6 +46,8 @@ interface SessionStore {
   clearAllSessions:       () => Promise<void>;
   getSessionsForExercise: (exerciseName: string) => WorkoutSession[];
   getLastSession:         (dayPosition: number) => WorkoutSession | undefined;
+  addSet:                 (exerciseId: string) => void;
+  removeLastSet:          (exerciseId: string) => void;
   startTimer:             () => void;
   stopTimer:              () => void;
   clearActiveSession:     () => void;
@@ -169,6 +171,49 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       Promise.all([getWidgetService(), getActivePlan()]).then(([ws, plan]) => {
         ws.updateSession(updated, s.sessionTimer, plan);
       }).catch(() => {});
+      return { activeSession: updated };
+    });
+  },
+
+  addSet: (exerciseId) => {
+    set(s => {
+      if (!s.activeSession) return s;
+      const exercises = s.activeSession.exercises.map(ex => {
+        if (ex.id !== exerciseId) return ex;
+        const lastSet = ex.sets[ex.sets.length - 1];
+        const newSet: SetLog = {
+          id: generateId(),
+          setNumber: ex.sets.length + 1,
+          targetReps:   lastSet?.targetReps   ?? null,
+          targetWeight: lastSet?.targetWeight ?? null,
+          actualReps: 0,
+          actualRepsToFailure: ex.setType === 'toFailure' ? 0 : null,
+          actualWeight: lastSet?.actualWeight ?? lastSet?.targetWeight ?? null,
+          platesUsed: [], notes: '', isCompleted: false, completedAt: null,
+        };
+        return { ...ex, sets: [...ex.sets, newSet], isCompleted: false };
+      });
+      const updated = { ...s.activeSession, exercises };
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
+      return { activeSession: updated };
+    });
+  },
+
+  removeLastSet: (exerciseId) => {
+    set(s => {
+      if (!s.activeSession) return s;
+      const exercises = s.activeSession.exercises.map(ex => {
+        if (ex.id !== exerciseId) return ex;
+        if (ex.sets.length <= 1) return ex;
+        const lastSet = ex.sets[ex.sets.length - 1];
+        if (lastSet?.isCompleted) return ex; // never discard logged data
+        const sets = ex.sets.slice(0, -1);
+        return { ...ex, sets, isCompleted: sets.every(st => st.isCompleted) };
+      });
+      const updated = { ...s.activeSession, exercises };
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
       return { activeSession: updated };
     });
   },

@@ -54,7 +54,7 @@ export function DoneAction({
     inputRange: [0, DONE_ACTION_WIDTH], outputRange: [-DONE_ACTION_WIDTH, 0], extrapolate: 'clamp',
   });
   return (
-    <Animated.View style={[sd.wrap, { transform: [{ translateX }] }]}>
+      <Animated.View style={[sd.wrap, { transform: [{ translateX }] }]}>
       <TouchableOpacity style={sd.btn} onPress={onPress} activeOpacity={0.8}>
         <Ionicons name="checkmark-circle" size={18} color="#000" />
         <Text style={sd.txt}>Done</Text>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { AppBackground } from '../../components/ui/AppBackground';
@@ -14,11 +14,13 @@ import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
 
 interface Props {
   onFinish: (session: WorkoutSession) => void;
+  onBack?:  () => void;
 }
 
-export function ActiveSessionScreen({ onFinish }: Props) {
+export function ActiveSessionScreen({ onFinish, onBack }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
+  const insets = useSafeAreaInsets();
   const [restCtx, setRestCtx] = useState<{
     exerciseName:     string;
     setNumber:        number;
@@ -93,9 +95,15 @@ export function ActiveSessionScreen({ onFinish }: Props) {
         )}
       </Modal>
 
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={[s.safe, { paddingTop: insets.top }]}>
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
+          {onBack && (
+            <TouchableOpacity style={s.backBtn} onPress={onBack} activeOpacity={0.7}>
+              <Text style={s.backIcon}>‹</Text>
+              <Text style={s.backTxt}>Home</Text>
+            </TouchableOpacity>
+          )}
           <Text style={s.headerSup}>
             Day {activeSession.dayPosition} · {activePlan?.name ?? ''}
           </Text>
@@ -222,7 +230,7 @@ export function ActiveSessionScreen({ onFinish }: Props) {
 
           <View style={{ height: 40 }} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -231,7 +239,10 @@ const s = StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
 
-  header:        { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 },
+  header:        { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
+  backBtn:       { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 10, alignSelf: 'flex-start' },
+  backIcon:      { fontSize: 22, color: COLORS.textMuted, lineHeight: 24 },
+  backTxt:       { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
   headerSup:     { fontSize: 12, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
   headerTitle:   { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20, lineHeight: 33 },
 

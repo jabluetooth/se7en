@@ -16,21 +16,28 @@ interface Props {
    *  When set, the card flips into a "today done · next up" state and the start
    *  button targets the NEXT mission rather than offering to redo today's work. */
   completedToday?: { dayLabel: string } | null;
+  /** True when a workout session is actively in progress. Overrides all other states. */
+  isInProgress?: boolean;
   onStart:       () => void;
+  onResume?:     () => void;
 }
 
-export function MissionCard({ currentDay, currentDayNum, completedToday, onStart }: Props) {
+export function MissionCard({ currentDay, currentDayNum, completedToday, isInProgress, onStart, onResume }: Props) {
   const isRest      = currentDay?.isRestDay === true || currentDay?.label?.toLowerCase() === 'rest';
   const primaryLift = currentDay?.exercises[0]?.name ?? null;
   const isDone      = !!completedToday;
 
-  const title    = isDone
+  const title    = isInProgress
+    ? `Day ${currentDayNum}: ${currentDay?.label ?? 'Workout'}`
+    : isDone
     ? 'Today complete'
     : isRest
     ? 'Recovery Day'
     : `Day ${currentDayNum}: ${currentDay?.label ?? 'Workout'}`;
 
-  const subtitle = isDone
+  const subtitle = isInProgress
+    ? 'You have an active session running.'
+    : isDone
     ? (isRest
         ? `Next: Day ${currentDayNum} — Recovery`
         : `Next: Day ${currentDayNum} — ${currentDay?.label ?? 'Workout'}`)
@@ -44,7 +51,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, onStart
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isRest || isDone) { pulse.setValue(0); return; }
+    if (isRest || (isDone && !isInProgress)) { pulse.setValue(0); return; }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
@@ -59,9 +66,10 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, onStart
   const ringScale   = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] });
   const ringOpacity = pulse.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.55, 0.25, 0] });
 
-  // Badge label adapts to state: completed today reads "TODAY · PUSH COMPLETE",
-  // otherwise the usual NEXT MISSION / REST DAY labels.
-  const badgeLabel = isDone
+  // Badge label adapts to state: in-progress takes priority, then done/rest/mission.
+  const badgeLabel = isInProgress
+    ? 'WORKOUT IN PROGRESS'
+    : isDone
     ? `TODAY · ${completedToday!.dayLabel.toUpperCase()} COMPLETE`
     : isRest
     ? 'REST DAY'
@@ -69,7 +77,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, onStart
 
   // Show the start button only when there's a real next workout to start AND
   // today wasn't already done (avoids tempting the user into a second session).
-  const showStart = !isRest && !isDone;
+  const showStart = !isRest && !isDone && !isInProgress;
 
   return (
     <GlassView opacity="high" radius={20} style={s.card}>
@@ -94,6 +102,19 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, onStart
       <Text style={s.title}>{title}</Text>
       <Text style={s.subtitle}>{subtitle}</Text>
 
+      {isInProgress && (
+        <TouchableOpacity style={s.ctaWrap} onPress={onResume} activeOpacity={0.85}>
+          <LinearGradient
+            colors={GRAD.accent}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.ctaGrad}
+          >
+            <Text style={s.ctaTxt}>RESUME</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
       {showStart && (
         <TouchableOpacity style={s.ctaWrap} onPress={onStart} activeOpacity={0.85}>
           <LinearGradient
@@ -107,7 +128,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, onStart
         </TouchableOpacity>
       )}
 
-      {isDone && (
+      {isDone && !isInProgress && (
         <View style={s.doneFooter}>
           <Text style={s.doneFooterTxt}>Come back tomorrow to start the next mission.</Text>
         </View>

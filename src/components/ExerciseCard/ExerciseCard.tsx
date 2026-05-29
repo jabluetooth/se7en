@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplete }: Props) {
-  const { completeSet, setExerciseRPE } = useSessionStore();
+  const { completeSet, setExerciseRPE, addSet, removeLastSet } = useSessionStore();
   const { activePlan }  = usePlanStore();
   const [expanded, setExpanded] = useState(
     defaultExpanded !== undefined ? defaultExpanded : !exercise.isCompleted,
@@ -124,6 +124,26 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
             />
           ))}
 
+          {/* Add / Remove set controls — always visible when expanded */}
+          <View style={s.setControls}>
+            {exercise.sets.length > 1 && !exercise.sets[exercise.sets.length - 1]?.isCompleted && (
+              <TouchableOpacity
+                style={s.removeSetBtn}
+                onPress={() => removeLastSet(exercise.id)}
+                activeOpacity={0.75}
+              >
+                <Text style={s.removeSetTxt}>− Remove Set</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={s.addSetBtn}
+              onPress={() => addSet(exercise.id)}
+              activeOpacity={0.75}
+            >
+              <Text style={s.addSetTxt}>+ Add Set</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* RPE capture — shown once all sets are done */}
           {allDone && (() => {
             const rpeLogged = exercise.rpe != null && exercise.rpe > 0;
@@ -186,6 +206,11 @@ const s = StyleSheet.create({
   chevronUp:     { transform: [{ rotate: '270deg' }] },
   chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline },
   sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
+  setControls:   { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingTop: SPACING.sm, marginTop: 2 },
+  addSetBtn:     { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: COLORS.accent + '55', backgroundColor: COLORS.accent + '18' },
+  addSetTxt:     { fontSize: 12, fontWeight: '800', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
+  removeSetBtn:  { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,100,100,0.35)', backgroundColor: 'rgba(255,100,100,0.10)' },
+  removeSetTxt:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#FF6B6B', letterSpacing: 0.3 },
   // RPE saved summary
   rpeSaved:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)', marginTop: SPACING.xs },
   rpeSavedBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },

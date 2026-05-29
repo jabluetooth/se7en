@@ -62,6 +62,7 @@ export function DayCard({
 
   const handleEdit  = () => { swipeRef.current?.close(); setShowList(false); setShowEditor(e => !e); };
   const handleClear = () => { swipeRef.current?.close(); onClear(); };
+  const handleDone  = () => { swipeRef.current?.close(); onDone?.(); };
 
   const isRest        = dayIsRest(day);
   const existingNames = new Set(day.exercises.map(e => e.name.toLowerCase()));
@@ -115,7 +116,7 @@ export function DayCard({
       <Swipeable
         ref={swipeRef}
         renderLeftActions={!isRest && !isDone && onDone ? (_p, dragX) => (
-          <DoneAction dragX={dragX} onPress={() => { swipeRef.current?.close(); onDone(); }} />
+          <DoneAction dragX={dragX} onPress={handleDone} />
         ) : undefined}
         renderRightActions={(_p, dragX) => (
           <SwipeActions dragX={dragX} onEdit={handleEdit} onClear={handleClear} />
@@ -125,7 +126,9 @@ export function DayCard({
         friction={2}
         enabled={!showEditor}
       >
-        <View>
+        {/* swipeContent clips card + list to rounded corners WITHOUT clipping the
+            Swipeable's action areas — the outer dc.wrap has no overflow:hidden. */}
+        <View style={dc.swipeContent}>
           {/* ── Card header ── */}
           <TouchableOpacity
             activeOpacity={0.85}
@@ -231,6 +234,7 @@ export function DayCard({
 
       {/* ── Editor cabinet — OUTSIDE Swipeable so RNGH doesn't block PanResponder ── */}
       {showEditor && (
+        <View style={dc.editorClip}>
         <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,140,0,0.20)">
 
           {/* Day name */}
@@ -317,8 +321,9 @@ export function DayCard({
             </>
           )}
         </GlassView>
+        <View style={dc.capBottom} />
+        </View>
       )}
-      {showEditor && <View style={dc.capBottom} />}
 
       {/* Exercise form sheet */}
       <ExerciseFormSheet
@@ -337,7 +342,9 @@ export function DayCard({
 // Exported so DayListDragSort can reuse the day-number badge styles in its
 // floating drag preview.
 export const dc = StyleSheet.create({
-  wrap:         { marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
+  wrap:         { marginBottom: 10 },
+  swipeContent: { borderRadius: 16, overflow: 'hidden' },
+  editorClip:   { overflow: 'hidden', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   card:         { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
   dimOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
   dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },

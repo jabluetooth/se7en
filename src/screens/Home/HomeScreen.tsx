@@ -22,13 +22,14 @@ import { scheduleWorkoutReminder, cancelWorkoutReminders } from '../../services/
 // (shown as a modal in AppNavigator whenever activeSession !== null).
 
 interface Props {
-  onNavigate:    (tab: TabName) => void;
-  onOpenCoach?:  (initialMessage?: string) => void;
+  onNavigate:       (tab: TabName) => void;
+  onOpenCoach?:     (initialMessage?: string) => void;
+  onResumeSession?: () => void;
 }
 
-export function HomeScreen({ onNavigate, onOpenCoach }: Props) {
-  const { activePlan }             = usePlanStore();
-  const { sessions, startSession } = useSessionStore();
+export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) {
+  const { activePlan }                        = usePlanStore();
+  const { sessions, startSession, activeSession } = useSessionStore();
   const { settings }               = useSettingsStore();
   const dockClearance              = useDockClearance();
 
@@ -193,7 +194,9 @@ export function HomeScreen({ onNavigate, onOpenCoach }: Props) {
             currentDay={nextMission}
             currentDayNum={nextMissionNum}
             completedToday={completedToday}
+            isInProgress={activeSession !== null}
             onStart={handleStart}
+            onResume={onResumeSession}
           />
 
           {/* ── AI Coach widget ── */}
