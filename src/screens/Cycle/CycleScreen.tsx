@@ -189,10 +189,13 @@ export function CycleScreen() {
       if (hit) { points.push('done'); continue; }
 
       // 2. Rest day — auto-complete, no session record needed.
+      // Mirror dayIsRest: flag OR label='rest' with no exercises.
       const diff    = anchor ? Math.floor((d.getTime() - anchor.getTime()) / 86_400_000) : 0;
       const slotIdx = anchor ? diff % days.length : 0;
       const planDay = days[slotIdx];
-      if (planDay?.isRestDay) { points.push('rest'); continue; }
+      const isRestSlot = planDay?.isRestDay ||
+        (planDay?.label?.toLowerCase().trim() === 'rest' && (planDay?.exercises?.length ?? 0) === 0);
+      if (isRestSlot) { points.push('rest'); continue; }
 
       // 3. Today with no session yet — not missed, just pending.
       if (isToday) { points.push('pending'); continue; }

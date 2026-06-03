@@ -42,6 +42,10 @@ interface SessionStore {
    *  Pass slotIndex (0-based position in plan.days) so the calendar date is computed correctly even
    *  after drag-and-drop reordering where day.dayPosition ≠ slot offset. */
   quickCompleteDay:       (planId: string, day: WorkoutDay, cycleStartDate: string | null, slotIndex?: number) => Promise<WorkoutSession>;
+  /** Persist a fully-formed past session (completed offline or retroactively entered). */
+  logPastSession:         (session: WorkoutSession) => Promise<void>;
+  /** Remove sessions matching a predicate from local state and Firestore. */
+  deleteSessions:         (predicate: (s: WorkoutSession) => boolean) => Promise<void>;
   /** Wipe all session history locally and from Firestore. */
   clearAllSessions:       () => Promise<void>;
   getSessionsForExercise: (exerciseName: string) => WorkoutSession[];
@@ -53,24 +57,35 @@ interface SessionStore {
   clearActiveSession:     () => void;
 }
 
-function buildExercises(day: WorkoutDay): SessionExercise[] {
-  return day.exercises.sort((a, b) => a.order - b.order).map(ex => ({
-    id: generateId(), exerciseId: ex.id, exerciseName: ex.name, order: ex.order,
-    setType: ex.setType, weightUnit: ex.weightUnit, barType: ex.barType,
-    barWeight: ex.barWeight, isCompleted: false,
-    muscleTags: ex.muscleTags ?? [],
-    sets: Array.from({ length: ex.targetSets }, (_, i) => {
-      const per = ex.perSetTargets?.find(p => p.setNumber === i + 1);
-      return {
-        id: generateId(), setNumber: i + 1,
-        targetReps:   per?.targetReps  ?? ex.targetRepsMin ?? null,
-        targetWeight: per?.targetWeight ?? ex.targetWeight ?? null,
-        actualReps: 0, actualRepsToFailure: ex.toFailure ? 0 : null,
-        actualWeight: ex.targetWeight ?? null,
-        platesUsed: [], notes: '', isCompleted: false, completedAt: null,
-      } as SetLog;
-    }),
-  }));
+function buildExercises(
+  day: WorkoutDay,
+  lastWeightFor?: (exerciseId: string, name: string) => Array<number | null>,
+): SessionExercise[] {
+  return day.exercises.sort((a, b) => a.order - b.order).map(ex => {
+    const prevWeights = lastWeightFor?.(ex.id, ex.name) ?? [];
+    return {
+      id: generateId(), exerciseId: ex.id, exerciseName: ex.name, order: ex.order,
+      setType: ex.setType, weightUnit: ex.weightUnit, barType: ex.barType,
+      barWeight: ex.barWeight, isCompleted: false,
+      muscleTags: ex.muscleTags ?? [],
+      sets: Array.from({ length: ex.targetSets }, (_, i) => {
+        const per = ex.perSetTargets?.find(p => p.setNumber === i + 1);
+        // Per-set: use history weight for this slot; if plan has more sets than last
+        // time, copy the last recorded weight rather than dropping to plan default.
+        const prevW = prevWeights.length > 0
+          ? (prevWeights[i] ?? prevWeights[prevWeights.length - 1] ?? null)
+          : null;
+        return {
+          id: generateId(), setNumber: i + 1,
+          targetReps:   per?.targetReps  ?? ex.targetRepsMin ?? null,
+          targetWeight: per?.targetWeight ?? ex.targetWeight ?? null,
+          actualReps: 0, actualRepsToFailure: ex.toFailure ? 0 : null,
+          actualWeight: prevW ?? ex.targetWeight ?? null,
+          platesUsed: [], notes: '', isCompleted: false, completedAt: null,
+        } as SetLog;
+      }),
+    };
+  });
 }
 
 async function getUid() {
@@ -137,11 +152,38 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   startSession: (planId, day) => {
+    const history = get().sessions;
+
+    // Build a per-set weight lookup from the most recent completed session that
+    // contains each exercise. Match by exerciseId first (stable across renames),
+    // fall back to case-insensitive name match. Weights returned in set-number
+    // order so set 1 gets the previous set-1 weight, set 2 gets set-2, etc.
+    const lastWeightFor = (exerciseId: string, exerciseName: string): Array<number | null> => {
+      const lower = exerciseName.toLowerCase();
+      const sorted = [...history]
+        .filter(s => s.status === 'completed' && s.finishedAt != null)
+        .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime());
+      for (const s of sorted) {
+        const ex = s.exercises.find(
+          e => e.exerciseId === exerciseId || e.exerciseName.toLowerCase() === lower,
+        );
+        if (!ex) continue;
+        const weights = [...ex.sets]
+          .sort((a, b) => a.setNumber - b.setNumber)
+          .map(st => st.actualWeight ?? null);
+        // Skip sessions where every set has null weight (e.g. quickComplete without
+        // a targetWeight) and keep looking for a session with real recorded weights.
+        if (weights.every(w => w === null)) continue;
+        return weights;
+      }
+      return [];
+    };
+
     const session: WorkoutSession = {
       id: generateId(), planId, dayPosition: day.dayPosition, dayLabel: day.label,
       status: 'partial', startedAt: new Date().toISOString(), finishedAt: null,
       duration: 0, skipReason: null, sessionNote: null, totalVolume: 0,
-      prsBreached: [], exercises: buildExercises(day),
+      prsBreached: [], exercises: buildExercises(day, lastWeightFor),
     };
     set({ activeSession: session });
     AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(session));
@@ -432,6 +474,29 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const uid = await getUid();
     if (uid) fsSessions.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e));
     return session;
+  },
+
+  logPastSession: async (session) => {
+    if (get().sessions.some(s => s.id === session.id)) return;
+    const sessions = [...get().sessions, session];
+    set({ sessions });
+    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+    const uid = await getUid();
+    if (uid) fsSessions.set(uid, session).catch(e => __DEV__ && console.warn('[se7en/session]', e));
+  },
+
+  deleteSessions: async (predicate) => {
+    const toDelete = get().sessions.filter(predicate);
+    if (toDelete.length === 0) return;
+    const remaining = get().sessions.filter(s => !predicate(s));
+    set({ sessions: remaining });
+    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remaining));
+    const uid = await getUid();
+    if (uid) {
+      await Promise.all(
+        toDelete.map(s => fsSessions.delete(uid, s.id).catch(e => __DEV__ && console.warn('[se7en/session]', e))),
+      );
+    }
   },
 
   clearAllSessions: async () => {

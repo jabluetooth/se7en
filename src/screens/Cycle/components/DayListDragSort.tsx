@@ -173,6 +173,7 @@ export function DayListDragSort({
               isToday={displayDayNum === currentPos}
               currentPos={currentPos}
               displayDayNum={displayDayNum}
+              sessions={sessions}
               onEdit={() => onEdit(day)}
               onClear={() => onClear(day)}
               onDone={() => onDone(day)}

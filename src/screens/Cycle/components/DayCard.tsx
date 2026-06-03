@@ -10,7 +10,7 @@ import { GlassView } from '../../../components/common/GlassView';
 import { Badge } from '../../../components/common/Badge';
 import { usePlanStore } from '../../../stores/planStore';
 import { GRAD, COLORS, MUSCLE_TAG_COLOR, BAR_WEIGHTS, FONTS } from '../../../constants';
-import { WorkoutDay, Exercise, ExerciseLibraryItem } from '../../../types';
+import { WorkoutDay, WorkoutSession, Exercise, ExerciseLibraryItem } from '../../../types';
 import { ExerciseFormSheet } from '../ExerciseFormSheet';
 import { DayStatus, STATUS_BADGE, dayIsRest, topTags, getRecommended, LIB_GROUP_TO_TAGS } from '../helpers';
 import { SwipeActions, DoneAction } from './SwipeActions';
@@ -23,6 +23,7 @@ interface Props {
   isToday:       boolean;
   currentPos:    number;
   displayDayNum: number;          // 1-indexed slot position in the visible list
+  sessions?:     WorkoutSession[];
   onEdit:        () => void;
   onClear:       () => void;
   onDone?:       () => void;
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export function DayCard({
-  day, planId, status, isToday, currentPos, displayDayNum,
+  day, planId, status, isToday, currentPos, displayDayNum, sessions,
   onEdit, onClear, onDone, dragHandlers, onScrollEnabledChange,
 }: Props) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
@@ -107,6 +108,36 @@ export function DayCard({
   };
 
   const exercises = [...day.exercises].sort((a, b) => a.order - b.order);
+
+  // Returns a display string of the last actual weights used for a given plan
+  // exercise — e.g. "35 kg" (uniform) or "30–40 kg" (progressive sets).
+  // Matches by exerciseId first, falls back to case-insensitive name.
+  const lastWeightLabel = (ex: Exercise): string | null => {
+    if (!sessions) return null;
+    const lower = ex.name.toLowerCase();
+    const sorted = [...sessions]
+      .filter(s => s.status === 'completed' && s.finishedAt != null)
+      .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime());
+    for (const s of sorted) {
+      const found = s.exercises.find(
+        e => e.exerciseId === ex.id || e.exerciseName.toLowerCase() === lower,
+      );
+      if (!found) continue;
+      const weights = found.sets
+        .filter(st => st.isCompleted && st.actualWeight != null)
+        .sort((a, b) => a.setNumber - b.setNumber)
+        .map(st => st.actualWeight as number);
+      // No recorded weights in this session (e.g. quickComplete without targetWeight)
+      // — skip and try the next older session that has real data.
+      if (weights.length === 0) continue;
+      const min = Math.min(...weights);
+      const max = Math.max(...weights);
+      return min === max
+        ? `${min} ${ex.weightUnit}`
+        : `${min}–${max} ${ex.weightUnit}`;
+    }
+    return null;
+  };
 
   return (
     <View style={dc.wrap}>
@@ -205,22 +236,30 @@ export function DayCard({
                 <Text style={dc.restTxt}>Recovery day — no exercises scheduled.</Text>
               ) : exercises.length > 0 ? (
                 <View style={dc.exList}>
-                  {exercises.map(ex => (
-                    <View key={ex.id} style={dc.readRow}>
-                      <View style={dc.readInfo}>
-                        <Text style={dc.readName} numberOfLines={1}>{ex.name}</Text>
-                        <Text style={dc.readMeta}>
-                          {ex.targetSets}× {ex.targetRepsMin ?? '–'}{ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin ? `–${ex.targetRepsMax}` : ''} reps
-                          {ex.targetWeight ? ` · ${ex.targetWeight}${ex.weightUnit}` : ''}
-                        </Text>
-                      </View>
-                      {(ex.muscleTags ?? []).slice(0, 1).map(t => (
-                        <View key={t} style={[dc.readTag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
-                          <Text style={[dc.readTagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
+                  {exercises.map(ex => {
+                    const lastW = lastWeightLabel(ex);
+                    return (
+                      <View key={ex.id} style={dc.readRow}>
+                        <View style={dc.readInfo}>
+                          <Text style={dc.readName} numberOfLines={1}>{ex.name}</Text>
+                          <Text style={dc.readMeta}>
+                            {ex.targetSets}× {ex.targetRepsMin ?? '–'}{ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin ? `–${ex.targetRepsMax}` : ''} reps
+                            {ex.targetWeight ? ` · ${ex.targetWeight} ${ex.weightUnit}` : ''}
+                          </Text>
+                          {lastW && (
+                            <View style={dc.readLastChip}>
+                              <Text style={dc.readLastTxt}>Last: {lastW}</Text>
+                            </View>
+                          )}
                         </View>
-                      ))}
-                    </View>
-                  ))}
+                        {(ex.muscleTags ?? []).slice(0, 1).map(t => (
+                          <View key={t} style={[dc.readTag, { backgroundColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '22', borderColor: (MUSCLE_TAG_COLOR[t] ?? '#fff') + '44' }]}>
+                            <Text style={[dc.readTagTxt, { color: MUSCLE_TAG_COLOR[t] ?? COLORS.textSecondary }]}>{t}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  })}
                 </View>
               ) : (
                 <Text style={dc.emptyTxt}>No exercises yet. Swipe left → Edit to add.</Text>
@@ -390,4 +429,6 @@ export const dc = StyleSheet.create({
   capBottom:     { height: 0 },
   restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
   restToggleLbl: { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  readLastChip:  { marginTop: 4, alignSelf: 'flex-start', backgroundColor: 'rgba(255,140,0,0.12)', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', paddingHorizontal: 7, paddingVertical: 2 },
+  readLastTxt:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
 });

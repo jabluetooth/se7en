@@ -238,7 +238,8 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   const selSess    = sel?.session ?? null;
   const selPlanDay = sel ? planDayForCalDay(sel.day) : null;
   const selIsRest  = selPlanDay
-    ? selPlanDay.isRestDay
+    ? (selPlanDay.isRestDay ||
+       (selPlanDay.label?.toLowerCase().trim() === 'rest' && selPlanDay.exercises.length === 0))
     : (selSess ? isRestDay(selSess.dayPosition) : false);
   const selIsPast  = sel ? new Date(year, month, sel.day) < today : false;
   const selIsToday = sel ? isTodayFn(sel.day) : false;
@@ -321,8 +322,14 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             const isPast    = new Date(year, month, day) < today;
 
                             const planDay   = planDayForCalDay(day);
+                            // Mirror the DayCard dayIsRest logic: treat a day as
+                            // rest if the flag is set OR it's labelled "Rest" with
+                            // no exercises (handles plans where isRestDay was not
+                            // explicitly toggled but the label was set to Rest).
                             const schedRest = planDay
-                              ? planDay.isRestDay
+                              ? (planDay.isRestDay ||
+                                 (planDay.label?.toLowerCase().trim() === 'rest' &&
+                                  planDay.exercises.length === 0))
                               : (!!sess && isRestDay(sess.dayPosition));
 
                             const color = sess && !schedRest
@@ -332,10 +339,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             // Missed: past workout slot with no session —
                             // but only on or after the user's first ever session
                             // so pre-activity cycle iterations aren't penalised.
+                            // Uses schedRest (not planDay.isRestDay directly) so
+                            // the label-based rest check above is respected here too.
                             const cellDate   = new Date(year, month, day);
                             const afterStart = !firstSessionDate || cellDate >= firstSessionDate;
                             const missed     = !sess && isPast && !todayD
-                              && !!planDay && !planDay.isRestDay
+                              && !!planDay && !schedRest
                               && !!cycleStartDate && afterStart;
 
                             const isRestCell    = schedRest;
@@ -470,14 +479,20 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               {selSess.exercises.length > 0 && (
                 <View style={s.cardExWrap}>
                   {selSess.exercises.slice(0, 4).map((ex, i) => {
-                    const reps = ex.sets[0]?.targetReps ?? null;
-                    const wt   = ex.sets[0]?.targetWeight;
+                    const completedSets = ex.sets.filter(st => st.isCompleted);
+                    const bestSet = completedSets.reduce<typeof completedSets[0] | null>(
+                      (b, st) => ((st.actualWeight ?? 0) >= (b?.actualWeight ?? 0) ? st : b), null,
+                    );
+                    const reps = bestSet
+                      ? (bestSet.actualRepsToFailure ?? bestSet.actualReps)
+                      : null;
+                    const wt = bestSet?.actualWeight ?? null;
                     return (
                       <View key={i} style={s.cardExRow}>
                         <Text style={s.cardExName} numberOfLines={1}>{ex.exerciseName}</Text>
                         <Text style={s.cardExDetail}>
-                          {ex.sets.filter(st => st.isCompleted).length}×{reps ?? '–'}
-                          {wt ? `  @${wt}kg` : ''}
+                          {completedSets.length}×{reps ?? '–'}
+                          {wt ? `  @${wt}${ex.weightUnit}` : ''}
                         </Text>
                       </View>
                     );
@@ -491,10 +506,10 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
           ) : (() => {
             const selCycleIdx   = sel ? cycleForCalDay(sel.day) : null;
             const selInCycle    = selCycleIdx !== null && cycleInfo.has(selCycleIdx);
-            const selDayColor   = selPlanDay && !selPlanDay.isRestDay
+            const selDayColor   = selPlanDay && !selIsRest
               ? (DAY_COLOR[selPlanDay.dayPosition] ?? DEFAULT_COLOR)
               : null;
-            const showScheduled = selInCycle && selPlanDay && !selPlanDay.isRestDay && (selIsToday || !selIsPast);
+            const showScheduled = selInCycle && selPlanDay && !selIsRest && (selIsToday || !selIsPast);
             return (
               <View style={s.cardEmpty}>
                 <Text style={s.cardEmptyDate}>

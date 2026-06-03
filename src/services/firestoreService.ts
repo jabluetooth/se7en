@@ -98,6 +98,10 @@ export const fsSessions = {
     await setDoc(sessionDoc(uid, session.id), session);
   },
 
+  async delete(uid: string, sessionId: string): Promise<void> {
+    await deleteDoc(sessionDoc(uid, sessionId));
+  },
+
   async deleteAll(uid: string): Promise<void> {
     const snap = await getDocs(sessionsCol(uid));
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));

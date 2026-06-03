@@ -46,7 +46,7 @@ export function VolumeLineGraph({ data, peakIdx, width }: Props) {
     `${linePath} L${points[points.length - 1].x.toFixed(1)},${baseY} ` +
     `L${points[0].x.toFixed(1)},${baseY} Z`;
 
-  const peak = points[peakIdx];
+  const peak = points[peakIdx] ?? null;
 
   return (
     <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
@@ -62,9 +62,11 @@ export function VolumeLineGraph({ data, peakIdx, width }: Props) {
         strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Vertical guide to the peak */}
-      <Path d={`M${peak.x},${peak.y} L${peak.x},${baseY}`}
-        stroke={COLORS.accent} strokeWidth={1}
-        strokeDasharray="2,3" strokeLinecap="round" />
+      {peak && (
+        <Path d={`M${peak.x},${peak.y} L${peak.x},${baseY}`}
+          stroke={COLORS.accent} strokeWidth={1}
+          strokeDasharray="2,3" strokeLinecap="round" />
+      )}
 
       {/* Plain data points */}
       {points.map((p, i) => i !== peakIdx && (
@@ -73,9 +75,11 @@ export function VolumeLineGraph({ data, peakIdx, width }: Props) {
       ))}
 
       {/* Peak point — bigger ring + filled centre */}
-      <Circle cx={peak.x} cy={peak.y} r={9}
-        fill="none" stroke={COLORS.accent} strokeOpacity={0.30} strokeWidth={2} />
-      <Circle cx={peak.x} cy={peak.y} r={5} fill={COLORS.accent} />
+      {peak && <>
+        <Circle cx={peak.x} cy={peak.y} r={9}
+          fill="none" stroke={COLORS.accent} strokeOpacity={0.30} strokeWidth={2} />
+        <Circle cx={peak.x} cy={peak.y} r={5} fill={COLORS.accent} />
+      </>}
     </Svg>
   );
 }

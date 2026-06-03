@@ -30,7 +30,7 @@ export function SummaryPage({ session, width }: Props) {
   );
 
   const peakIdx = setData.reduce(
-    (mi, d, i) => (d.vol > setData[mi].vol ? i : mi), 0,
+    (mi, d, i) => (d.vol > (setData[mi]?.vol ?? 0) ? i : mi), 0,
   );
   const peak    = setData[peakIdx];
 
