@@ -14,30 +14,63 @@ import { CoachScreen }              from '../screens/Coach/CoachScreen';
 import { useSessionStore }          from '../stores/sessionStore';
 import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
-import { WorkoutSession }           from '../types';
+import { WorkoutSession, WorkoutDay } from '../types';
 
 // The floating dock is an overlay — it sits ON TOP of screen content so the
 // page background extends edge-to-edge (including behind the dock + home
 // indicator). Individual screens that scroll should add a bottom padding of
-// roughly DOCK_RESERVE so the user can scroll the last item above the dock.   // gap between content and dock
+// roughly DOCK_RESERVE so the user can scroll the last item above the dock.
+
+// A single discriminated union drives the workout modal so ActiveSession and
+// PostWorkoutSummary share one <Modal>. This avoids the iOS dismiss→present
+// race that caused the post-workout screen to flash and immediately disappear:
+// UIKit cannot present a new fullScreen VC while another is still animating out.
+type WorkoutModal =
+  | { phase: 'hidden' }
+  | { phase: 'active' }
+  | { phase: 'summary'; session: WorkoutSession };
 
 export function AppNavigator() {
   const [activeTab,       setActiveTab      ] = useState<TabName>('Home');
-  const [showPostWorkout,    setShowPostWorkout   ] = useState(false);
-  const [showRestTimer,      setShowRestTimer     ] = useState(false);
-  const [showBuilder,        setShowBuilder       ] = useState(false);
-  const [showCoach,          setShowCoach         ] = useState(false);
-  const [coachInitialMsg,    setCoachInitialMsg   ] = useState<string | undefined>();
-  const [finishedSession,    setFinishedSession   ] = useState<WorkoutSession | null>(null);
-  const [sessionVisible,     setSessionVisible    ] = useState(true);
+  const [workoutModal,    setWorkoutModal    ] = useState<WorkoutModal>({ phase: 'hidden' });
+  const [showRestTimer,   setShowRestTimer   ] = useState(false);
+  const [showBuilder,     setShowBuilder     ] = useState(false);
+  const [showCoach,       setShowCoach       ] = useState(false);
+  const [coachInitialMsg, setCoachInitialMsg ] = useState<string | undefined>();
 
-  const { activeSession }            = useSessionStore();
-  const { activePlan }               = usePlanStore();
-  const { signOut, user }            = useAuthStore();
+  const { activeSession }  = useSessionStore();
+  const { activePlan }     = usePlanStore();
+  const { signOut, user }  = useAuthStore();
 
+  // Auto-raise the session modal when a session is started (e.g. from HomeScreen).
+  // When finishSession() eventually clears activeSession, we are already in the
+  // 'summary' phase so the condition below is a no-op — no unintended close.
   useEffect(() => {
-    if (activeSession) setSessionVisible(true);
+    if (activeSession) {
+      setWorkoutModal(prev => prev.phase === 'hidden' ? { phase: 'active' } : prev);
+    }
   }, [activeSession]);
+
+  // Atomically swap from 'active' → 'summary' inside the same modal.
+  // No dismiss+present cycle, so iOS never drops the incoming screen.
+  const handleSessionFinish = (session: WorkoutSession) => {
+    setWorkoutModal({ phase: 'summary', session });
+  };
+
+  const handlePostWorkoutDone = () => {
+    setWorkoutModal({ phase: 'hidden' });
+    setActiveTab('Home');
+  };
+
+  // Called by ActiveSessionScreen when the day is skipped / session cleared.
+  const handleSessionCleared = () => {
+    setWorkoutModal({ phase: 'hidden' });
+  };
+
+  const handleOpenCoach = (initialMessage?: string) => {
+    setCoachInitialMsg(initialMessage);
+    setShowCoach(true);
+  };
 
   // "Next Up" must mirror the Cycle screen's slot order — NOT dayPosition+1.
   // After a drag-reorder on the Cycle screen, slot N+1 holds whatever workout
@@ -45,7 +78,8 @@ export function AppNavigator() {
   // finished session by its stable dayPosition, then walk forward through the
   // slot array (wrapping at 7) and skip rest days so the user sees the next
   // actual workout — exactly what the Cycle screen shows as "tomorrow".
-  const nextDay = (() => {
+  const finishedSession = workoutModal.phase === 'summary' ? workoutModal.session : null;
+  const nextDay: WorkoutDay | undefined = (() => {
     if (!finishedSession || !activePlan) return undefined;
     const days = activePlan.days;
     const currentSlot = days.findIndex(d => d.dayPosition === finishedSession.dayPosition);
@@ -56,21 +90,16 @@ export function AppNavigator() {
     }
     return undefined; // plan is all rest days — NextUpPage shows empty state
   })();
-  const showActiveSession            = activeSession !== null && sessionVisible;
-
-  const handleSessionFinish = (session: WorkoutSession) => {
-    setFinishedSession(session);
-    setShowPostWorkout(true);
-  };
-
-  const handleOpenCoach = (initialMessage?: string) => {
-    setCoachInitialMsg(initialMessage);
-    setShowCoach(true);
-  };
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'Home':     return <HomeScreen onNavigate={setActiveTab} onOpenCoach={handleOpenCoach} onResumeSession={() => setSessionVisible(true)} />;
+      case 'Home':     return (
+        <HomeScreen
+          onNavigate={setActiveTab}
+          onOpenCoach={handleOpenCoach}
+          onResumeSession={() => setWorkoutModal({ phase: 'active' })}
+        />
+      );
       case 'Cycle':    return <CycleScreen />;
       case 'Progress': return <ProgressScreen />;
       case 'Settings': return (
@@ -90,13 +119,13 @@ export function AppNavigator() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         renderTab={renderTab}
-        showActiveSession={showActiveSession}
-        onBackSession={() => setSessionVisible(false)}
-        handleSessionFinish={handleSessionFinish}
-        showPostWorkout={showPostWorkout}
+        workoutModal={workoutModal}
+        onHideSession={() => setWorkoutModal({ phase: 'hidden' })}
+        onSessionFinish={handleSessionFinish}
+        onSessionCleared={handleSessionCleared}
         finishedSession={finishedSession}
         nextDay={nextDay}
-        onPostWorkoutDone={() => { setShowPostWorkout(false); setFinishedSession(null); setActiveTab('Home'); }}
+        onPostWorkoutDone={handlePostWorkoutDone}
         showRestTimer={showRestTimer}
         setShowRestTimer={setShowRestTimer}
         showBuilder={showBuilder}
@@ -110,18 +139,16 @@ export function AppNavigator() {
 }
 
 // Split out so we can call `useSafeAreaInsets` (must be inside SafeAreaProvider).
-// Content paddingBottom = dock + safe area + breathing room so screen content
-// never gets hidden behind the floating dock or the home indicator.
 interface ShellProps {
   activeTab: TabName;
   setActiveTab: (t: TabName) => void;
   renderTab: () => React.ReactNode;
-  showActiveSession: boolean;
-  onBackSession: () => void;
-  handleSessionFinish: (session: WorkoutSession) => void;
-  showPostWorkout: boolean;
+  workoutModal: WorkoutModal;
+  onHideSession: () => void;
+  onSessionFinish: (session: WorkoutSession) => void;
+  onSessionCleared: () => void;
   finishedSession: WorkoutSession | null;
-  nextDay: ReturnType<typeof Object> | any;
+  nextDay: WorkoutDay | undefined;
   onPostWorkoutDone: () => void;
   showRestTimer: boolean;
   setShowRestTimer: (v: boolean) => void;
@@ -134,9 +161,8 @@ interface ShellProps {
 
 function AppShell({
   activeTab, setActiveTab, renderTab,
-  showActiveSession, onBackSession,
-  handleSessionFinish,
-  showPostWorkout, finishedSession, nextDay, onPostWorkoutDone,
+  workoutModal, onHideSession, onSessionFinish, onSessionCleared,
+  finishedSession, nextDay, onPostWorkoutDone,
   showRestTimer, setShowRestTimer,
   showBuilder, setShowBuilder,
   showCoach, coachInitialMsg, onCloseCoach,
@@ -148,12 +174,23 @@ function AppShell({
       <View style={s.content}>{renderTab()}</View>
       <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
 
-      <Modal visible={showActiveSession} animationType="slide" presentationStyle="fullScreen">
-        <ActiveSessionScreen onFinish={handleSessionFinish} onBack={onBackSession} />
-      </Modal>
-
-      <Modal visible={showPostWorkout} animationType="slide" presentationStyle="fullScreen">
-        {finishedSession && (
+      {/* Single workout modal shared by ActiveSession and PostWorkoutSummary.
+          Keeping it mounted through the active→summary swap avoids the iOS
+          dismiss+present race that previously dropped the post-workout screen. */}
+      <Modal
+        visible={workoutModal.phase !== 'hidden'}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={workoutModal.phase !== 'summary' ? onHideSession : () => {}}
+      >
+        {workoutModal.phase === 'active' && (
+          <ActiveSessionScreen
+            onFinish={onSessionFinish}
+            onBack={onHideSession}
+            onClear={onSessionCleared}
+          />
+        )}
+        {workoutModal.phase === 'summary' && finishedSession && (
           <PostWorkoutSummary
             session={finishedSession}
             nextDay={nextDay}

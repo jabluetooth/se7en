@@ -347,7 +347,13 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }).catch(e => __DEV__ && console.warn('[se7en/pr]', e));
 
     const sessions = [...get().sessions, finished];
-    set({ activeSession: null, sessions, sessionTimer: 0 });
+
+    // Persist to local storage and Firestore before clearing activeSession.
+    // Clearing it first caused the iOS dismiss+present race: the ActiveSession
+    // modal would start its slide-out animation, then the PostWorkout modal
+    // tried to present before UIKit finished, dropping the incoming screen.
+    // Keeping activeSession non-null here lets ActiveSessionScreen stay rendered
+    // during network I/O so there is no blank flash between screens.
     await Promise.all([
       AsyncStorage.removeItem(ACTIVE_KEY),
       AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions)),
@@ -393,6 +399,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     AsyncStorage.removeItem('@se7en_coach_cache').catch(() => {});
     // Transition widget to idle state
     getWidgetService().then(ws => ws.endSession()).catch(() => {});
+
+    // Clear activeSession only after all I/O so the UI transition from
+    // ActiveSession → PostWorkout content-swap happens atomically with this.
+    set({ activeSession: null, sessions, sessionTimer: 0 });
     return finished;
   },
 

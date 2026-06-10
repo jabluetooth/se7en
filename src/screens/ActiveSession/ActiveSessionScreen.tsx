@@ -15,9 +15,10 @@ import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
 interface Props {
   onFinish: (session: WorkoutSession) => void;
   onBack?:  () => void;
+  onClear?: () => void;
 }
 
-export function ActiveSessionScreen({ onFinish, onBack }: Props) {
+export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
   const insets = useSafeAreaInsets();
@@ -68,6 +69,7 @@ export function ActiveSessionScreen({ onFinish, onBack }: Props) {
       activeSession.dayLabel,
       'Other',
     );
+    onClear?.();       // close the modal before clearing so there is no blank flash
     clearActiveSession();
   };
 
