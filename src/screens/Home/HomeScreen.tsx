@@ -234,7 +234,7 @@ const s = StyleSheet.create({
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', marginBottom: 8 },
   emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14 },
-  header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
   planLabel:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
   dateText:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88 },
   logoBadge:  { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },

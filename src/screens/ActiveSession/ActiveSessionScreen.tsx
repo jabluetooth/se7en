@@ -241,7 +241,7 @@ const s = StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
 
-  header:        { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
+  header:        { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16, zIndex: 10 },
   backBtn:       { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 10, alignSelf: 'flex-start' },
   backIcon:      { fontSize: 22, color: COLORS.textMuted, lineHeight: 24 },
   backTxt:       { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },

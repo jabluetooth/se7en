@@ -269,7 +269,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
 
 const s = StyleSheet.create({
 
-  header:           { paddingHorizontal: 20, paddingBottom: 14 },
+  header:           { paddingHorizontal: 20, paddingBottom: 14, zIndex: 10 },
   backBtn:          { marginBottom: 6 },
   backText:         { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   title:            { fontSize: 26, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.04 },

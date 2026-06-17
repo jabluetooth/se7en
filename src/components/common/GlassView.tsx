@@ -50,9 +50,9 @@ export function GlassView({ children, style, opacity = 'low', radius = 16, borde
     return (
       <View style={outerStyle}>
         {/* iOS system material — actual Apple glass, not a flat dark blur */}
-        <BlurView intensity={blurIntensity} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={blurIntensity} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} pointerEvents="none" />
         {/* Cool white tint over the material */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,255,255,${tintAlpha})` }]} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(255,255,255,${tintAlpha})` }]} />
         {/* Specular sheen — subtle top highlight that fades quickly. Just enough to
             hint at a liquid-glass lens without dominating the surface. */}
         <LinearGradient

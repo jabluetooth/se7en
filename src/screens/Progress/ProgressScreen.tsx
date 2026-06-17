@@ -249,7 +249,7 @@ export function ProgressScreen() {
 }
 
 const s = StyleSheet.create({
-  header:           { paddingHorizontal: 20, paddingBottom: 14 },
+  header:           { paddingHorizontal: 20, paddingBottom: 14, zIndex: 10 },
   title:            { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20 },
   sub:              { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
   scroll:           { paddingHorizontal: 16 },

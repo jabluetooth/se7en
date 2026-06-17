@@ -296,7 +296,7 @@ export function RestTimerScreen({
 }
 
 const s = StyleSheet.create({
-  header:           { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  header:           { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, zIndex: 10 },
   headerTextWrap:   { flex: 1, minWidth: 0 },
   headerSub:        { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, marginBottom: 2 },
   headerTitle:      { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.80 },

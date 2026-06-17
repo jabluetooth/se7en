@@ -430,7 +430,7 @@ const s = StyleSheet.create({
   flex: { flex: 1 },
 
   // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)', zIndex: 10 },
   backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
   titleText:    { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.64 },

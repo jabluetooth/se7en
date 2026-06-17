@@ -226,7 +226,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
 // Header
 const hd = StyleSheet.create({
-  bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, height: 44 },
+  bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, height: 44, zIndex: 10 },
   backBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   title:      { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.45, flex: 1, textAlign: 'center' },
   rightSlot:  { width: 36, height: 36, alignItems: 'flex-end', justifyContent: 'center' },

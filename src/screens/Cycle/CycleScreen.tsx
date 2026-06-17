@@ -395,7 +395,7 @@ const s = StyleSheet.create({
   emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
   // Header
-  header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 },
   planLabel:      { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
   title:          { fontSize: 28, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.12 },
   editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },

@@ -183,20 +183,22 @@ function AppShell({
         presentationStyle="fullScreen"
         onRequestClose={workoutModal.phase !== 'summary' ? onHideSession : () => {}}
       >
-        {workoutModal.phase === 'active' && (
-          <ActiveSessionScreen
-            onFinish={onSessionFinish}
-            onBack={onHideSession}
-            onClear={onSessionCleared}
-          />
-        )}
-        {workoutModal.phase === 'summary' && finishedSession && (
-          <PostWorkoutSummary
-            session={finishedSession}
-            nextDay={nextDay}
-            onDone={onPostWorkoutDone}
-          />
-        )}
+        <View style={{ flex: 1 }}>
+          {workoutModal.phase === 'active' && (
+            <ActiveSessionScreen
+              onFinish={onSessionFinish}
+              onBack={onHideSession}
+              onClear={onSessionCleared}
+            />
+          )}
+          {workoutModal.phase === 'summary' && finishedSession && (
+            <PostWorkoutSummary
+              session={finishedSession}
+              nextDay={nextDay}
+              onDone={onPostWorkoutDone}
+            />
+          )}
+        </View>
       </Modal>
 
       <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
