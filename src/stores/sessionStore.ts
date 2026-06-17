@@ -400,9 +400,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     // Transition widget to idle state
     getWidgetService().then(ws => ws.endSession()).catch(() => {});
 
-    // Clear activeSession only after all I/O so the UI transition from
-    // ActiveSession → PostWorkout content-swap happens atomically with this.
-    set({ activeSession: null, sessions, sessionTimer: 0 });
+    // Update sessions but keep activeSession alive so the Modal content is
+    // never empty between the active→summary phase swap.  AppNavigator clears
+    // activeSession in a useEffect *after* PostWorkoutSummary has mounted.
+    set({ sessions, sessionTimer: 0 });
     return finished;
   },
 

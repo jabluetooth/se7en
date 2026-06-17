@@ -38,18 +38,25 @@ export function AppNavigator() {
   const [showCoach,       setShowCoach       ] = useState(false);
   const [coachInitialMsg, setCoachInitialMsg ] = useState<string | undefined>();
 
-  const { activeSession }  = useSessionStore();
+  const { activeSession, clearActiveSession } = useSessionStore();
   const { activePlan }     = usePlanStore();
   const { signOut, user }  = useAuthStore();
 
   // Auto-raise the session modal when a session is started (e.g. from HomeScreen).
-  // When finishSession() eventually clears activeSession, we are already in the
-  // 'summary' phase so the condition below is a no-op — no unintended close.
   useEffect(() => {
     if (activeSession) {
       setWorkoutModal(prev => prev.phase === 'hidden' ? { phase: 'active' } : prev);
     }
   }, [activeSession]);
+
+  // Clear activeSession only AFTER PostWorkoutSummary has mounted so the Modal
+  // is never empty between the active→summary content swap.  finishSession()
+  // deliberately keeps activeSession alive; we clean it up here.
+  useEffect(() => {
+    if (workoutModal.phase === 'summary' && activeSession) {
+      clearActiveSession();
+    }
+  }, [workoutModal.phase, activeSession, clearActiveSession]);
 
   // Atomically swap from 'active' → 'summary' inside the same modal.
   // No dismiss+present cycle, so iOS never drops the incoming screen.
@@ -60,6 +67,7 @@ export function AppNavigator() {
   const handlePostWorkoutDone = () => {
     setWorkoutModal({ phase: 'hidden' });
     setActiveTab('Home');
+    if (activeSession) clearActiveSession();
   };
 
   // Called by ActiveSessionScreen when the day is skipped / session cleared.
