@@ -23,6 +23,9 @@ interface SessionStore {
   activeSession: WorkoutSession | null;
   sessions:      WorkoutSession[];
   loaded:        boolean;
+  /** Set when the Firestore leg of load() fails (e.g. offline). Cleared on
+   *  the next successful load()/sync. */
+  loadError:     string | null;
   sessionTimer:  number;
   timerInterval: ReturnType<typeof setInterval> | null;
   _unsub:        Unsubscribe | null;
@@ -93,10 +96,12 @@ async function getUid() {
 }
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
-  activeSession: null, sessions: [], loaded: false,
+  activeSession: null, sessions: [], loaded: false, loadError: null,
   sessionTimer: 0, timerInterval: null, _unsub: null,
 
   load: async (uid) => {
+    set({ loadError: null });
+
     // Cache first
     try {
       const [rawActive, rawHistory] = await Promise.all([
@@ -130,7 +135,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         set({ sessions: remoteHistory });
         await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remoteHistory));
       }
-    } catch (e) { __DEV__ && console.warn('[se7en/session]', e); }
+      set({ loadError: null });
+    } catch (e) {
+      __DEV__ && console.warn('[se7en/session]', e);
+      set({ loadError: e instanceof Error ? e.message : 'Could not sync your session history.' });
+    }
 
     set({ loaded: true });
   },
@@ -138,7 +147,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   startSync: (uid) => {
     get()._unsub?.();
     const unsub = fsSessions.listen(uid, async sessions => {
-      set({ sessions });
+      set({ sessions, loadError: null });
       await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
     });
     set({ _unsub: unsub });
@@ -147,7 +156,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   stopSync: () => {
     get().stopTimer();
     get()._unsub?.();
-    set({ activeSession: null, sessions: [], loaded: false, sessionTimer: 0, _unsub: null });
+    set({ activeSession: null, sessions: [], loaded: false, loadError: null, sessionTimer: 0, _unsub: null });
     AsyncStorage.multiRemove([ACTIVE_KEY, HISTORY_KEY]);
   },
 

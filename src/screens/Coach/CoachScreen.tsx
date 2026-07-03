@@ -15,6 +15,8 @@ import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
 import { continueConversation, ConversationMessage } from '../../services/coachService';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { MOTION } from '../../constants/motion';
 import { generateId } from '../../utils/idGen';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -126,9 +128,14 @@ function TypingIndicator() {
   const dot0 = useRef(new Animated.Value(0.25)).current;
   const dot1 = useRef(new Animated.Value(0.25)).current;
   const dot2 = useRef(new Animated.Value(0.25)).current;
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    const dots  = [dot0, dot1, dot2];
+    const dots = [dot0, dot1, dot2];
+    if (reducedMotion) {
+      dots.forEach(d => d.setValue(1));
+      return;
+    }
     const anims = dots.map((dot, i) =>
       Animated.loop(
         Animated.sequence([
@@ -141,7 +148,7 @@ function TypingIndicator() {
     );
     anims.forEach(a => a.start());
     return () => anims.forEach(a => a.stop());
-  }, [dot0, dot1, dot2]);
+  }, [dot0, dot1, dot2, reducedMotion]);
 
   return (
     <View style={b.coachRow}>
@@ -166,8 +173,8 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMess
   useEffect(() => {
     if (!msg.fresh) return;
     Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 280, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: MOTION.standard.duration, easing: MOTION.standard.easing, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: MOTION.standard.duration, easing: MOTION.standard.easing, useNativeDriver: true }),
     ]).start();
   }, []);
 

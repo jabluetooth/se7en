@@ -7,6 +7,7 @@ import { GlassView } from '../common/GlassView';
 import { askCoachProactive, clearCoachCache } from '../../services/coachService';
 import { useAuthStore }    from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { COLORS, SPACING, FONTS } from '../../constants';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ function useTypewriter(fullText: string, speed = 16) {
 // ─── Typing dots ──────────────────────────────────────────────────────────────
 
 function TypingDots() {
+  const reducedMotion = useReducedMotion();
   const dots = [
     useRef(new Animated.Value(0.35)).current,
     useRef(new Animated.Value(0.35)).current,
@@ -79,6 +81,11 @@ function TypingDots() {
   ];
 
   useEffect(() => {
+    if (reducedMotion) {
+      // Static "active" state — same visual weight, no motion.
+      dots.forEach(d => d.setValue(1));
+      return;
+    }
     const anims = dots.map((d, i) =>
       Animated.loop(
         Animated.sequence([
@@ -91,7 +98,7 @@ function TypingDots() {
     );
     anims.forEach(a => a.start());
     return () => anims.forEach(a => a.stop());
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <View style={td.row}>
@@ -132,9 +139,10 @@ const rl = StyleSheet.create({
 function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolean }) {
   // Bolt pulses while the AI is fetching
   const boltOp = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading || reducedMotion) {
       boltOp.stopAnimation();
       Animated.timing(boltOp, { toValue: 1, duration: 200, useNativeDriver: true }).start();
       return;
@@ -147,7 +155,7 @@ function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolea
     );
     loop.start();
     return () => loop.stop();
-  }, [loading]);
+  }, [loading, reducedMotion]);
 
   return (
     <View style={ih.row}>

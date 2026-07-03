@@ -124,6 +124,20 @@ export function ExerciseDragSort({
     return panCache.current[exerciseId].panHandlers;
   }
 
+  // Non-gesture reorder alternative — moves the exercise one slot up/down
+  // in the ordered list. Wired to the handle's increment/decrement
+  // accessibility actions so VoiceOver/TalkBack users can reorder without
+  // performing the drag gesture.
+  const moveExercise = (idx: number, dir: -1 | 1) => {
+    const to = idx + dir;
+    if (to < 0 || to >= exRef.current.length) return;
+    LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
+    const reordered = [...exRef.current];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(to, 0, moved);
+    reorderExercises(planId, dayId, reordered.map(e => e.id));
+  };
+
   return (
     <View ref={containerRef} onLayout={onContainerLayout}>
       {exercises.map((ex, idx) => {
@@ -147,8 +161,18 @@ export function ExerciseDragSort({
                 {...getHandlers(ex.id)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={er.iconBtn}
+                accessible
+                accessibilityRole="adjustable"
                 accessibilityLabel={`Reorder ${ex.name}`}
-                accessibilityHint="Drag to change exercise order"
+                accessibilityHint="Drag to change exercise order, or use the rotor actions to move up or down"
+                accessibilityActions={[
+                  { name: 'decrement', label: 'Move exercise up' },
+                  { name: 'increment', label: 'Move exercise down' },
+                ]}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'decrement') moveExercise(idx, -1);
+                  if (event.nativeEvent.actionName === 'increment') moveExercise(idx, 1);
+                }}
               >
                 <Ionicons name="reorder-three-outline" size={18} color={COLORS.textMuted} />
               </View>

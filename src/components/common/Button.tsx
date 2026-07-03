@@ -24,7 +24,10 @@ export function Button({
   label, onPress, variant = 'primary', size = 'md',
   loading, disabled, style, icon, fullWidth,
 }: Props) {
-  const h  = size === 'sm' ? 36 : size === 'lg' ? 56 : 48;
+  // 'sm' was 36pt (under the 44pt touch-target guideline) and is not
+  // load-bearing anywhere in the app today (no call site relies on that
+  // compactness) — raised to 44pt so it's guideline-clean by default.
+  const h  = size === 'sm' ? 44 : size === 'lg' ? 56 : 48;
   const fz = size === 'sm' ? 13 : size === 'lg' ? 17 : 15;
   const px = size === 'sm' ? 14 : size === 'lg' ? 28 : 22;
   const r  = size === 'sm' ? BORDER_RADIUS.md : size === 'lg' ? BORDER_RADIUS.xl : BORDER_RADIUS.lg;

@@ -54,15 +54,6 @@ export const COLORS = {
   glassBorder:          'rgba(255,255,255,0.14)',
   glassBorderHi:        'rgba(255,255,255,0.20)',
   accentGlow:           'rgba(255,140,0,0.28)',
-
-  // ── Light theme (unchanged) ───────────────────────────────
-  lightBackground:      '#F2F2F7',
-  lightSurface:         '#FFFFFF',
-  lightSurfaceElevated: '#F2F2F7',
-  lightBorder:          '#C6C6C8',
-  lightText:            '#000000',
-  lightTextSecondary:   '#6D6D72',
-  lightTextMuted:       '#AEAEB2',
 };
 
 export const BAR_WEIGHTS: Record<string, number> = {

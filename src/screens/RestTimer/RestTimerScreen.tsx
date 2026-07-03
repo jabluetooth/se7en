@@ -9,6 +9,7 @@ import { Badge } from '../../components/common/Badge';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { widgetService } from '../../services/widgetService';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   scheduleRestOverNotification,
   cancelRestOverNotification,
@@ -128,8 +129,9 @@ export function RestTimerScreen({
   // Pulse animation for the "resting..." status text — runs only while
   // the timer is actively counting down.
   const pulse = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
-    if (!running || done) {
+    if (!running || done || reducedMotion) {
       pulse.stopAnimation();
       Animated.timing(pulse, { toValue: 1, duration: 180, useNativeDriver: true }).start();
       return;
@@ -142,7 +144,7 @@ export function RestTimerScreen({
     );
     loop.start();
     return () => loop.stop();
-  }, [running, done]);
+  }, [running, done, reducedMotion]);
 
   const toggle = () => {
     if (done) {

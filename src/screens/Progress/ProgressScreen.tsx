@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
+import { FadeInItem } from '../../components/common/FadeInItem';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { COLORS, FONTS } from '../../constants';
@@ -207,6 +208,12 @@ export function ProgressScreen() {
 
           {visibleHistories.length === 0 ? (
             <GlassView radius={14} style={s.emptyCard}>
+              <Ionicons
+                name={searchQuery.trim() ? 'search-outline' : 'trending-up-outline'}
+                size={28}
+                color={COLORS.textLabel}
+                style={{ marginBottom: 8 }}
+              />
               <Text style={s.emptyText}>
                 {searchQuery.trim()
                   ? `No exercises matching "${searchQuery.trim()}".`
@@ -215,16 +222,17 @@ export function ProgressScreen() {
             </GlassView>
           ) : (
             <View style={s.cardList}>
-              {displayedHistories.map(h => (
-                <ExerciseCard
-                  key={h.exerciseId}
-                  history={h}
-                  expanded={expandedId === h.exerciseId}
-                  onToggle={() =>
-                    setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))
-                  }
-                  chartWidth={chartWidth}
-                />
+              {displayedHistories.map((h, i) => (
+                <FadeInItem key={h.exerciseId} index={i}>
+                  <ExerciseCard
+                    history={h}
+                    expanded={expandedId === h.exerciseId}
+                    onToggle={() =>
+                      setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))
+                    }
+                    chartWidth={chartWidth}
+                  />
+                </FadeInItem>
               ))}
 
               {/* Show-more / show-less control — only when the cap is actually

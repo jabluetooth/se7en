@@ -30,6 +30,9 @@ const defaults: Settings = {
 interface SettingsStore {
   settings:   Settings;
   loaded:     boolean;
+  /** Set when the Firestore leg of load() fails (e.g. offline). Cleared on
+   *  the next successful load()/sync. */
+  loadError:  string | null;
   _unsub:     Unsubscribe | null;
 
   load:        (uid: string) => Promise<void>;
@@ -47,9 +50,12 @@ interface SettingsStore {
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   settings: defaults,
   loaded:   false,
+  loadError: null,
   _unsub:   null,
 
   load: async (uid) => {
+    set({ loadError: null });
+
     // 1. Cache (instant, works offline)
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
@@ -63,13 +69,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const remote = await fsSettings.get(uid);
       if (remote) {
-        set({ settings: remote, loaded: true });
+        set({ settings: remote, loaded: true, loadError: null });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
       } else {
         // First time: push defaults to Firestore
         await fsSettings.set(uid, get().settings);
+        set({ loadError: null });
       }
-    } catch (e) { __DEV__ && console.warn('[se7en/settings]', e); }
+    } catch (e) {
+      __DEV__ && console.warn('[se7en/settings]', e);
+      set({ loadError: e instanceof Error ? e.message : 'Could not sync your settings.' });
+    }
 
     set({ loaded: true });
   },
@@ -108,7 +118,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   startSync: (uid) => {
     get()._unsub?.();
     const unsub = fsSettings.listen(uid, async remote => {
-      set({ settings: remote });
+      set({ settings: remote, loadError: null });
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
     });
     set({ _unsub: unsub });
@@ -116,7 +126,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   stopSync: () => {
     get()._unsub?.();
-    set({ settings: defaults, loaded: false, _unsub: null });
+    set({ settings: defaults, loaded: false, loadError: null, _unsub: null });
     AsyncStorage.removeItem(CACHE_KEY);
   },
 }));

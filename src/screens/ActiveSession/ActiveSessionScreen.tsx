@@ -96,6 +96,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
         visible={!!restCtx}
         animationType="slide"
         presentationStyle="fullScreen"
+        statusBarTranslucent
         onRequestClose={() => setRestCtx(null)}
       >
         {restCtx && (

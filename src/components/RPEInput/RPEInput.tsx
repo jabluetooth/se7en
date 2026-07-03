@@ -59,25 +59,30 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
         )}
       </View>
 
-      {/* Number selector */}
-      <View style={s.grid} accessibilityRole="radiogroup" accessibilityLabel="Rate of perceived exertion, 1 to 10">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
-          const color    = rpeColor(n);
-          const isActive = selected === n;
-          return (
-            <TouchableOpacity
-              key={n}
-              onPress={() => { setSelected(n); Haptics.selectionAsync().catch(() => {}); }}
-              activeOpacity={0.75}
-              style={[s.cell, isActive && { backgroundColor: color + '22', borderColor: color }]}
-              accessibilityRole="radio"
-              accessibilityLabel={`RPE ${n} — ${RPE_LABELS[n]}`}
-              accessibilityState={{ selected: isActive }}
-            >
-              <Text style={[s.cellNum, { color: isActive ? color : COLORS.textMuted }]}>{n}</Text>
-            </TouchableOpacity>
-          );
-        })}
+      {/* Number selector — two rows of 5 so every cell clears the 44pt touch
+          target guideline even on narrow phones (a single row of 10 could not). */}
+      <View accessibilityRole="radiogroup" accessibilityLabel="Rate of perceived exertion, 1 to 10">
+        {[[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]].map((row, ri) => (
+          <View key={ri} style={[s.grid, ri === 0 && { marginBottom: 6 }]}>
+            {row.map(n => {
+              const color    = rpeColor(n);
+              const isActive = selected === n;
+              return (
+                <TouchableOpacity
+                  key={n}
+                  onPress={() => { setSelected(n); Haptics.selectionAsync().catch(() => {}); }}
+                  activeOpacity={0.75}
+                  style={[s.cell, isActive && { backgroundColor: color + '22', borderColor: color }]}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`RPE ${n} — ${RPE_LABELS[n]}`}
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <Text style={[s.cellNum, { color: isActive ? color : COLORS.textMuted }]}>{n}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
       </View>
 
       {/* Description label */}
@@ -122,8 +127,11 @@ const s = StyleSheet.create({
   headerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
   title:       { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
   skip:        { fontSize: 12, color: COLORS.textLabel, fontWeight: '600', fontFamily: FONTS.semibold },
-  grid:        { flexDirection: 'row', gap: 5, marginBottom: SPACING.sm },
-  cell:        { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.04)' },
+  grid:        { flexDirection: 'row', gap: 6, marginBottom: SPACING.sm },
+  // Fixed 48pt height (not aspectRatio) clears the 44pt touch-target
+  // guideline regardless of screen width — 5-per-row leaves plenty of
+  // horizontal room even on the narrowest supported phones.
+  cell:        { flex: 1, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.04)' },
   cellNum:     { fontSize: 14, fontWeight: '800', fontFamily: FONTS.data, letterSpacing: -0.56 },
   rpeLabel:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, marginBottom: SPACING.sm, textAlign: 'center' },
   noteInput:   { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 10, padding: 10, fontSize: 13, fontFamily: FONTS.body, color: COLORS.text, minHeight: 52, textAlignVertical: 'top', marginBottom: SPACING.sm },

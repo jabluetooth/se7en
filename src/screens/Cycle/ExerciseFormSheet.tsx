@@ -346,6 +346,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={{ flex: 1 }}>

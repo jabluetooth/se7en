@@ -23,6 +23,11 @@ export function AuthScreen() {
   const [confirm,     setConfirm    ] = useState('');
   const [showPass,    setShowPass   ] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  // Inline field validation — shown next to the relevant field instead of an
+  // interrupting Alert.alert. Server-side auth failures still surface via the
+  // `error` banner above (that's a different, non-recoverable-by-typing class
+  // of error and belongs at the form level, not a specific field).
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
 
   const emailRef   = useRef<TextInput>(null);
   const passRef    = useRef<TextInput>(null);
@@ -31,6 +36,7 @@ export function AuthScreen() {
   const switchTab = (t: Tab) => {
     setTab(t);
     setName(''); setEmail(''); setPassword(''); setConfirm('');
+    setFieldErrors({});
     clearError();
   };
 
@@ -41,22 +47,21 @@ export function AuthScreen() {
 
   const handleSignUp = async () => {
     if (!name.trim() || !email.trim() || !password) return;
-    if (password !== confirm) {
-      Alert.alert('Passwords do not match');
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert('Password must be at least 6 characters');
-      return;
-    }
+    const errors: typeof fieldErrors = {};
+    if (password.length < 6)  errors.password = 'Must be at least 6 characters';
+    if (password !== confirm) errors.confirm  = "Passwords don't match";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     await signUp(name.trim(), email.trim().toLowerCase(), password);
   };
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Enter your email address first, then tap Forgot Password.');
+      setFieldErrors(prev => ({ ...prev, email: 'Enter your email first, then tap Forgot password' }));
+      emailRef.current?.focus();
       return;
     }
+    setFieldErrors(prev => ({ ...prev, email: undefined }));
     try {
       await resetPassword(email.trim().toLowerCase());
       Alert.alert('Check your inbox', 'A password reset link has been sent.');
@@ -140,12 +145,13 @@ export function AuthScreen() {
                 label="Email"
                 icon="mail-outline"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={t => { setEmail(t); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined })); }}
                 placeholder="you@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 returnKeyType="next"
                 onSubmitEditing={() => passRef.current?.focus()}
+                error={fieldErrors.email}
               />
 
               <Field
@@ -153,11 +159,12 @@ export function AuthScreen() {
                 label="Password"
                 icon="lock-closed-outline"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={t => { setPassword(t); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })); }}
                 placeholder={tab === 'signup' ? 'At least 6 characters' : '••••••••'}
                 secureTextEntry={!showPass}
                 returnKeyType={tab === 'login' ? 'done' : 'next'}
                 onSubmitEditing={tab === 'login' ? handleLogin : () => confirmRef.current?.focus()}
+                error={fieldErrors.password}
                 rightEl={
                   <TouchableOpacity
                     onPress={() => setShowPass(p => !p)}
@@ -177,11 +184,12 @@ export function AuthScreen() {
                   label="Confirm Password"
                   icon="lock-closed-outline"
                   value={confirm}
-                  onChangeText={setConfirm}
+                  onChangeText={t => { setConfirm(t); if (fieldErrors.confirm) setFieldErrors(prev => ({ ...prev, confirm: undefined })); }}
                   placeholder="Re-enter password"
                   secureTextEntry={!showConfirm}
                   returnKeyType="done"
                   onSubmitEditing={handleSignUp}
+                  error={fieldErrors.confirm}
                   rightEl={
                     <TouchableOpacity
                       onPress={() => setShowConfirm(p => !p)}
@@ -255,18 +263,26 @@ interface FieldProps {
   onSubmitEditing?:  () => void;
   rightEl?:          React.ReactNode;
   ref?:              React.Ref<TextInput>;
+  /** Inline validation message — shown under the field with a red-tinted
+   *  border, instead of interrupting the flow with Alert.alert. */
+  error?:            string;
 }
 
 const Field = React.forwardRef<TextInput, FieldProps>(function Field(
   { label, icon, value, onChangeText, placeholder, secureTextEntry,
-    keyboardType, autoCapitalize, returnKeyType, onSubmitEditing, rightEl },
+    keyboardType, autoCapitalize, returnKeyType, onSubmitEditing, rightEl, error },
   ref,
 ) {
   return (
     <View style={fi.wrap}>
       <Text style={fi.label}>{label}</Text>
-      <GlassView opacity="low" radius={12} style={fi.row}>
-        <Ionicons name={icon as any} size={17} color={COLORS.textMuted} style={fi.icon} />
+      <GlassView
+        opacity="low"
+        radius={12}
+        style={fi.row}
+        borderColor={error ? 'rgba(255,69,58,0.45)' : undefined}
+      >
+        <Ionicons name={icon as any} size={17} color={error ? COLORS.danger : COLORS.textMuted} style={fi.icon} />
         <TextInput
           ref={ref}
           style={fi.input}
@@ -281,9 +297,16 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           accessibilityLabel={label}
+          accessibilityHint={error}
         />
         {rightEl}
       </GlassView>
+      {!!error && (
+        <View style={fi.errorRow} accessibilityLiveRegion="polite">
+          <Ionicons name="alert-circle" size={12} color={COLORS.danger} />
+          <Text style={fi.errorTxt}>{error}</Text>
+        </View>
+      )}
     </View>
   );
 });
@@ -294,6 +317,8 @@ const fi = StyleSheet.create({
   row:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   icon:  {},
   input: { flex: 1, fontSize: 15, fontWeight: '500', fontFamily: FONTS.medium, color: '#fff', padding: 0 },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, paddingLeft: 2 },
+  errorTxt: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.danger, flex: 1 },
 });
 
 // ─── Styles ───────────────────────────────────────────────────────────────────

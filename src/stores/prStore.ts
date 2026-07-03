@@ -9,6 +9,9 @@ const CACHE_KEY = '@se7en_prs';
 interface PRStore {
   records:  PersonalRecord[];
   loaded:   boolean;
+  /** Set when the Firestore leg of load() fails (e.g. offline). Cleared on
+   *  the next successful load()/sync. */
+  loadError: string | null;
   _unsub:   Unsubscribe | null;
 
   load:       (uid: string) => Promise<void>;
@@ -23,9 +26,11 @@ async function getUid() {
 }
 
 export const usePRStore = create<PRStore>((set, get) => ({
-  records: [], loaded: false, _unsub: null,
+  records: [], loaded: false, loadError: null, _unsub: null,
 
   load: async (uid) => {
+    set({ loadError: null });
+
     // Cache first
     try {
       const raw = await AsyncStorage.getItem(CACHE_KEY);
@@ -36,10 +41,15 @@ export const usePRStore = create<PRStore>((set, get) => ({
     try {
       const remote = await fsPRs.getAll(uid);
       if (remote.length > 0) {
-        set({ records: remote, loaded: true });
+        set({ records: remote, loaded: true, loadError: null });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
+      } else {
+        set({ loadError: null });
       }
-    } catch (e) { __DEV__ && console.warn('[se7en/pr]', e); }
+    } catch (e) {
+      __DEV__ && console.warn('[se7en/pr]', e);
+      set({ loadError: e instanceof Error ? e.message : 'Could not sync your personal records.' });
+    }
 
     set({ loaded: true });
   },
@@ -47,7 +57,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
   startSync: (uid) => {
     get()._unsub?.();
     const unsub = fsPRs.listen(uid, async records => {
-      set({ records });
+      set({ records, loadError: null });
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(records));
     });
     set({ _unsub: unsub });
@@ -55,7 +65,7 @@ export const usePRStore = create<PRStore>((set, get) => ({
 
   stopSync: () => {
     get()._unsub?.();
-    set({ records: [], loaded: false, _unsub: null });
+    set({ records: [], loaded: false, loadError: null, _unsub: null });
     AsyncStorage.removeItem(CACHE_KEY);
   },
 

@@ -28,12 +28,18 @@ interface Props {
   onClear:       () => void;
   onDone?:       () => void;
   dragHandlers?:         object;
+  /** Non-gesture reorder alternative — present only when this day is
+   *  unlocked and there's a valid slot to move into. Wired to the drag
+   *  handle's `increment`/`decrement` accessibility actions so VoiceOver/
+   *  TalkBack users can reorder without performing the drag gesture. */
+  onMoveUp?:     () => void;
+  onMoveDown?:   () => void;
   onScrollEnabledChange?: (enabled: boolean) => void;
 }
 
 export function DayCard({
   day, planId, status, isToday, currentPos, displayDayNum, sessions,
-  onEdit, onClear, onDone, dragHandlers, onScrollEnabledChange,
+  onEdit, onClear, onDone, dragHandlers, onMoveUp, onMoveDown, onScrollEnabledChange,
 }: Props) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
   const swipeRef   = useRef<Swipeable>(null);
@@ -167,6 +173,18 @@ export function DayCard({
             accessibilityRole="button"
             accessibilityLabel={`${day.label}, ${isRest ? 'recovery day' : `${day.exercises.length} exercises`}`}
             accessibilityState={{ expanded: showList || showEditor }}
+            accessibilityActions={[
+              { name: 'edit', label: 'Edit day' },
+              ...(!isRest ? [{ name: 'clear', label: 'Clear day' }] : []),
+              ...(!isRest && !isDone && onDone ? [{ name: 'done', label: 'Mark day done' }] : []),
+            ]}
+            onAccessibilityAction={(event) => {
+              switch (event.nativeEvent.actionName) {
+                case 'edit':  handleEdit();  break;
+                case 'clear': handleClear(); break;
+                case 'done':  handleDone();  break;
+              }
+            }}
           >
             <GlassView
               radius={(showList || showEditor) ? 0 : 16}
@@ -186,8 +204,18 @@ export function DayCard({
               <View
                 style={[dc.dragHandle, !dragHandlers && { opacity: 0.2 }]}
                 {...(dragHandlers ?? {})}
+                accessible={!!(dragHandlers || onMoveUp || onMoveDown)}
+                accessibilityRole={onMoveUp || onMoveDown ? 'adjustable' : undefined}
                 accessibilityLabel={dragHandlers ? `Reorder ${day.label}` : undefined}
-                accessibilityHint={dragHandlers ? 'Drag to change day order' : undefined}
+                accessibilityHint={dragHandlers ? 'Drag to change day order, or use the rotor actions to move up or down' : undefined}
+                accessibilityActions={[
+                  ...(onMoveUp   ? [{ name: 'decrement', label: 'Move day up' }]   : []),
+                  ...(onMoveDown ? [{ name: 'increment', label: 'Move day down' }] : []),
+                ]}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'decrement') onMoveUp?.();
+                  if (event.nativeEvent.actionName === 'increment') onMoveDown?.();
+                }}
               >
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { WorkoutDay } from '../../types';
 import { COLORS, GRAD, FONTS } from '../../constants';
 
@@ -50,9 +51,10 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
 
   // Pulsing dot animation — disabled in the done state (no longer "ready").
   const pulse = useRef(new Animated.Value(0)).current;
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (isRest || (isDone && !isInProgress)) { pulse.setValue(0); return; }
+    if (isRest || (isDone && !isInProgress) || reducedMotion) { pulse.setValue(0); return; }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
@@ -62,7 +64,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
     );
     anim.start();
     return () => anim.stop();
-  }, [isRest, isDone]);
+  }, [isRest, isDone, reducedMotion]);
 
   const ringScale   = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] });
   const ringOpacity = pulse.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.55, 0.25, 0] });

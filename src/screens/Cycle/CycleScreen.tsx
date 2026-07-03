@@ -8,10 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
+import { InlineBanner } from '../../components/common/InlineBanner';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { usePresetStore } from '../../stores/presetStore';
+import { useAuthStore } from '../../stores/authStore';
 import { computeDayPosition } from '../../utils/cycleUtils';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
@@ -29,10 +31,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export function CycleScreen() {
-  const { activePlan, updateDay, updatePlan } = usePlanStore();
+  const { activePlan, updateDay, updatePlan, loadError, load: loadPlans } = usePlanStore();
   const { sessions, quickCompleteDay }        = useSessionStore();
   const { settings, shiftCycle }              = useSettingsStore();
   const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
+  const uid = useAuthStore(u => u.user?.uid);
 
   const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition, activePlan?.days.length ?? 7);
   const dockClearance = useDockClearance();
@@ -131,8 +134,9 @@ export function CycleScreen() {
     return (
       <View style={s.emptyWrap}>
         <AppBackground />
+        <Ionicons name="calendar-outline" size={32} color={COLORS.textLabel} style={{ marginBottom: 12 }} />
         <Text style={s.emptyTitle}>No active plan</Text>
-        <Text style={s.emptySub}>Set up a plan in Settings.</Text>
+        <Text style={s.emptySub}>Set up a plan in Settings to see your training cycle here.</Text>
       </View>
     );
   }
@@ -278,6 +282,13 @@ export function CycleScreen() {
             />
           </TouchableOpacity>
         </View>
+
+        {loadError && (
+          <InlineBanner
+            message="Couldn't sync your plan — showing the last saved copy."
+            onRetry={uid ? () => loadPlans(uid) : undefined}
+          />
+        )}
 
         {/* ── Plan edit cabinet ── */}
         {planExpanded && (

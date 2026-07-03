@@ -4,6 +4,7 @@ import {
   Animated, PanResponder, LayoutAnimation, Platform,
 } from 'react-native';
 import { GlassView } from '../../../components/common/GlassView';
+import { FadeInItem } from '../../../components/common/FadeInItem';
 import { usePlanStore } from '../../../stores/planStore';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay, WorkoutSession } from '../../../types';
@@ -143,6 +144,19 @@ export function DayListDragSort({
     );
   }
 
+  // Non-gesture reorder path for VoiceOver/TalkBack — mirrors the drag
+  // gesture's own rules (can't move above the locked boundary) so keyboard/
+  // screen-reader users get exactly the same reordering power as a drag.
+  const moveDay = (idx: number, dir: -1 | 1) => {
+    const to = idx + dir;
+    if (to < minDropRef.current || to < 0 || to >= daysRef.current.length) return;
+    LayoutAnimation.configureNext({ duration: 220, update: { type: LayoutAnimation.Types.easeInEaseOut } });
+    const reordered = [...daysRef.current];
+    const [moved] = reordered.splice(idx, 1);
+    reordered.splice(to, 0, moved);
+    updatePlanRef.current(planIdRef.current, { days: reordered });
+  };
+
   return (
     <View ref={containerRef}>
       {days.map((day, idx) => {
@@ -154,6 +168,8 @@ export function DayListDragSort({
         const isActive  = dragFrom === idx;
         const showAbove = dropTo === idx && dragFrom !== null && dragFrom > idx;
         const showBelow = dropTo === idx && dragFrom !== null && dragFrom < idx;
+        const status  = getStatus(day, displayDayNum, currentPos, sessions, cycleStartDate);
+        const locked  = status === 'completed' || (status === 'rest' && displayDayNum < currentPos);
         return (
           <View
             key={day.id}
@@ -165,26 +181,26 @@ export function DayListDragSort({
             }}
             style={isActive ? { opacity: 0.4 } : undefined}
           >
-            {showAbove && <View style={dl.line} />}
-            <DayCard
-              day={day}
-              planId={planId}
-              status={getStatus(day, displayDayNum, currentPos, sessions, cycleStartDate)}
-              isToday={displayDayNum === currentPos}
-              currentPos={currentPos}
-              displayDayNum={displayDayNum}
-              sessions={sessions}
-              onEdit={() => onEdit(day)}
-              onClear={() => onClear(day)}
-              onDone={() => onDone(day)}
-              dragHandlers={(() => {
-                const st = getStatus(day, displayDayNum, currentPos, sessions, cycleStartDate);
-                const locked = st === 'completed' || (st === 'rest' && displayDayNum < currentPos);
-                return locked ? undefined : panHandlersRef.current[idx];
-              })()}
-              onScrollEnabledChange={onScrollEnabledChange}
-            />
-            {showBelow && <View style={dl.line} />}
+            <FadeInItem index={idx}>
+              {showAbove && <View style={dl.line} />}
+              <DayCard
+                day={day}
+                planId={planId}
+                status={status}
+                isToday={displayDayNum === currentPos}
+                currentPos={currentPos}
+                displayDayNum={displayDayNum}
+                sessions={sessions}
+                onEdit={() => onEdit(day)}
+                onClear={() => onClear(day)}
+                onDone={() => onDone(day)}
+                onMoveUp={!locked && idx > minDropRef.current ? () => moveDay(idx, -1) : undefined}
+                onMoveDown={!locked && idx < days.length - 1 ? () => moveDay(idx, 1) : undefined}
+                dragHandlers={locked ? undefined : panHandlersRef.current[idx]}
+                onScrollEnabledChange={onScrollEnabledChange}
+              />
+              {showBelow && <View style={dl.line} />}
+            </FadeInItem>
           </View>
         );
       })}

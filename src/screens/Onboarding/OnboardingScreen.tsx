@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { useTheme } from '../../hooks/useTheme';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { Button } from '../../components/common/Button';
@@ -19,8 +18,34 @@ import { Card } from '../../components/common/Card';
 import { validateImportJSON } from '../../utils/importValidator';
 import { recommendTemplates } from '../../utils/planRecommender';
 import { PLAN_TEMPLATES } from '../../data/planTemplates';
-import { BORDER_RADIUS, SPACING, FONTS } from '../../constants';
+import { BORDER_RADIUS, SPACING, FONTS, COLORS } from '../../constants';
 import { UserGoal, ExperienceLevel, EquipmentType, PlanTemplate } from '../../types';
+
+// This app is dark-only in practice (no Settings toggle ever exposed a light
+// mode), so this is a plain constant rather than a reactive useTheme() call.
+const colors = {
+  background:      COLORS.background,
+  surface:         COLORS.surface,
+  surfaceElevated: COLORS.surfaceElevated,
+  border:          COLORS.border,
+  borderFaint:     COLORS.borderFaint,
+  text:            COLORS.text,
+  textSecondary:   COLORS.textSecondary,
+  textMuted:       COLORS.textMuted,
+  accent:          COLORS.accent,
+  accentDim:       COLORS.accentDim,
+  gradientStart:   COLORS.gradientStart,
+  gradientEnd:     COLORS.gradientEnd,
+  danger:          COLORS.danger,
+  dangerDim:       COLORS.dangerDim,
+  warning:         COLORS.warning,
+  warningDim:      COLORS.warningDim,
+  rest:            COLORS.rest,
+  glass06:         COLORS.glass06,
+  glass09:         COLORS.glass09,
+  glassBorder:     COLORS.glassBorder,
+  accentGlow:      COLORS.accentGlow,
+};
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -50,7 +75,6 @@ const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string; desc: string }[]
 ];
 
 export function OnboardingScreen({ onComplete }: Props) {
-  const { colors } = useTheme();
   const { save } = useSettingsStore();
   const { createPlanFromTemplate, setActivePlan, importPlan } = usePlanStore();
 
@@ -637,7 +661,6 @@ const styles = StyleSheet.create({
 });
 
 // Hoisted so the screen body doesn't remount the indicator on every keystroke.
-// Colours travel as props since `useTheme()` lives inside the screen component.
 function Dots({ current, accent, border }:
   { current: number; accent: string; border: string }) {
   return (

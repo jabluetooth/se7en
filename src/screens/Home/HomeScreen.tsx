@@ -1,10 +1,14 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
+import { InlineBanner } from '../../components/common/InlineBanner';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { usePRStore } from '../../stores/prStore';
+import { useAuthStore } from '../../stores/authStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { CycleOrbitWidget } from './CycleOrbitWidget';
@@ -29,9 +33,11 @@ interface Props {
 
 export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) {
   const { activePlan }                        = usePlanStore();
-  const { sessions, startSession, activeSession } = useSessionStore();
+  const { sessions, startSession, activeSession, loadError, load: loadSessions } = useSessionStore();
   const { settings }               = useSettingsStore();
+  const { loadError: prLoadError, load: loadPRs } = usePRStore();
   const dockClearance              = useDockClearance();
+  const uid                        = useAuthStore(u => u.user?.uid);
 
   // Keep the home-screen widget in sync with the latest plan/session data.
   useEffect(() => {
@@ -142,8 +148,18 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     return (
       <View style={s.emptyWrap}>
         <AppBackground />
+        <Ionicons name="barbell-outline" size={32} color={COLORS.textLabel} style={{ marginBottom: 12 }} />
         <Text style={s.emptyTitle}>No plan active</Text>
-        <Text style={s.emptySub}>Head to Settings to set up your plan.</Text>
+        <Text style={s.emptySub}>Set up a workout plan to start tracking your training.</Text>
+        <TouchableOpacity
+          style={s.emptyCta}
+          onPress={() => onNavigate('Settings')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Go to Settings to set up a plan"
+        >
+          <Text style={s.emptyCtaTxt}>Go to Settings</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -167,6 +183,13 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
             <Text style={s.logoNum}>7</Text>
           </GlassView>
         </View>
+
+        {(loadError || prLoadError) && (
+          <InlineBanner
+            message="Couldn't sync your latest data — showing the last saved copy."
+            onRetry={uid ? () => { loadSessions(uid); loadPRs(uid); } : undefined}
+          />
+        )}
 
         <ScrollView
           style={s.scroll}
@@ -233,7 +256,9 @@ const s = StyleSheet.create({
   safe:       { flex: 1 },
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', marginBottom: 8 },
-  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14 },
+  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14, marginBottom: 20 },
+  emptyCta:   { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.accent },
+  emptyCtaTxt:{ fontSize: 14, fontWeight: '800', fontFamily: FONTS.headline, color: '#000' },
   header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
   planLabel:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
   dateText:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88 },

@@ -17,6 +17,10 @@ interface PlanStore {
   plans:      WorkoutPlan[];
   activePlan: WorkoutPlan | null;
   loaded:     boolean;
+  /** Set when the Firestore leg of load() fails (e.g. offline). Cleared on
+   *  the next successful load()/sync. UI may surface this as an inline
+   *  banner — data shown may be stale local cache rather than authoritative. */
+  loadError:  string | null;
   _unsub:     Unsubscribe | null;
 
   load:       (uid: string) => Promise<void>;
@@ -51,7 +55,7 @@ async function getUid() {
 }
 
 export const usePlanStore = create<PlanStore>((set, get) => ({
-  plans: [], activePlan: null, loaded: false, _unsub: null,
+  plans: [], activePlan: null, loaded: false, loadError: null, _unsub: null,
 
   _persist: async (plans, uid) => {
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(plans));
@@ -62,6 +66,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   },
 
   load: async (uid) => {
+    set({ loadError: null });
+
     // Backfill isRestDay for plans stored before the field was added
     const normalize = (plans: WorkoutPlan[]): WorkoutPlan[] =>
       plans.map(p => ({
@@ -85,10 +91,15 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     try {
       const remote = normalize(await fsPlans.getAll(uid));
       if (remote.length > 0) {
-        set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true });
+        set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true, loadError: null });
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
+      } else {
+        set({ loadError: null });
       }
-    } catch (e) { __DEV__ && console.warn('[se7en/plan]', e); }
+    } catch (e) {
+      __DEV__ && console.warn('[se7en/plan]', e);
+      set({ loadError: e instanceof Error ? e.message : 'Could not sync your plans.' });
+    }
 
     set({ loaded: true });
   },
@@ -96,7 +107,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
   startSync: (uid) => {
     get()._unsub?.();
     const unsub = fsPlans.listen(uid, async plans => {
-      set({ plans, activePlan: plans.find(p => p.isActive) ?? null });
+      set({ plans, activePlan: plans.find(p => p.isActive) ?? null, loadError: null });
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(plans));
     });
     set({ _unsub: unsub });
@@ -104,7 +115,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
 
   stopSync: () => {
     get()._unsub?.();
-    set({ plans: [], activePlan: null, loaded: false, _unsub: null });
+    set({ plans: [], activePlan: null, loaded: false, loadError: null, _unsub: null });
     AsyncStorage.removeItem(CACHE_KEY);
   },
 
