@@ -20,12 +20,18 @@ export function detectPRs(
     if (completedSets.length === 0) continue;
 
     const maxWeight = Math.max(...completedSets.map((s) => s.actualWeight ?? 0));
-    const maxReps = Math.max(...completedSets.map((s) => s.actualRepsToFailure ?? s.actualReps));
+    // actualRepsToFailure defaults to 0 for to-failure sets until the user edits
+    // it — nullish coalescing wouldn't fall back for that 0, so use it only when
+    // it's a genuine positive rep count; otherwise use the plain actualReps.
+    const repsForSet = (s: (typeof completedSets)[number]) =>
+      s.actualRepsToFailure && s.actualRepsToFailure > 0 ? s.actualRepsToFailure : s.actualReps;
+    const maxReps = Math.max(...completedSets.map(repsForSet));
     const maxVolume = Math.max(
       ...completedSets.map((s) => {
-        const w = s.actualWeight ?? 1;
-        const r = s.actualRepsToFailure ?? s.actualReps;
-        return r * w;
+        // Match maxWeight's null handling — a set with no recorded weight
+        // contributes 0 volume rather than a spurious reps*1.
+        const w = s.actualWeight ?? 0;
+        return repsForSet(s) * w;
       }),
     );
 

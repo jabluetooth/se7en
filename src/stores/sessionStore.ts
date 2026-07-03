@@ -323,28 +323,30 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     };
 
     // ── PR detection ──────────────────────────────────────────────────────────
-    // Detect new personal records, persist them, and fire notifications.
-    getPRStore().then(async prStore => {
+    // Detect new personal records synchronously (before persisting) so
+    // `finished.prsBreached` is correct in the write below — a fire-and-forget
+    // dynamic import here would resolve after the persist and silently lose
+    // the PR flags on reload.
+    try {
+      const prStore = await getPRStore();
       const { updatedPRs, prsBreached } = detectPRs(finished, prStore.records);
-      if (prsBreached.length === 0) return;
-
-      // Mutate the session record in place (already saved above, re-save below)
-      finished.prsBreached = prsBreached;
-
-      const { notifyNewPR } = await import('../services/notificationService');
-      await Promise.all(
-        updatedPRs.map(async pr => {
-          prStore.upsertPR(pr);
-          await notifyNewPR(
-            pr.exerciseName,
-            pr.heaviestWeight,
-            pr.mostReps,
-            // Find the exercise in the session to get weightUnit
-            finished.exercises.find(e => e.exerciseId === pr.exerciseId)?.weightUnit ?? 'kg',
-          );
-        }),
-      );
-    }).catch(e => __DEV__ && console.warn('[se7en/pr]', e));
+      if (prsBreached.length > 0) {
+        finished.prsBreached = prsBreached;
+        const { notifyNewPR } = await import('../services/notificationService');
+        await Promise.all(
+          updatedPRs.map(async pr => {
+            prStore.upsertPR(pr);
+            await notifyNewPR(
+              pr.exerciseName,
+              pr.heaviestWeight,
+              pr.mostReps,
+              // Find the exercise in the session to get weightUnit
+              finished.exercises.find(e => e.exerciseId === pr.exerciseId)?.weightUnit ?? 'kg',
+            );
+          }),
+        );
+      }
+    } catch (e) { __DEV__ && console.warn('[se7en/pr]', e); }
 
     const sessions = [...get().sessions, finished];
 

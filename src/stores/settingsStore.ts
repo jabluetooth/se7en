@@ -5,6 +5,9 @@ import { Settings } from '../types';
 import { DEFAULT_METRIC_PLATES } from '../constants';
 import { computeDayPosition, shiftDate, localDateStr } from '../utils/cycleUtils';
 import type { Unsubscribe } from 'firebase/firestore';
+// Lazy import to avoid a circular dependency with planStore.
+const getActivePlanLen = () =>
+  import('./planStore').then(m => m.usePlanStore.getState().activePlan?.days.length ?? 7);
 
 const CACHE_KEY = '@se7en_settings';
 
@@ -77,7 +80,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(updated));
 
     const uid = (await import('../config/firebase')).auth.currentUser?.uid;
-    if (uid) fsSettings.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/settings]', e));
+    // Field-level update — only writes the keys that actually changed, so this
+    // can't clobber a different field that another device wrote concurrently.
+    if (uid) fsSettings.update(uid, partial).catch(e => __DEV__ && console.warn('[se7en/settings]', e));
   },
 
   setActivePlan: async (planId) => {
@@ -86,15 +91,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   startCycle: async (startDate) => {
-    const date   = startDate ?? localDateStr(new Date());
-    const dayPos = computeDayPosition(date);
+    const date    = startDate ?? localDateStr(new Date());
+    const cycleLen = await getActivePlanLen();
+    const dayPos  = computeDayPosition(date, 1, cycleLen);
     return get().save({ cycleStartDate: date, currentDayPosition: dayPos });
   },
 
   shiftCycle: async (days) => {
-    const current = get().settings.cycleStartDate ?? localDateStr(new Date());
-    const shifted = shiftDate(current, days);
-    const dayPos  = computeDayPosition(shifted);
+    const current  = get().settings.cycleStartDate ?? localDateStr(new Date());
+    const shifted  = shiftDate(current, days);
+    const cycleLen = await getActivePlanLen();
+    const dayPos   = computeDayPosition(shifted, 1, cycleLen);
     return get().save({ cycleStartDate: shifted, currentDayPosition: dayPos });
   },
 

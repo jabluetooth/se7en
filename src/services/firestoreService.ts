@@ -12,7 +12,7 @@
 
 import {
   doc, collection,
-  getDoc, getDocs, setDoc, deleteDoc,
+  getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   onSnapshot, serverTimestamp,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -31,6 +31,15 @@ function withTimeout<T>(p: Promise<T>, ms = FS_TIMEOUT_MS): Promise<T> {
   ]);
 }
 import { Settings, WorkoutPlan, WorkoutSession, PersonalRecord } from '../types';
+
+// ─── Listener error logging ───────────────────────────────────────────────────
+// onSnapshot silently stops delivering updates on error (permission-denied after
+// a rules change, stale-token, or a stream drop) unless an error callback is
+// passed — without one the app just shows stale data with no signal why.
+
+function logListenerError(name: string) {
+  return (err: unknown) => { __DEV__ && console.warn(`[se7en/firestore] ${name} listener error:`, err); };
+}
 
 // ─── Path helpers ─────────────────────────────────────────────────────────────
 
@@ -56,10 +65,17 @@ export const fsSettings = {
     await setDoc(settingsDoc(uid), data);
   },
 
+  /** Field-level write — only touches the given keys, so a concurrent write
+   *  to a different field (another device, or an in-flight save racing the
+   *  onSnapshot echo) can't silently clobber it with a stale full-document copy. */
+  async update(uid: string, partial: Partial<Settings>): Promise<void> {
+    await updateDoc(settingsDoc(uid), partial);
+  },
+
   listen(uid: string, cb: (data: Settings) => void): Unsubscribe {
     return onSnapshot(settingsDoc(uid), snap => {
       if (snap.exists()) cb(snap.data() as Settings);
-    });
+    }, logListenerError('settings'));
   },
 };
 
@@ -82,7 +98,7 @@ export const fsPlans = {
   listen(uid: string, cb: (plans: WorkoutPlan[]) => void): Unsubscribe {
     return onSnapshot(plansCol(uid), snap => {
       cb(snap.docs.map(d => d.data() as WorkoutPlan));
-    });
+    }, logListenerError('plans'));
   },
 };
 
@@ -110,7 +126,7 @@ export const fsSessions = {
   listen(uid: string, cb: (sessions: WorkoutSession[]) => void): Unsubscribe {
     return onSnapshot(sessionsCol(uid), snap => {
       cb(snap.docs.map(d => d.data() as WorkoutSession));
-    });
+    }, logListenerError('sessions'));
   },
 };
 
@@ -133,7 +149,7 @@ export const fsActiveSession = {
   listen(uid: string, cb: (session: WorkoutSession | null) => void): Unsubscribe {
     return onSnapshot(activeSessDoc(uid), snap => {
       cb(snap.exists() ? (snap.data() as WorkoutSession) : null);
-    });
+    }, logListenerError('activeSession'));
   },
 };
 
@@ -152,6 +168,6 @@ export const fsPRs = {
   listen(uid: string, cb: (prs: PersonalRecord[]) => void): Unsubscribe {
     return onSnapshot(prsCol(uid), snap => {
       cb(snap.docs.map(d => d.data() as PersonalRecord));
-    });
+    }, logListenerError('prs'));
   },
 };

@@ -11,6 +11,12 @@ import {
 import { auth } from '../config/firebase';
 
 // ─── Rate limiter — 5 failed attempts triggers a 5-minute lockout ─────────────
+// UX friction only: this is in-memory/per-process state, so it resets on app
+// restart and is trivially bypassed by anyone with device access. It is NOT
+// the real defense against credential stuffing — Firebase Auth's server-side
+// throttling (the `auth/too-many-requests` case in friendlyError below) is.
+// Don't persist this to AsyncStorage expecting it to add real security: an
+// attacker who can clear/edit local storage bypasses it the same way.
 
 const signInLimiter = (() => {
   let failures = 0;
