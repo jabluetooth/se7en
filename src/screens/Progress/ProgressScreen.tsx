@@ -149,11 +149,14 @@ export function ProgressScreen() {
                 style={s.searchInput}
                 autoFocus
                 returnKeyType="search"
+                accessibilityLabel="Search exercises"
               />
               <Pressable
                 onPress={closeSearch}
                 hitSlop={8}
                 style={({ pressed }) => [s.searchClose, pressed && { opacity: 0.6 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Close search"
               >
                 <Ionicons name="close" size={16} color={COLORS.textSecondary} />
               </Pressable>
@@ -166,6 +169,8 @@ export function ProgressScreen() {
                   onPress={() => setSearchOpen(true)}
                   hitSlop={8}
                   style={({ pressed }) => [s.searchIcon, pressed && { opacity: 0.6 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Search exercises"
                 >
                   <Ionicons name="search" size={15} color={COLORS.textSecondary} />
                 </Pressable>
@@ -173,14 +178,18 @@ export function ProgressScreen() {
               <View style={s.toggle}>
                 {(['recent', 'volume', 'name'] as const).map(m => {
                   const active = sortMode === m;
+                  const mLabel = m === 'recent' ? 'Recent' : m === 'volume' ? 'Volume' : 'A–Z';
                   return (
                     <Pressable
                       key={m}
                       onPress={() => setSortMode(m)}
                       style={[s.togglePill, active && s.togglePillActive]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Sort by ${mLabel}`}
+                      accessibilityState={{ selected: active }}
                     >
                       <Text style={[s.toggleTxt, active && s.toggleTxtActive]}>
-                        {m === 'recent' ? 'Recent' : m === 'volume' ? 'Volume' : 'A–Z'}
+                        {mLabel}
                       </Text>
                     </Pressable>
                   );

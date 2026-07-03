@@ -24,7 +24,7 @@ interface Props {
   chartWidth:  number;
 }
 
-export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props) {
+export const ExerciseCard = React.memo(function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props) {
   const { sessions, weightUnit, isBodyweight, exerciseName } = history;
   if (sessions.length === 0) return null;
 
@@ -194,7 +194,7 @@ export function ExerciseCard({ history, expanded, onToggle, chartWidth }: Props)
       )}
     </GlassView>
   );
-}
+});
 
 const s = StyleSheet.create({
   wrap:    { padding: 12, gap: 10 },

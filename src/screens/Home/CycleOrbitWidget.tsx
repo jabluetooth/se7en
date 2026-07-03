@@ -89,7 +89,11 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel, activePlan, c
   const pct = Math.round((completedThisCycle / 7) * 100);
 
   return (
-    <View style={s.container}>
+    <View
+      style={s.container}
+      accessible
+      accessibilityLabel={`Day ${currentDay} of your cycle, ${dayLabel}. Cycle ${cycleNum}, ${pct}% complete.`}
+    >
       <Svg width={SZ} height={SZ} viewBox={`0 0 ${SZ} ${SZ}`}>
         <Defs>
           {/* Orange-only palette for the cycle arcs.

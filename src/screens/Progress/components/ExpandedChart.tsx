@@ -16,7 +16,7 @@ interface Props {
 // Shown when an exercise card is expanded. Plots top-weight (or top-reps for
 // bodyweight) over time. Falls back to a single centred label when every
 // session has the same value (avoids the "40 / 40 / 40" axis triplicate).
-export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
+export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
   const W = Math.max(width, 240);
   const H = 140;
   const padL = 50, padR = 14, padTop = 18, padBottom = 30;
@@ -71,8 +71,12 @@ export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
   const firstDate = fmtDate(sessions[0].finishedAt);
   const lastDate  = fmtDate(sessions[sessions.length - 1].finishedAt);
 
+  const chartSummary = `Progress chart from ${firstDate} to ${lastDate}. `
+    + `${isBodyweight ? 'Reps' : 'Weight'} ranged from ${fmtAxis(min)} to ${fmtAxis(max)}, `
+    + `peak of ${fmtAxis(data[peakIdx])} on ${fmtDate(sessions[peakIdx].finishedAt)}.`;
+
   return (
-    <View style={{ overflow: 'hidden' }}>
+    <View style={{ overflow: 'hidden' }} accessible accessibilityLabel={chartSummary} accessibilityRole="image">
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {/* Grid lines */}
         <Path d={`M${padL},${padTop} L${W - padR},${padTop}`}
@@ -139,4 +143,4 @@ export function ExpandedChart({ sessions, isBodyweight, unit, width }: Props) {
       </Svg>
     </View>
   );
-}
+});

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { GRAD, COLORS } from '../../constants';
@@ -48,6 +49,11 @@ export function FloatingDock({ activeTab, onTabPress }: Props) {
 }
 
 function DockContent({ activeTab, onTabPress }: Props) {
+  const handlePress = (tab: TabName) => {
+    if (tab !== activeTab) Haptics.selectionAsync().catch(() => {});
+    onTabPress(tab);
+  };
+
   return (
     <>
       {TABS.map((tab) => {
@@ -62,8 +68,11 @@ function DockContent({ activeTab, onTabPress }: Props) {
           >
             <TouchableOpacity
               style={s.iconInner}
-              onPress={() => onTabPress(tab.name)}
+              onPress={() => handlePress(tab.name)}
               activeOpacity={0.9}
+              accessibilityRole="tab"
+              accessibilityLabel={tab.name}
+              accessibilityState={{ selected: true }}
             >
               <Ionicons name={tab.iconFocused as any} size={24} color="#fff" />
             </TouchableOpacity>
@@ -74,6 +83,9 @@ function DockContent({ activeTab, onTabPress }: Props) {
             style={s.iconCircle}
             onPress={() => onTabPress(tab.name)}
             activeOpacity={0.65}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.name}
+            accessibilityState={{ selected: false }}
           >
             <Ionicons name={tab.icon as any} size={22} color={COLORS.textSecondary} />
           </TouchableOpacity>

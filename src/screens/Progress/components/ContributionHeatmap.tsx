@@ -102,6 +102,8 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
           onPress={() => shift(-HM_SHIFT_BY)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={({ pressed }) => [s.navBtn, pressed && { opacity: 0.5 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Show earlier weeks"
         >
           <Ionicons name="chevron-back" size={16} color={COLORS.textSecondary} />
         </Pressable>
@@ -115,6 +117,9 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
             !canGoForward && { opacity: 0.25 },
             pressed && canGoForward && { opacity: 0.5 },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Show later weeks"
+          accessibilityState={{ disabled: !canGoForward }}
         >
           <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />
         </Pressable>
@@ -146,6 +151,12 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
                       s.cell,
                       { backgroundColor: isFuture ? 'transparent' : intensity(c) },
                     ]}
+                    accessible={!isFuture}
+                    accessibilityLabel={
+                      isFuture
+                        ? undefined
+                        : `${day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}, ${c} workout${c === 1 ? '' : 's'}`
+                    }
                   />
                 );
               })}

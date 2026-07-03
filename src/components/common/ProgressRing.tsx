@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { COLORS, FONTS } from '../../constants';
+import { COLORS, FONTS, GRAD } from '../../constants';
 
 interface Props {
   value: number;
@@ -22,10 +22,11 @@ export function ProgressRing({ value, max, size = 48, strokeWidth = 4, label }: 
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
         <Defs>
+          {/* Amber-ember accent gradient — matches the app-wide progress/accent
+              treatment (GRAD.accent) instead of the previous one-off purple/teal. */}
           <LinearGradient id={gradId} x1='0%' y1='0%' x2='100%' y2='100%'>
-            <Stop offset='0%'   stopColor='#9035F0' />
-            <Stop offset='50%'  stopColor='#7B5EFA' />
-            <Stop offset='100%' stopColor='#2ECAC4' />
+            <Stop offset='0%'   stopColor={GRAD.accent[0]} />
+            <Stop offset='100%' stopColor={GRAD.accent[1]} />
           </LinearGradient>
         </Defs>
         <Circle cx={size/2} cy={size/2} r={r} fill='none' stroke='rgba(255,240,220,0.08)' strokeWidth={strokeWidth} />

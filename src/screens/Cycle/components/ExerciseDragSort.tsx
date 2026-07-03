@@ -143,7 +143,13 @@ export function ExerciseDragSort({
           <View key={ex.id}>
             {showAbove && <View style={ed.line} />}
             <View style={[er.row, isActive && { opacity: 0.5 }]}>
-              <View {...getHandlers(ex.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={er.iconBtn}>
+              <View
+                {...getHandlers(ex.id)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={er.iconBtn}
+                accessibilityLabel={`Reorder ${ex.name}`}
+                accessibilityHint="Drag to change exercise order"
+              >
                 <Ionicons name="reorder-three-outline" size={18} color={COLORS.textMuted} />
               </View>
               <View style={er.info}>
@@ -157,10 +163,22 @@ export function ExerciseDragSort({
                   ))}
                 </View>
               </View>
-              <TouchableOpacity onPress={() => onEdit(ex)} style={er.iconBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => onEdit(ex)}
+                style={er.iconBtn}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${ex.name}`}
+              >
                 <Ionicons name="pencil-outline" size={16} color={COLORS.textSecondary} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => onDelete(ex)} style={er.iconBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => onDelete(ex)}
+                style={er.iconBtn}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${ex.name}`}
+              >
                 <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
               </TouchableOpacity>
             </View>

@@ -71,7 +71,14 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                    'rgba(255,255,255,0.10)'
       }
     >
-      <TouchableOpacity style={s.header} onPress={() => setExpanded(p => !p)} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={s.header}
+        onPress={() => setExpanded(p => !p)}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`${exercise.exerciseName}, ${done} of ${total} sets complete`}
+        accessibilityState={{ expanded }}
+      >
         <ProgressRing value={done} max={total} size={44} strokeWidth={3} label={done + '/' + total} />
         <View style={s.info}>
           <View style={s.nameRow}>
@@ -131,6 +138,8 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                 style={s.removeSetBtn}
                 onPress={() => removeLastSet(exercise.id)}
                 activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Remove last set"
               >
                 <Text style={s.removeSetTxt}>− Remove Set</Text>
               </TouchableOpacity>
@@ -139,6 +148,8 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
               style={s.addSetBtn}
               onPress={() => addSet(exercise.id)}
               activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Add set"
             >
               <Text style={s.addSetTxt}>+ Add Set</Text>
             </TouchableOpacity>

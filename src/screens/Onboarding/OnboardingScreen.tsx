@@ -207,6 +207,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   },
                 ]}
                 onPress={() => setGoal(opt.value)}
+                accessibilityRole="radio"
+                accessibilityLabel={`${opt.label}, ${opt.desc}`}
+                accessibilityState={{ selected: goal === opt.value }}
               >
                 <Text style={[styles.quizCardLabel, { color: goal === opt.value ? colors.accent : colors.text }]}>
                   {opt.label}
@@ -231,6 +234,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   },
                 ]}
                 onPress={() => setExperience(opt.value)}
+                accessibilityRole="radio"
+                accessibilityLabel={`${opt.label}, ${opt.desc}`}
+                accessibilityState={{ selected: experience === opt.value }}
               >
                 <Text style={[styles.chipText, { color: experience === opt.value ? colors.accent : colors.text }]}>
                   {opt.label}
@@ -254,6 +260,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   },
                 ]}
                 onPress={() => setDaysPerWeek(d)}
+                accessibilityRole="radio"
+                accessibilityLabel={`${d} days per week`}
+                accessibilityState={{ selected: daysPerWeek === d }}
               >
                 <Text style={[styles.dayChipText, { color: daysPerWeek === d ? colors.accent : colors.text }]}>
                   {d}
@@ -278,6 +287,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   },
                 ]}
                 onPress={() => setEquipment(opt.value)}
+                accessibilityRole="radio"
+                accessibilityLabel={`${opt.label}, ${opt.desc}`}
+                accessibilityState={{ selected: equipment === opt.value }}
               >
                 <Text style={[styles.chipText, { color: equipment === opt.value ? colors.accent : colors.text }]}>
                   {opt.label}

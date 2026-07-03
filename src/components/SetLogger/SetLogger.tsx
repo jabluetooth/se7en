@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { GlassView } from '../common/GlassView';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { SetLog, SessionExercise } from '../../types';
@@ -91,6 +92,9 @@ function InlineRestTimer({ onDismiss }: { onDismiss: () => void }) {
               onPress={() => applyPreset(p)}
               style={[r.preset, seconds === p && !isDone && r.presetActive]}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`${p < 60 ? `${p} seconds` : `${p / 60} minute`} rest`}
+              accessibilityState={{ selected: seconds === p && !isDone }}
             >
               <Text style={[r.presetTxt, seconds === p && !isDone && r.presetTxtActive]}>
                 {p < 60 ? `${p}s` : `${p / 60}m`}
@@ -99,7 +103,14 @@ function InlineRestTimer({ onDismiss }: { onDismiss: () => void }) {
           ))}
         </View>
 
-        <TouchableOpacity onPress={onDismiss} style={r.closeBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={onDismiss}
+          style={r.closeBtn}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss rest timer"
+        >
           <Text style={r.closeTxt}>✕</Text>
         </TouchableOpacity>
       </View>
@@ -119,6 +130,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
   const [showRest, setShowRest] = useState(false);
 
   const handleComplete = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const actualRepsNum   = parseInt(reps, 10) || 0;
     const actualWeightNum = isBodyweight ? null : parseFloat(weight) || 0;
     onComplete({
@@ -157,6 +169,9 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
               onPress={() => setShowRest(true)}
               style={s.restToggle}
               activeOpacity={0.75}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Start rest timer after set ${set.setNumber}`}
             >
               <Text style={s.restToggleTxt}>REST</Text>
             </TouchableOpacity>
@@ -186,6 +201,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
               placeholder={String(set.targetWeight ?? '0')}
               placeholderTextColor={COLORS.textMuted}
               selectTextOnFocus
+              accessibilityLabel={`Set ${set.setNumber} weight in ${exercise.weightUnit}`}
             />
           </View>
         )}
@@ -199,10 +215,18 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
             placeholder={isFailure ? '0' : String(set.targetReps ?? '0')}
             placeholderTextColor={COLORS.textMuted}
             selectTextOnFocus
+            accessibilityLabel={`Set ${set.setNumber} ${isFailure ? 'reps to failure' : 'reps'}`}
           />
         </View>
       </View>
-      <TouchableOpacity onPress={handleComplete} activeOpacity={0.85} style={s.checkWrap}>
+      <TouchableOpacity
+        onPress={handleComplete}
+        activeOpacity={0.85}
+        style={s.checkWrap}
+        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        accessibilityRole="button"
+        accessibilityLabel={`Complete set ${set.setNumber}`}
+      >
         <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.checkBtn}>
           <Ionicons name="checkmark" size={18} color="#000" />
         </LinearGradient>

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
 import { WorkoutDay } from '../../types';
 import { COLORS, GRAD, FONTS } from '../../constants';
@@ -103,7 +104,13 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
       <Text style={s.subtitle}>{subtitle}</Text>
 
       {isInProgress && (
-        <TouchableOpacity style={s.ctaWrap} onPress={onResume} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={s.ctaWrap}
+          onPress={onResume}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Resume workout"
+        >
           <LinearGradient
             colors={GRAD.accent}
             start={{ x: 0, y: 0 }}
@@ -116,7 +123,13 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
       )}
 
       {showStart && (
-        <TouchableOpacity style={s.ctaWrap} onPress={onStart} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={s.ctaWrap}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onStart(); }}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Start session"
+        >
           <LinearGradient
             colors={GRAD.accent}
             start={{ x: 0, y: 0 }}

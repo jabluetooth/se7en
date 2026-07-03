@@ -138,16 +138,30 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
         {/* ── Persistent header ─────────────────────────── */}
         <View style={hd.bar}>
-          <TouchableOpacity onPress={onDone} style={hd.backBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={onDone}
+            style={hd.backBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Done"
+          >
             <ChevronLeft />
           </TouchableOpacity>
 
-          <Text style={hd.title}>{PAGE_NAMES[page]}</Text>
+          <Text style={hd.title} accessibilityRole="header">{PAGE_NAMES[page]}</Text>
 
           {/* Top-right options — background / save (Page 1 only) */}
           <View style={hd.rightSlot}>
             {page === 0 && (
-              <TouchableOpacity onPress={() => setMenuOpen(true)} style={hd.iconBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => setMenuOpen(true)}
+                style={hd.iconBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="More options"
+              >
                 <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.accent} />
               </TouchableOpacity>
             )}

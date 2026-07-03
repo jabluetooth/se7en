@@ -260,11 +260,23 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
           </Text>
         </View>
         <View style={s.navRow}>
-          <TouchableOpacity onPress={() => navMonth(-1)} hitSlop={{top:10,bottom:10,left:10,right:6}} activeOpacity={0.5}>
+          <TouchableOpacity
+            onPress={() => navMonth(-1)}
+            hitSlop={{top:10,bottom:10,left:10,right:6}}
+            activeOpacity={0.5}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+          >
             <Text style={s.navArrow}>‹</Text>
           </TouchableOpacity>
           <Text style={s.navLabel}>{MONTH_FULL[month].slice(0,3).toUpperCase()} {year}</Text>
-          <TouchableOpacity onPress={() => navMonth(1)} hitSlop={{top:10,bottom:10,left:6,right:10}} activeOpacity={0.5}>
+          <TouchableOpacity
+            onPress={() => navMonth(1)}
+            hitSlop={{top:10,bottom:10,left:6,right:10}}
+            activeOpacity={0.5}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+          >
             <Text style={s.navArrow}>›</Text>
           </TouchableOpacity>
         </View>
@@ -373,6 +385,17 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                             }
 
                             const fh = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
+                            const cellDateLabel = new Date(year, month, day)
+                              .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                            const cellStatusLabel = sess
+                              ? `${sess.dayLabel} completed, ${Math.round(sess.totalVolume)} kg`
+                              : missed
+                              ? 'missed'
+                              : showAsRest
+                              ? 'rest day'
+                              : todayD
+                              ? 'today, no session yet'
+                              : 'no session';
 
                             return (
                               <TouchableOpacity
@@ -380,6 +403,9 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                 onPress={() => onPress(day)}
                                 activeOpacity={0.75}
                                 style={[s.cell, bgStyle, todayD && s.cellToday, active && s.cellActive]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${cellDateLabel}, ${cellStatusLabel}`}
+                                accessibilityState={{ selected: active }}
                               >
                                 {color && fh > 0 && (
                                   <View style={[s.fillBar, { height: fh, backgroundColor: rgba(color, 0.88) }]} />

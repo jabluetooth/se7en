@@ -302,6 +302,8 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
             style={s.backBtn}
             activeOpacity={0.7}
             hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel="Close coach chat"
           >
             <BackSvg />
           </TouchableOpacity>
@@ -393,12 +395,16 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
               onSubmitEditing={() => send(input)}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
+              accessibilityLabel="Message to coach"
             />
             <TouchableOpacity
               onPress={() => send(input)}
               activeOpacity={input.trim() ? 0.85 : 1}
               disabled={!input.trim() || loading}
               style={s.sendWrap}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+              accessibilityState={{ disabled: !input.trim() || loading }}
             >
               {input.trim() && !loading ? (
                 <LinearGradient

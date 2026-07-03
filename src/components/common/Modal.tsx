@@ -7,12 +7,25 @@ interface Props { visible: boolean; title: string; onClose: () => void; children
 
 export function Modal({ visible, title, onClose, children }: Props) {
   return (
-    <RNModal visible={visible} transparent animationType='fade' onRequestClose={onClose}>
+    <RNModal
+      visible={visible}
+      transparent
+      animationType='fade'
+      onRequestClose={onClose}
+      accessibilityViewIsModal
+    >
       <View style={s.overlay}>
         <GlassView opacity='mid' radius={BORDER_RADIUS.xl} style={s.sheet}>
           <View style={s.header}>
-            <Text style={s.title}>{title}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={12}><Text style={s.close}>x</Text></TouchableOpacity>
+            <Text style={s.title} accessibilityRole="header">{title}</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Text style={s.close}>x</Text>
+            </TouchableOpacity>
           </View>
           {children}
         </GlassView>

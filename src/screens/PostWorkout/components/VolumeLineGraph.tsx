@@ -47,39 +47,45 @@ export function VolumeLineGraph({ data, peakIdx, width }: Props) {
     `L${points[0].x.toFixed(1)},${baseY} Z`;
 
   const peak = points[peakIdx] ?? null;
+  const peakSet = data[peakIdx];
+  const summary = peakSet
+    ? `Set volume across ${data.length} sets. Peak: ${peakSet.reps} reps at ${peakSet.weight}${peakSet.unit} on ${peakSet.exName}.`
+    : `Set volume across ${data.length} sets.`;
 
   return (
-    <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      {/* Subtle baseline */}
-      <Path d={`M${padX},${baseY} L${W - padX},${baseY}`}
-        stroke="rgba(255,240,220,0.10)" strokeWidth={1} />
+    <View accessible accessibilityLabel={summary} accessibilityRole="image">
+      <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        {/* Subtle baseline */}
+        <Path d={`M${padX},${baseY} L${W - padX},${baseY}`}
+          stroke="rgba(255,240,220,0.10)" strokeWidth={1} />
 
-      {/* Area fill — semi-transparent accent */}
-      <Path d={areaPath} fill="rgba(255,140,0,0.10)" />
+        {/* Area fill — semi-transparent accent */}
+        <Path d={areaPath} fill="rgba(255,140,0,0.10)" />
 
-      {/* Line */}
-      <Path d={linePath} stroke={COLORS.accent} strokeWidth={2.5} fill="none"
-        strokeLinecap="round" strokeLinejoin="round" />
+        {/* Line */}
+        <Path d={linePath} stroke={COLORS.accent} strokeWidth={2.5} fill="none"
+          strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* Vertical guide to the peak */}
-      {peak && (
-        <Path d={`M${peak.x},${peak.y} L${peak.x},${baseY}`}
-          stroke={COLORS.accent} strokeWidth={1}
-          strokeDasharray="2,3" strokeLinecap="round" />
-      )}
+        {/* Vertical guide to the peak */}
+        {peak && (
+          <Path d={`M${peak.x},${peak.y} L${peak.x},${baseY}`}
+            stroke={COLORS.accent} strokeWidth={1}
+            strokeDasharray="2,3" strokeLinecap="round" />
+        )}
 
-      {/* Plain data points */}
-      {points.map((p, i) => i !== peakIdx && (
-        <Circle key={i} cx={p.x} cy={p.y} r={2.8}
-          fill={COLORS.accent} fillOpacity={0.55} />
-      ))}
+        {/* Plain data points */}
+        {points.map((p, i) => i !== peakIdx && (
+          <Circle key={i} cx={p.x} cy={p.y} r={2.8}
+            fill={COLORS.accent} fillOpacity={0.55} />
+        ))}
 
-      {/* Peak point — bigger ring + filled centre */}
-      {peak && <>
-        <Circle cx={peak.x} cy={peak.y} r={9}
-          fill="none" stroke={COLORS.accent} strokeOpacity={0.30} strokeWidth={2} />
-        <Circle cx={peak.x} cy={peak.y} r={5} fill={COLORS.accent} />
-      </>}
-    </Svg>
+        {/* Peak point — bigger ring + filled centre */}
+        {peak && <>
+          <Circle cx={peak.x} cy={peak.y} r={9}
+            fill="none" stroke={COLORS.accent} strokeOpacity={0.30} strokeWidth={2} />
+          <Circle cx={peak.x} cy={peak.y} r={5} fill={COLORS.accent} />
+        </>}
+      </Svg>
+    </View>
   );
 }

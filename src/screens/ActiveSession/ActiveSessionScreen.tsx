@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
@@ -58,11 +59,12 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   })();
 
   const handleFinish = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     const session = await finishSession();
     if (session) onFinish(session);
   };
 
-  const handleSkip = async () => {
+  const doSkip = async () => {
     await skipDay(
       activeSession.planId,
       activeSession.dayPosition,
@@ -71,6 +73,19 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
     );
     onClear?.();       // close the modal before clearing so there is no blank flash
     clearActiveSession();
+  };
+
+  const handleSkip = () => {
+    Alert.alert(
+      `Skip ${activeSession.dayLabel}?`,
+      doneSets > 0
+        ? `You've logged ${doneSets} set${doneSets === 1 ? '' : 's'} — skipping discards this in-progress session instead of finishing it.`
+        : 'This discards the in-progress session instead of finishing it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Skip Day', style: 'destructive', onPress: doSkip },
+      ],
+    );
   };
 
   return (
@@ -101,7 +116,14 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
           {onBack && (
-            <TouchableOpacity style={s.backBtn} onPress={onBack} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={s.backBtn}
+              onPress={onBack}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Home"
+            >
               <Text style={s.backIcon}>‹</Text>
               <Text style={s.backTxt}>Home</Text>
             </TouchableOpacity>
@@ -208,6 +230,8 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
               style={s.finishBtn}
               onPress={handleFinish}
               activeOpacity={0.88}
+              accessibilityRole="button"
+              accessibilityLabel="Finish Workout"
             >
               <LinearGradient
                 colors={GRAD.accent}
@@ -223,6 +247,8 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
               style={s.skipBtn}
               onPress={handleSkip}
               activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Skip Day"
             >
               <GlassView radius={16} style={s.skipInner}>
                 <Text style={s.skipTxt}>Skip Day</Text>

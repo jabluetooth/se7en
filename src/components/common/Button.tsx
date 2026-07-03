@@ -65,6 +65,9 @@ export function Button({
           fullWidth && { width: '100%' },
           style,
         ]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: disabled || loading, busy: loading }}
       >
         <LinearGradient
           colors={GRAD.accent}
@@ -89,6 +92,9 @@ export function Button({
           fullWidth && { width: '100%' },
           style,
         ]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: disabled || loading, busy: loading }}
       >
         <LinearGradient
           colors={GRAD.danger}
@@ -125,6 +131,9 @@ export function Button({
         fullWidth && { width: '100%' },
         style,
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {inner}
     </TouchableOpacity>

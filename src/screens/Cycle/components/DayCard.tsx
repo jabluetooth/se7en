@@ -164,6 +164,9 @@ export function DayCard({
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => { setShowList(l => !l); setShowEditor(false); }}
+            accessibilityRole="button"
+            accessibilityLabel={`${day.label}, ${isRest ? 'recovery day' : `${day.exercises.length} exercises`}`}
+            accessibilityState={{ expanded: showList || showEditor }}
           >
             <GlassView
               radius={(showList || showEditor) ? 0 : 16}
@@ -180,7 +183,12 @@ export function DayCard({
                 <View style={dc.dimOverlay} pointerEvents="none" />
               )}
 
-              <View style={[dc.dragHandle, !dragHandlers && { opacity: 0.2 }]} {...(dragHandlers ?? {})}>
+              <View
+                style={[dc.dragHandle, !dragHandlers && { opacity: 0.2 }]}
+                {...(dragHandlers ?? {})}
+                accessibilityLabel={dragHandlers ? `Reorder ${day.label}` : undefined}
+                accessibilityHint={dragHandlers ? 'Drag to change day order' : undefined}
+              >
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 

@@ -45,7 +45,10 @@ function Row({ label, sub, right, onPress, danger, last }: RowProps) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
+      disabled={!onPress}
       style={[s.row, !last && s.rowBorder]}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={sub ? `${label}, ${sub}` : label}
     >
       <View style={{ flex: 1 }}>
         <Text style={[s.rowLabel, danger && { color: COLORS.danger }]}>{label}</Text>
@@ -67,7 +70,15 @@ function SegControl<T extends string>({ options, value, onChange }: SegControlPr
       {options.map(opt => {
         const active = value === opt;
         return (
-          <TouchableOpacity key={opt} onPress={() => onChange(opt)} style={s.segBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            key={opt}
+            onPress={() => onChange(opt)}
+            style={s.segBtn}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={opt}
+            accessibilityState={{ selected: active }}
+          >
             {active ? (
               <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.segGrad}>
                 <Text style={s.segTextActive}>{opt}</Text>
@@ -82,9 +93,16 @@ function SegControl<T extends string>({ options, value, onChange }: SegControlPr
   );
 }
 
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
   return (
-    <TouchableOpacity onPress={onToggle} activeOpacity={0.8} style={[s.toggle, on && s.toggleOn]}>
+    <TouchableOpacity
+      onPress={onToggle}
+      activeOpacity={0.8}
+      style={[s.toggle, on && s.toggleOn]}
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: on }}
+    >
       {on && (
         <LinearGradient
           colors={GRAD.accent}
@@ -175,6 +193,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
               sub={`Last backup: ${settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleDateString() : 'Never'}`}
               right={
                 <Toggle
+                  label="Auto Backup"
                   on={settings.autoBackup}
                   onToggle={() => save({ autoBackup: !settings.autoBackup })}
                 />
@@ -204,6 +223,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
               }
               right={
                 <Toggle
+                  label="Daily Coach Reminder"
                   on={settings.coachNotificationsEnabled}
                   onToggle={async () => {
                     const next = !settings.coachNotificationsEnabled;

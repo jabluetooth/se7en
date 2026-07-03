@@ -131,7 +131,13 @@ function DragList({ exercises, onReorder }: DragListProps) {
 
             <View style={[dl.row, isActive && { opacity: 0.15 }]}>
               {/* Drag handle — handlers stable across re-renders */}
-              <View {...getHandlers(ex.id)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={dl.handle}>
+              <View
+                {...getHandlers(ex.id)}
+                hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                style={dl.handle}
+                accessibilityLabel={`Reorder ${ex.name}`}
+                accessibilityHint="Drag to change exercise order"
+              >
                 <Ionicons name="reorder-three-outline" size={22} color={COLORS.textMuted} />
               </View>
 

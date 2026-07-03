@@ -11,7 +11,7 @@ interface Props {
 
 // Tiny inline trend line — shown next to each exercise's name on the Progress
 // screen. Renders a single-pixel dot when there's only one data point.
-export function Sparkline({ data, color, width, height }: Props) {
+export const Sparkline = React.memo(function Sparkline({ data, color, width, height }: Props) {
   if (data.length < 2) {
     return (
       <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
@@ -27,14 +27,17 @@ export function Sparkline({ data, color, width, height }: Props) {
     y: height - ((v - min) / range) * (height - 6) - 3,
   }));
   const last  = pts[pts.length - 1];
+  const trend = data[data.length - 1] > data[0] ? 'trending up' : data[data.length - 1] < data[0] ? 'trending down' : 'flat';
   return (
-    <Svg width={width} height={height}>
-      <Polyline
-        points={pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
-        stroke={color} strokeWidth={1.5} fill="none"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
-      <Circle cx={last.x} cy={last.y} r={2.5} fill={color} />
-    </Svg>
+    <View accessible accessibilityLabel={`Trend over last ${data.length} sessions: ${trend}`}>
+      <Svg width={width} height={height}>
+        <Polyline
+          points={pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
+          stroke={color} strokeWidth={1.5} fill="none"
+          strokeLinecap="round" strokeLinejoin="round"
+        />
+        <Circle cx={last.x} cy={last.y} r={2.5} fill={color} />
+      </Svg>
+    </View>
   );
-}
+});

@@ -100,6 +100,9 @@ export function AuthScreen() {
                   onPress={() => switchTab(t)}
                   style={[s.tab, tab === t && s.tabActive]}
                   activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityLabel={t === 'login' ? 'Sign In' : 'Create Account'}
+                  accessibilityState={{ selected: tab === t }}
                 >
                   <Text style={[s.tabTxt, tab === t && s.tabTxtActive]}>
                     {t === 'login' ? 'Sign In' : 'Create Account'}
@@ -112,7 +115,7 @@ export function AuthScreen() {
             <GlassView opacity="mid" radius={20} style={s.card}>
               {/* Error banner */}
               {!!error && (
-                <View style={s.errorBanner}>
+                <View style={s.errorBanner} accessibilityLiveRegion="polite">
                   <Ionicons name="alert-circle-outline" size={15} color={COLORS.danger} />
                   <Text style={s.errorTxt}>{error}</Text>
                 </View>
@@ -156,7 +159,12 @@ export function AuthScreen() {
                 returnKeyType={tab === 'login' ? 'done' : 'next'}
                 onSubmitEditing={tab === 'login' ? handleLogin : () => confirmRef.current?.focus()}
                 rightEl={
-                  <TouchableOpacity onPress={() => setShowPass(p => !p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowPass(p => !p)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPass ? 'Hide password' : 'Show password'}
+                  >
                     <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textMuted} />
                   </TouchableOpacity>
                 }
@@ -175,7 +183,12 @@ export function AuthScreen() {
                   returnKeyType="done"
                   onSubmitEditing={handleSignUp}
                   rightEl={
-                    <TouchableOpacity onPress={() => setShowConfirm(p => !p)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowConfirm(p => !p)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
+                    >
                       <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textMuted} />
                     </TouchableOpacity>
                   }
@@ -195,6 +208,9 @@ export function AuthScreen() {
                 onPress={tab === 'login' ? handleLogin : handleSignUp}
                 activeOpacity={0.85}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={tab === 'login' ? 'Sign In' : 'Create Account'}
+                accessibilityState={{ disabled: loading, busy: loading }}
               >
                 <LinearGradient
                   colors={GRAD.accent}
@@ -264,6 +280,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
           autoCorrect={false}
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
+          accessibilityLabel={label}
         />
         {rightEl}
       </GlassView>

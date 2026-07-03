@@ -131,7 +131,12 @@ function DayDragSort({ days, onReorder }: DayDragProps) {
 
             <View style={[dd.dayRow, isActive && { opacity: 0.15 }]}>
               {/* Stable drag handle — uses pre-built handler ref */}
-              <View {...panHandlersRef.current[idx]} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <View
+                {...panHandlersRef.current[idx]}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel={`Reorder ${d.label}`}
+                accessibilityHint="Drag to change day order"
+              >
                 <Ionicons name="reorder-three-outline" size={20} color={COLORS.textMuted} />
               </View>
 

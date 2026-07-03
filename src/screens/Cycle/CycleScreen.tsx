@@ -263,7 +263,14 @@ export function CycleScreen() {
             <Text style={s.planLabel}>{activePlan.splitType}</Text>
             <Text style={s.title}>{activePlan.name}</Text>
           </View>
-          <TouchableOpacity onPress={openPlanEdit} style={[s.editBtn, planExpanded && s.editBtnActive]} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={openPlanEdit}
+            style={[s.editBtn, planExpanded && s.editBtnActive]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={planExpanded ? 'Close plan editor' : 'Edit plan'}
+            accessibilityState={{ expanded: planExpanded }}
+          >
             <Ionicons
               name={planExpanded ? 'chevron-up' : 'pencil-outline'}
               size={17}

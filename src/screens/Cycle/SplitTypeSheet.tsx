@@ -132,7 +132,14 @@ function SplitCard({ split, active, onSelect }: {
   onSelect: () => void;
 }) {
   return (
-    <TouchableOpacity onPress={onSelect} activeOpacity={0.85} style={c.cardWrap}>
+    <TouchableOpacity
+      onPress={onSelect}
+      activeOpacity={0.85}
+      style={c.cardWrap}
+      accessibilityRole="button"
+      accessibilityLabel={`${split.type} split, ${split.frequency}`}
+      accessibilityState={{ selected: active }}
+    >
       <GlassView
         radius={18}
         style={[c.card, active && c.cardActive]}
@@ -206,7 +213,14 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
                 <Ionicons name="checkmark" size={14} color="#fff" />
               </LinearGradient>
             )}
-            <TouchableOpacity onPress={onDelete} hitSlop={8} style={c.deleteBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={onDelete}
+              hitSlop={8}
+              style={c.deleteBtn}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete preset ${preset.name}`}
+            >
               <Ionicons name="trash-outline" size={16} color={COLORS.danger ?? '#FF6B6B'} />
             </TouchableOpacity>
           </View>

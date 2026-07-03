@@ -1,8 +1,9 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
+import { COLORS } from '../../constants';
 
 interface Props { size?: number; color?: string; }
-export function TrophyIcon({ size = 20, color = 'currentColor' }: Props) {
+export function TrophyIcon({ size = 20, color = COLORS.text }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M8 21h8M12 17v4M17 3H7v8a5 5 0 0010 0V3z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>

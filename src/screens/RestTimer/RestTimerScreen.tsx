@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
@@ -71,6 +72,7 @@ export function RestTimerScreen({
           setRunning(false);
           setDone(true);
           widgetService.clearRestTimer();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
           return 0;
         }
         const next = s - 1;
@@ -104,6 +106,7 @@ export function RestTimerScreen({
         setSeconds(0);
         setRunning(false);
         setDone(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       } else {
         // Restart cleanly with the corrected count
         setSeconds(remaining);
@@ -229,15 +232,18 @@ export function RestTimerScreen({
             <View style={{ transform: [{ scaleX: -1 }] }}>
               <Svg width={260} height={260} viewBox="0 0 260 260">
                 <Defs>
+                  {/* Rest state uses the app's established sky-blue "rest" semantic
+                      (COLORS.rest — same hue as SetLogger's inline rest timer and the
+                      Rest badge) instead of a one-off green/teal gradient. */}
                   <SvgGrad id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%"   stopColor={urgent ? '#FF5A5A' : '#22C55E'} />
-                    <Stop offset="50%"  stopColor={urgent ? '#EE4040' : '#10B981'} />
-                    <Stop offset="100%" stopColor={urgent ? '#E83535' : '#2ECAC4'} />
+                    <Stop offset="0%"   stopColor={urgent ? '#FF5A5A' : '#64D2FF'} />
+                    <Stop offset="50%"  stopColor={urgent ? '#EE4040' : '#38BDF8'} />
+                    <Stop offset="100%" stopColor={urgent ? '#E83535' : '#22B8E8'} />
                   </SvgGrad>
                 </Defs>
                 <Circle cx={130} cy={130} r={R} fill="none" stroke="rgba(255,240,220,0.08)" strokeWidth={stroke} />
                 <Circle cx={130} cy={130} r={R} fill="none"
-                  stroke={urgent ? 'rgba(240,80,80,0.20)' : 'rgba(34,197,94,0.18)'}
+                  stroke={urgent ? 'rgba(240,80,80,0.20)' : 'rgba(100,210,255,0.18)'}
                   strokeWidth={stroke + 10} strokeDasharray={circ} strokeDashoffset={off}
                   strokeLinecap="round" rotation={-90} origin="130,130" />
                 <Circle cx={130} cy={130} r={R} fill="none" stroke="url(#rg)"
@@ -264,22 +270,42 @@ export function RestTimerScreen({
 
           {/* Adjust */}
           <View style={s.adjust}>
-            <TouchableOpacity onPress={() => { setSeconds(s => Math.max(5, s - 15)); setTotal(t => Math.max(5, t - 15)); }}
-              style={s.adjustBtn}><Text style={s.adjustText}>-15</Text></TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setSeconds(s => Math.max(5, s - 15)); setTotal(t => Math.max(5, t - 15)); }}
+              style={s.adjustBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Subtract 15 seconds"
+            ><Text style={s.adjustText}>-15</Text></TouchableOpacity>
             <Text style={s.adjustLabel}>adjust</Text>
-            <TouchableOpacity onPress={() => { setSeconds(s => s + 15); setTotal(t => t + 15); }}
-              style={s.adjustBtn}><Text style={s.adjustText}>+15</Text></TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setSeconds(s => s + 15); setTotal(t => t + 15); }}
+              style={s.adjustBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Add 15 seconds"
+            ><Text style={s.adjustText}>+15</Text></TouchableOpacity>
           </View>
         </View>
 
         {/* ── Bottom controls ─────────────────────────────── */}
         <View style={s.controls}>
-          <TouchableOpacity onPress={skip} style={s.skipBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={skip}
+            style={s.skipBtn}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Skip rest"
+          >
             <GlassView radius={14} style={s.skipInner}>
               <Text style={s.skipText}>Skip</Text>
             </GlassView>
           </TouchableOpacity>
-          <TouchableOpacity onPress={toggle} style={s.mainBtn} activeOpacity={0.9}>
+          <TouchableOpacity
+            onPress={toggle}
+            style={s.mainBtn}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={done ? 'Back to Session' : running ? 'Pause rest timer' : 'Resume rest timer'}
+          >
             {(!running || done)
               ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.mainGrad}>
                   <Text style={s.mainText}>{done ? 'Back to Session' : 'Resume'}</Text>

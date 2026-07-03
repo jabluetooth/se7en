@@ -49,11 +49,26 @@ function Stepper({
   value, min, max, onChange,
 }: { value: number; min: number; max: number; onChange: (n: number) => void }) {
   return (
-    <View style={st.row}>
+    <View
+      style={st.row}
+      accessibilityRole="adjustable"
+      accessibilityValue={{ min, max, now: value }}
+      accessibilityActions={[
+        { name: 'increment', label: 'Increase' },
+        { name: 'decrement', label: 'Decrease' },
+      ]}
+      onAccessibilityAction={e => {
+        if (e.nativeEvent.actionName === 'increment') onChange(Math.min(max, value + 1));
+        if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(min, value - 1));
+      }}
+    >
       <TouchableOpacity
         onPress={() => onChange(Math.max(min, value - 1))}
         style={st.btn}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Decrease"
+        disabled={value <= min}
       >
         <Ionicons name="remove" size={20} color={value <= min ? COLORS.textLabel : COLORS.textSecondary} />
       </TouchableOpacity>
@@ -64,6 +79,9 @@ function Stepper({
         onPress={() => onChange(Math.min(max, value + 1))}
         style={st.btn}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Increase"
+        disabled={value >= max}
       >
         <Ionicons name="add" size={20} color={value >= max ? COLORS.textLabel : COLORS.textSecondary} />
       </TouchableOpacity>
@@ -192,6 +210,17 @@ function RestTimerSlider({
           setTrackW(w);
         }}
         style={sl.track}
+        accessibilityRole="adjustable"
+        accessibilityLabel="Rest timer duration"
+        accessibilityValue={{ min: 0, max: TIMER_MAX, now: value, text: fmt(value) }}
+        accessibilityActions={[
+          { name: 'increment', label: 'Increase rest timer' },
+          { name: 'decrement', label: 'Decrease rest timer' },
+        ]}
+        onAccessibilityAction={e => {
+          if (e.nativeEvent.actionName === 'increment') onChangeRef.current(snap(value + TIMER_STEP));
+          if (e.nativeEvent.actionName === 'decrement') onChangeRef.current(snap(value - TIMER_STEP));
+        }}
       >
         <View style={sl.trackBg} />
         <View style={[sl.trackFg, { width: fillW }]} />
@@ -326,7 +355,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 
           {/* Header */}
           <View style={f.header}>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={f.headerSide}>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={f.headerSide} accessibilityRole="button" accessibilityLabel="Cancel">
               <Text style={f.cancel}>Cancel</Text>
             </TouchableOpacity>
             <TextInput
@@ -340,7 +369,15 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               autoFocus={!isEdit}
               textAlign="center"
             />
-            <TouchableOpacity onPress={handleSave} disabled={!canSave} activeOpacity={0.8} style={[f.headerSide, f.headerRight, !canSave && { opacity: 0.35 }]}>
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={!canSave}
+              activeOpacity={0.8}
+              style={[f.headerSide, f.headerRight, !canSave && { opacity: 0.35 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Save"
+              accessibilityState={{ disabled: !canSave }}
+            >
               <Text style={f.save}>Save</Text>
             </TouchableOpacity>
           </View>

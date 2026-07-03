@@ -7,8 +7,17 @@ interface Props { title: string; actionLabel?: string; onAction?: () => void; }
 export function SectionHeader({ title, actionLabel, onAction }: Props) {
   return (
     <View style={s.row}>
-      <Text style={s.title}>{title}</Text>
-      {actionLabel ? <TouchableOpacity onPress={onAction}><Text style={s.action}>{actionLabel}</Text></TouchableOpacity> : null}
+      <Text style={s.title} accessibilityRole="header">{title}</Text>
+      {actionLabel ? (
+        <TouchableOpacity
+          onPress={onAction}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+        >
+          <Text style={s.action}>{actionLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
