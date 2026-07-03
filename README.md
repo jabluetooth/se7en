@@ -87,13 +87,15 @@ cd se7en
 npm install
 ```
 
-Copy `.env.example` to `.env.local` and fill in your Firebase, Neon, Groq, and HuggingFace credentials, then:
+Copy `.env.example` to `.env.local` and fill in your Firebase credentials, then:
 
 ```bash
 npm start        # Expo dev server
 npm run ios      # iOS simulator
 npm run android  # Android emulator
 ```
+
+The AI Coach (Groq, HuggingFace, Neon) runs through a Cloud Functions proxy so those credentials never ship inside the app — see [`functions/README.md`](functions/README.md) to configure and deploy it.
 
 ---
 

@@ -1,0 +1,7 @@
+# se7en Cloud Functions
+
+Server-side proxy for the three secrets that used to ship inside the client app: the Groq API key, the HuggingFace inference token, and the Neon Postgres connection string. All three are configured as Firebase Functions v2 secrets (Google Secret Manager) via `defineSecret()`, never as `.env` values baked into a deploy — set each one with `firebase functions:secrets:set GROQ_API_KEY` (and `HUGGINGFACE_API_KEY`, `NEON_DATABASE_URL`) from the repo root; the CLI will prompt for the value and store it encrypted, and you rerun the same command to rotate it later. Every callable function checks `request.auth` and throws `unauthenticated` if the caller isn't a signed-in Firebase user, and derives `userId` from the verified ID token server-side — it is never trusted from the client payload, so one user can never read or delete another user's rows.
+
+To deploy: `cd functions && npm install && npm run build && firebase deploy --only functions` (run from the repo root works too, since `firebase.json` points at this directory). To iterate locally: `npm run build && firebase emulators:start --only functions` — the emulator can read secrets from an optional, gitignored `functions/.env.local` (see `.env.example` for the names it expects); it is never used in production.
+
+Cloud Functions requires the Firebase project to be on the **Blaze** (pay-as-you-go) billing plan — deploys fail outright on the free Spark plan, even though these functions cost fractions of a cent per call at this app's current scale.

@@ -3,7 +3,10 @@
 --
 -- Prerequisites:
 --   1. Create a Neon project at https://console.neon.tech
---   2. Copy the connection string to EXPO_PUBLIC_NEON_DATABASE_URL in .env.local
+--   2. Set the connection string as a Cloud Functions secret:
+--        firebase functions:secrets:set NEON_DATABASE_URL
+--      (see functions/README.md — this now lives server-side only, never in
+--      a client .env, since it grants unscoped read/write/delete access)
 --   3. Run this file in the Neon SQL Editor (or via psql)
 
 -- ── 1. Enable pgvector extension ─────────────────────────────────────────────

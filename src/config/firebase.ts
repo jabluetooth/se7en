@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore }                  from 'firebase/firestore';
 import { getStorage }                    from 'firebase/storage';
 import { initializeAuth, getAuth }       from 'firebase/auth';
+import { getFunctions }                  from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -32,6 +33,10 @@ export const auth = (() => {
   }
 })();
 
-export const db      = getFirestore(app);
-export const storage = getStorage(app);
+export const db        = getFirestore(app);
+export const storage   = getStorage(app);
+// Backs every httpsCallable() used by coachService.ts / embeddingService.ts
+// to reach the Cloud Functions that proxy Groq / HuggingFace / Neon so those
+// secrets never ship inside the client bundle.
+export const functions = getFunctions(app);
 export default app;

@@ -13,6 +13,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { httpsCallable, HttpsCallableResult } from 'firebase/functions';
+import { functions } from '../config/firebase';
 import { useSessionStore }  from '../stores/sessionStore';
 import { usePlanStore }     from '../stores/planStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -21,8 +23,6 @@ import { computeDayPosition } from '../utils/cycleUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const GROQ_ENDPOINT  = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL     = 'llama-3.3-70b-versatile';
 const CACHE_KEY      = '@se7en_coach_cache';
 const CACHE_TTL_MS   = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -252,36 +252,32 @@ async function buildNoteContext(uid: string, query?: string): Promise<string> {
 }
 
 // ─── Groq inference ───────────────────────────────────────────────────────────
+// Proxied through the groqChat Cloud Function so the Groq API key never
+// ships inside the client bundle — see functions/src/index.ts.
+
+interface GroqChatResponse {
+  text: string;
+}
+
+const groqChatCallable = httpsCallable<
+  { messages: GroqMessage[]; maxTokens: number },
+  GroqChatResponse
+>(functions, 'groqChat');
 
 async function callGroq(messages: GroqMessage[], maxTokens = 300): Promise<string> {
-  const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
-  if (!apiKey) throw new Error('EXPO_PUBLIC_GROQ_API_KEY is not configured');
-
-  const res = await fetch(GROQ_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model:       GROQ_MODEL,
-      messages,
-      max_tokens:  maxTokens,
-      temperature: 0.75,
-    }),
-  });
-
-  if (res.status === 429) {
-    throw Object.assign(new Error('Rate limited'), { isRateLimit: true });
+  let result: HttpsCallableResult<GroqChatResponse>;
+  try {
+    result = await groqChatCallable({ messages, maxTokens });
+  } catch (err: any) {
+    // Preserve the isRateLimit error-shape contract the callers below rely on —
+    // previously derived from an HTTP 429, now from the callable's error code.
+    if (err?.code === 'functions/resource-exhausted') {
+      throw Object.assign(new Error('Rate limited'), { isRateLimit: true });
+    }
+    throw new Error(err?.message ?? 'Groq request failed');
   }
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Groq ${res.status}: ${body}`);
-  }
-
-  const data = await res.json();
-  return (data.choices[0].message.content as string).trim();
+  return result.data.text.trim();
 }
 
 // ─── Conversation type ────────────────────────────────────────────────────────

@@ -9,6 +9,20 @@ const config = getDefaultConfig(__dirname);
 config.resolver.unstable_enablePackageExports = true;
 config.resolver.unstable_conditionNames = ['react-native', 'require', 'default'];
 
+// functions/ is a separate deployable unit (Firebase Cloud Functions, Node.js
+// runtime) with its own package.json and node_modules — it is never imported
+// by the RN app. Without this, Metro's default watchFolders (the whole repo)
+// picks it up and tries to resolve its "main": "lib/index.js", which fails
+// whenever functions/lib hasn't been built locally.
+const functionsDirEscaped = path.resolve(__dirname, 'functions').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const existingBlockList = Array.isArray(config.resolver.blockList)
+  ? config.resolver.blockList
+  : config.resolver.blockList ? [config.resolver.blockList] : [];
+config.resolver.blockList = [
+  ...existingBlockList,
+  new RegExp(`^${functionsDirEscaped}[\\\\/].*`),
+];
+
 // @neondatabase/serverless optionally imports the Node.js `ws` package for
 // WebSocket pool connections. We only use the HTTP-mode neon() function, so
 // we shim `ws` to an empty module so Metro doesn't try to bundle Node.js
