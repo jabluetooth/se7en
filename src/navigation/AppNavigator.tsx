@@ -189,6 +189,7 @@ function AppShell({
         visible={workoutModal.phase !== 'hidden'}
         animationType="slide"
         presentationStyle="fullScreen"
+        statusBarTranslucent
         onRequestClose={workoutModal.phase !== 'summary' ? onHideSession : () => {}}
       >
         <View style={{ flex: 1 }}>
@@ -209,11 +210,11 @@ function AppShell({
         </View>
       </Modal>
 
-      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
+      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
         <RestTimerScreen onClose={() => setShowRestTimer(false)} />
       </Modal>
 
-      <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
+      <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
         <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
       </Modal>
 

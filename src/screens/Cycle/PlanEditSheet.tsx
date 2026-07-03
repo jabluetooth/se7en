@@ -300,6 +300,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, backgroundColor: '#08090F' }}>

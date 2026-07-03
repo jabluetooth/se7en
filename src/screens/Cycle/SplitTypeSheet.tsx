@@ -282,6 +282,7 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <View style={{ flex: 1 }}>
