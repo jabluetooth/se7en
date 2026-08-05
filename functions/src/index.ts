@@ -16,8 +16,10 @@
  */
 
 import { initializeApp } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
+import * as functionsV1 from 'firebase-functions/v1';
 
 import { callGroq, GroqMessage } from './groq';
 import { generateEmbedding, buildEmbedText } from './embedding';
@@ -26,6 +28,14 @@ import { NoteEmbeddingRecord, RpeTrend } from './types';
 
 initializeApp();
 
+// ─── Region ─────────────────────────────────────────────────────────────────
+// Firestore lives in asia-northeast1 (see firebase.json); functions default
+// to us-central1 unless told otherwise, which adds cross-region latency and
+// egress cost on every Firestore/Neon round trip. Every export below pins
+// this region explicitly.
+
+const REGION = 'asia-northeast1';
+
 // ─── Secrets ────────────────────────────────────────────────────────────────
 
 const GROQ_API_KEY        = defineSecret('GROQ_API_KEY');
@@ -33,16 +43,50 @@ const HUGGINGFACE_API_KEY = defineSecret('HUGGINGFACE_API_KEY');
 const NEON_DATABASE_URL   = defineSecret('NEON_DATABASE_URL');
 
 // ─── Auth guard ───────────────────────────────────────────────────────────
-// onCall's built-in App Check enforcement is left off (enforceAppCheck: false
-// is the default and App Check isn't configured in this project), so this
-// manual check is the only thing standing between an anonymous caller and
-// these functions.
+// enforceAppCheck is deliberately left false: the client has no App Check
+// provider wired up yet (Play Integrity on Android, App Attest/DeviceCheck
+// on iOS), which requires enrolling the app in Play Console / App Store
+// Connect first. Turning this on before that lands rejects every real call.
+// Flip to true once client-side App Check is provisioned and verified.
+// Until then, requireAuth() below plus per-uid rate limiting and
+// maxInstances are the abuse guards.
 
 function requireAuth(request: CallableRequest): string {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'You must be signed in to call this function.');
   }
   return request.auth.uid;
+}
+
+// ─── Per-uid rate limiting ────────────────────────────────────────────────
+// Simple abuse-prevention guard (not a billing system) for the two functions
+// that call paid external APIs (Groq, HuggingFace). Tracks a counter per
+// `{uid}_{action}_{hourBucket}` in Firestore, incremented atomically inside
+// a transaction so concurrent calls can't race past the cap.
+
+const RATE_LIMIT_PER_HOUR = 60;
+
+async function checkRateLimit(uid: string, action: string): Promise<void> {
+  const hourBucket = Math.floor(Date.now() / 3_600_000);
+  const ref = getFirestore().collection('_rateLimits').doc(`${uid}_${action}_${hourBucket}`);
+
+  await getFirestore().runTransaction(async (tx) => {
+    const snap  = await tx.get(ref);
+    const count = (snap.data()?.count as number | undefined) ?? 0;
+
+    if (count >= RATE_LIMIT_PER_HOUR) {
+      throw new HttpsError(
+        'resource-exhausted',
+        'Rate limit exceeded. Please try again later.',
+      );
+    }
+
+    tx.set(
+      ref,
+      { count: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+  });
 }
 
 // ─── groqChat ─────────────────────────────────────────────────────────────
@@ -54,9 +98,15 @@ interface GroqChatRequest {
 }
 
 export const groqChat = onCall(
-  { secrets: [GROQ_API_KEY] },
+  {
+    secrets:         [GROQ_API_KEY],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest<Partial<GroqChatRequest>>) => {
-    requireAuth(request);
+    const userId = requireAuth(request);
+    await checkRateLimit(userId, 'groqChat');
 
     const { messages, maxTokens } = request.data ?? {};
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -94,10 +144,16 @@ interface StoreNoteEmbeddingRequest {
 }
 
 export const storeNoteEmbedding = onCall(
-  { secrets: [HUGGINGFACE_API_KEY, NEON_DATABASE_URL] },
+  {
+    secrets:         [HUGGINGFACE_API_KEY, NEON_DATABASE_URL],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest<Partial<StoreNoteEmbeddingRequest>>) => {
     const userId = requireAuth(request);
-    const data   = request.data ?? {};
+    await checkRateLimit(userId, 'storeNoteEmbedding');
+    const data = request.data ?? {};
 
     if (typeof data.sessionId !== 'string' || !data.sessionId) {
       throw new HttpsError('invalid-argument', 'sessionId is required.');
@@ -114,8 +170,18 @@ export const storeNoteEmbedding = onCall(
     if (typeof data.note !== 'string') {
       throw new HttpsError('invalid-argument', 'note must be a string.');
     }
-    if (data.muscleTags !== undefined && !Array.isArray(data.muscleTags)) {
+    if (
+      data.muscleTags !== undefined &&
+      (!Array.isArray(data.muscleTags) || !data.muscleTags.every((t) => typeof t === 'string'))
+    ) {
       throw new HttpsError('invalid-argument', 'muscleTags must be an array of strings.');
+    }
+    if (
+      data.workoutDate !== undefined &&
+      data.workoutDate !== null &&
+      (typeof data.workoutDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.workoutDate))
+    ) {
+      throw new HttpsError('invalid-argument', 'workoutDate must be a YYYY-MM-DD string.');
     }
 
     const muscleGroup = data.muscleTags?.slice(0, 3).join(', ') ?? null;
@@ -165,7 +231,12 @@ interface SearchRelevantNotesRequest {
 }
 
 export const searchRelevantNotes = onCall(
-  { secrets: [HUGGINGFACE_API_KEY, NEON_DATABASE_URL] },
+  {
+    secrets:         [HUGGINGFACE_API_KEY, NEON_DATABASE_URL],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest<Partial<SearchRelevantNotesRequest>>) => {
     const userId = requireAuth(request);
     const data   = request.data ?? {};
@@ -173,7 +244,7 @@ export const searchRelevantNotes = onCall(
     if (typeof data.queryText !== 'string' || !data.queryText.trim()) {
       throw new HttpsError('invalid-argument', 'queryText is required.');
     }
-    if (data.topK !== undefined && (typeof data.topK !== 'number' || data.topK <= 0)) {
+    if (data.topK !== undefined && !(Number.isFinite(data.topK) && data.topK > 0)) {
       throw new HttpsError('invalid-argument', 'topK must be a positive number.');
     }
     const topK = Math.min(data.topK ?? 5, 20);
@@ -207,12 +278,17 @@ interface GetRecentNotesRequest {
 }
 
 export const getRecentNotes = onCall(
-  { secrets: [NEON_DATABASE_URL] },
+  {
+    secrets:         [NEON_DATABASE_URL],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest<Partial<GetRecentNotesRequest>>) => {
     const userId = requireAuth(request);
     const data   = request.data ?? {};
 
-    if (data.limit !== undefined && (typeof data.limit !== 'number' || data.limit <= 0)) {
+    if (data.limit !== undefined && !(Number.isFinite(data.limit) && data.limit > 0)) {
       throw new HttpsError('invalid-argument', 'limit must be a positive number.');
     }
     const limit = Math.min(data.limit ?? 20, 100);
@@ -241,12 +317,17 @@ interface GetRpeTrendsRequest {
 }
 
 export const getRpeTrends = onCall(
-  { secrets: [NEON_DATABASE_URL] },
+  {
+    secrets:         [NEON_DATABASE_URL],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest<Partial<GetRpeTrendsRequest>>) => {
     const userId = requireAuth(request);
     const data   = request.data ?? {};
 
-    if (data.days !== undefined && (typeof data.days !== 'number' || data.days <= 0)) {
+    if (data.days !== undefined && !(Number.isFinite(data.days) && data.days > 0)) {
       throw new HttpsError('invalid-argument', 'days must be a positive number.');
     }
     const days = Math.min(data.days ?? 28, 365);
@@ -271,21 +352,64 @@ export const getRpeTrends = onCall(
   },
 );
 
+// ─── shared deletion helpers ──────────────────────────────────────────────
+// Reused by both the user-facing deleteUserEmbeddings callable and the
+// account-deletion trigger below, so both paths purge data identically.
+
+async function deleteEmbeddingsForUser(databaseUrl: string, userId: string): Promise<void> {
+  const sql = getSql(databaseUrl);
+  await sql`DELETE FROM note_embeddings WHERE user_id = ${userId}`;
+}
+
+async function deleteFirestoreUserData(userId: string): Promise<void> {
+  const db = getFirestore();
+  await db.recursiveDelete(db.collection('users').doc(userId));
+}
+
 // ─── deleteUserEmbeddings ─────────────────────────────────────────────────
 // Replaces deleteUserEmbeddings() in src/services/embeddingService.ts.
 // Takes no params — always deletes the caller's own rows, derived from the
-// verified auth token. Worth also wiring into an account-deletion flow
-// (e.g. an Auth onDelete trigger) — left for the call site owner, per task
-// scope.
+// verified auth token. Also wired into account deletion via the
+// `purgeUserDataOnDelete` Auth trigger below.
 
 export const deleteUserEmbeddings = onCall(
-  { secrets: [NEON_DATABASE_URL] },
+  {
+    secrets:         [NEON_DATABASE_URL],
+    region:          REGION,
+    maxInstances:    10,
+    enforceAppCheck: false,
+  },
   async (request: CallableRequest) => {
     const userId = requireAuth(request);
-
-    const sql = getSql(NEON_DATABASE_URL.value());
-    await sql`DELETE FROM note_embeddings WHERE user_id = ${userId}`;
-
+    await deleteEmbeddingsForUser(NEON_DATABASE_URL.value(), userId);
     return { success: true };
   },
 );
+
+// ─── purgeUserDataOnDelete ────────────────────────────────────────────────
+// Fires when a Firebase Auth user is deleted (e.g. account deletion from the
+// client) and purges everything tied to that uid: the Neon embedding rows
+// and the Firestore users/{uid} document tree (settings, plans, sessions,
+// activeSession, prs — see src/services/firestoreService.ts).
+//
+// This is a v1 trigger (functions.auth.user().onDelete) because Functions
+// v2 only exposes *blocking* identity triggers (beforeUserCreated,
+// beforeUserSignedIn, ...) — there is no v2 equivalent of a non-blocking
+// "user was deleted" event as of firebase-functions@6.
+
+export const purgeUserDataOnDelete = functionsV1
+  .region(REGION)
+  .runWith({ secrets: [NEON_DATABASE_URL] })
+  .auth.user()
+  .onDelete(async (user) => {
+    const userId = user.uid;
+    try {
+      await Promise.all([
+        deleteEmbeddingsForUser(NEON_DATABASE_URL.value(), userId),
+        deleteFirestoreUserData(userId),
+      ]);
+    } catch (err) {
+      console.error(`purgeUserDataOnDelete failed for uid=${userId}:`, err);
+      throw err;
+    }
+  });

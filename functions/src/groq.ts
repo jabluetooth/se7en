@@ -42,7 +42,8 @@ export async function callGroq(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new HttpsError('internal', `Groq ${res.status}: ${body}`);
+    console.error(`Groq API error ${res.status}:`, body);
+    throw new HttpsError('internal', 'Coach is temporarily unavailable.');
   }
 
   const data = (await res.json()) as any;

@@ -42,7 +42,8 @@ export async function generateEmbedding(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new HttpsError('internal', `HuggingFace API ${res.status}: ${body}`);
+    console.error(`HuggingFace API error ${res.status}:`, body);
+    throw new HttpsError('internal', 'Search is temporarily unavailable.');
   }
 
   const data = (await res.json()) as unknown[] | number[][];
