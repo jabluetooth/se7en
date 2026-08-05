@@ -29,12 +29,16 @@ import { NoteEmbeddingRecord, RpeTrend } from './types';
 initializeApp();
 
 // ─── Region ─────────────────────────────────────────────────────────────────
-// Firestore lives in asia-northeast1 (see firebase.json); functions default
-// to us-central1 unless told otherwise, which adds cross-region latency and
-// egress cost on every Firestore/Neon round trip. Every export below pins
-// this region explicitly.
+// Firestore lives in asia-northeast1 (see firebase.json), which does add
+// cross-region latency/egress since these functions run in us-central1.
+// NOT switched to asia-northeast1: the client's getFunctions(app) call in
+// src/config/firebase.ts doesn't pass a region, so it targets us-central1
+// by default. Cloud Functions v2 treats a region change as delete-and-
+// recreate, so redeploying here with a new region would 404 every callable
+// for every live client until a coordinated client update shipped and was
+// picked up. Revisit only alongside that client change.
 
-const REGION = 'asia-northeast1';
+const REGION = 'us-central1';
 
 // ─── Secrets ────────────────────────────────────────────────────────────────
 
