@@ -23,13 +23,4 @@ config.resolver.blockList = [
   new RegExp(`^${functionsDirEscaped}[\\\\/].*`),
 ];
 
-// @neondatabase/serverless optionally imports the Node.js `ws` package for
-// WebSocket pool connections. We only use the HTTP-mode neon() function, so
-// we shim `ws` to an empty module so Metro doesn't try to bundle Node.js
-// internals (net, tls, etc.) that don't exist in React Native.
-config.resolver.extraNodeModules = {
-  ...config.resolver.extraNodeModules,
-  ws: path.resolve(__dirname, 'shims/ws.js'),
-};
-
 module.exports = config;
