@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fsSessions, fsActiveSession } from '../services/firestoreService';
-import { storeNoteEmbedding } from '../services/embeddingService';
+import { storeNoteEmbedding, deleteUserEmbeddings } from '../services/embeddingService';
 import {
   WorkoutSession, SessionExercise, SetLog,
   WorkoutDay, Exercise, SessionStatus, SkipReason,
@@ -38,7 +38,7 @@ interface SessionStore {
   completeSet:            (exerciseId: string, setId: string, data: Partial<SetLog>) => void;
   addSetNote:             (exerciseId: string, setId: string, note: string) => void;
   setExerciseRPE:         (exerciseId: string, rpe: number, note: string) => void;
-  finishSession:          (sessionNote?: string) => Promise<WorkoutSession>;
+  finishSession:          (sessionNote?: string) => Promise<WorkoutSession | null>;
   skipDay:                (planId: string, dayPosition: number, dayLabel: string, reason?: SkipReason) => Promise<WorkoutSession>;
   acknowledgeRestDay:     (planId: string, dayPosition: number, dayLabel: string) => Promise<void>;
   /** Log a day as fully completed at its scheduled calendar date (uses cycleStartDate to derive the date).
@@ -131,10 +131,13 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(remoteActive));
         if (!get().timerInterval) get().startTimer();
       }
-      if (remoteHistory.length > 0) {
-        set({ sessions: remoteHistory });
-        await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remoteHistory));
-      }
+      // An empty response means "empty", not "keep local cache" — this matches
+      // startSync()'s listener, which is the true source of truth for
+      // real-time state. Treating an empty server read differently between
+      // load() and the listener risks resurrecting deleted data or wiping it
+      // depending on race timing.
+      set({ sessions: remoteHistory });
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(remoteHistory));
       set({ loadError: null });
     } catch (e) {
       __DEV__ && console.warn('[se7en/session]', e);
@@ -321,6 +324,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   finishSession: async (sessionNote) => {
+    // Defensive second layer against double-invocation (e.g. a re-entrant
+    // call from a second tap on Finish before the screen's own in-flight
+    // guard disables the button) — without an active session there is
+    // nothing to finish, so bail before doing any work.
+    if (!get().activeSession) return null;
+
     get().stopTimer();
     const session  = get().activeSession!;
     const finished: WorkoutSession = {
@@ -533,6 +542,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       try {
         await Promise.all([fsSessions.deleteAll(uid), fsActiveSession.clear(uid)]);
       } catch (e) { __DEV__ && console.warn('[se7en/session] clearAll', e); }
+
+      // Clearing session history orphans every workout note's embedding in
+      // Neon if we don't also clear those. Best-effort: a failure here
+      // shouldn't block the rest of the clear-data flow, which has already
+      // succeeded by this point.
+      try {
+        await deleteUserEmbeddings(uid);
+      } catch (e) { __DEV__ && console.warn('[se7en/session] clearAll embeddings', e); }
     }
   },
 

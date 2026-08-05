@@ -12,7 +12,7 @@
 
 import {
   doc, collection,
-  getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  getDoc, getDocs, setDoc, deleteDoc,
   onSnapshot, serverTimestamp,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -67,9 +67,14 @@ export const fsSettings = {
 
   /** Field-level write — only touches the given keys, so a concurrent write
    *  to a different field (another device, or an in-flight save racing the
-   *  onSnapshot echo) can't silently clobber it with a stale full-document copy. */
+   *  onSnapshot echo) can't silently clobber it with a stale full-document copy.
+   *  Uses setDoc with merge instead of updateDoc: updateDoc rejects with
+   *  NOT_FOUND if the settings document was never created (e.g. the initial
+   *  load() write failed offline), which would silently stop every future
+   *  save. setDoc/merge has the same field-level semantics but creates the
+   *  document if it's missing instead of failing. */
   async update(uid: string, partial: Partial<Settings>): Promise<void> {
-    await updateDoc(settingsDoc(uid), partial);
+    await setDoc(settingsDoc(uid), partial, { merge: true });
   },
 
   listen(uid: string, cb: (data: Settings) => void): Unsubscribe {

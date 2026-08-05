@@ -37,15 +37,15 @@ export const usePRStore = create<PRStore>((set, get) => ({
       if (raw) set({ records: JSON.parse(raw) as PersonalRecord[], loaded: true });
     } catch (e) { __DEV__ && console.warn('[se7en/pr]', e); }
 
-    // Firestore authoritative
+    // Firestore authoritative — an empty response means "empty", not "keep
+    // local cache". This matches startSync()'s listener, which is the true
+    // source of truth for real-time state; treating an empty server read
+    // differently between load() and the listener risks resurrecting
+    // deleted data or wiping it depending on race timing.
     try {
       const remote = await fsPRs.getAll(uid);
-      if (remote.length > 0) {
-        set({ records: remote, loaded: true, loadError: null });
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
-      } else {
-        set({ loadError: null });
-      }
+      set({ records: remote, loaded: true, loadError: null });
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
     } catch (e) {
       __DEV__ && console.warn('[se7en/pr]', e);
       set({ loadError: e instanceof Error ? e.message : 'Could not sync your personal records.' });

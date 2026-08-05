@@ -27,8 +27,11 @@ interface PlanStore {
   startSync:  (uid: string) => void;
   stopSync:   () => void;
 
-  /** Internal — write plans array to cache + Firestore */
-  _persist:   (plans: WorkoutPlan[], uid?: string | null) => Promise<void>;
+  /** Internal — write the full plans array to the local cache, and push only
+   *  the plan(s) that actually changed to Firestore (one document write per
+   *  changed plan, not every plan). Omit `changed` to update the cache only
+   *  (e.g. after a delete, which is already pushed to Firestore separately). */
+  _persist:   (plans: WorkoutPlan[], changed?: WorkoutPlan | WorkoutPlan[], uid?: string | null) => Promise<void>;
 
   createPlan:              (name: string, splitType: string) => WorkoutPlan;
   createPlanFromTemplate:  (templateId: string, name?: string) => WorkoutPlan;
@@ -57,12 +60,16 @@ async function getUid() {
 export const usePlanStore = create<PlanStore>((set, get) => ({
   plans: [], activePlan: null, loaded: false, loadError: null, _unsub: null,
 
-  _persist: async (plans, uid) => {
+  _persist: async (plans, changed, uid) => {
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(plans));
+    if (!changed) return;
     const resolvedUid = uid ?? await getUid();
     if (!resolvedUid) return;
-    // Sync changed plans to Firestore individually (batch-like)
-    plans.forEach(p => fsPlans.set(resolvedUid, p).catch(e => __DEV__ && console.warn('[se7en/plan]', e)));
+    // Only push the plan(s) that actually changed — a single-plan edit should
+    // never rewrite every other plan document (wasted writes, and risks
+    // clobbering concurrent edits to those plans from another device).
+    const toSync = Array.isArray(changed) ? changed : [changed];
+    toSync.forEach(p => fsPlans.set(resolvedUid, p).catch(e => __DEV__ && console.warn('[se7en/plan]', e)));
   },
 
   load: async (uid) => {
@@ -87,15 +94,15 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       }
     } catch (e) { __DEV__ && console.warn('[se7en/plan]', e); }
 
-    // Firestore authoritative
+    // Firestore authoritative — an empty response means "empty", not "keep
+    // local cache". This matches startSync()'s listener, which is the true
+    // source of truth for real-time state; treating an empty server read
+    // differently between load() and the listener risks resurrecting
+    // deleted data or wiping it depending on race timing.
     try {
       const remote = normalize(await fsPlans.getAll(uid));
-      if (remote.length > 0) {
-        set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true, loadError: null });
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
-      } else {
-        set({ loadError: null });
-      }
+      set({ plans: remote, activePlan: remote.find(p => p.isActive) ?? null, loaded: true, loadError: null });
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(remote));
     } catch (e) {
       __DEV__ && console.warn('[se7en/plan]', e);
       set({ loadError: e instanceof Error ? e.message : 'Could not sync your plans.' });
@@ -128,7 +135,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     };
     const plans = [...get().plans, plan];
     set({ plans });
-    get()._persist(plans);
+    get()._persist(plans, plan);
     return plan;
   },
 
@@ -162,7 +169,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     };
     const plans = [...get().plans, plan];
     set({ plans });
-    get()._persist(plans);
+    get()._persist(plans, plan);
     return plan;
   },
 
@@ -191,7 +198,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     };
     const plans = [...get().plans, plan];
     set({ plans });
-    get()._persist(plans);
+    get()._persist(plans, plan);
     return plan;
   },
 
@@ -199,20 +206,26 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     const plans = get().plans.map(p => p.id === planId ? { ...p, ...partial } : p);
     const activePlan = get().activePlan?.id === planId ? { ...get().activePlan!, ...partial } : get().activePlan;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 
   deletePlan: (planId) => {
     const plans = get().plans.filter(p => p.id !== planId);
     set({ plans, activePlan: get().activePlan?.id === planId ? null : get().activePlan });
+    // No `changed` — the deletion itself is pushed to Firestore below;
+    // remaining plans didn't change and shouldn't be rewritten.
     get()._persist(plans);
     getUid().then(uid => { if (uid) fsPlans.delete(uid, planId).catch(e => __DEV__ && console.warn('[se7en/plan]', e)); });
   },
 
   setActivePlan: (planId) => {
+    const previousActiveId = get().activePlan?.id;
     const plans = get().plans.map(p => ({ ...p, isActive: p.id === planId }));
     set({ plans, activePlan: plans.find(p => p.id === planId) ?? null });
-    get()._persist(plans);
+    // Only the newly-active and previously-active plans actually changed.
+    const changed = plans.filter(p => p.id === planId || p.id === previousActiveId);
+    get()._persist(plans, changed);
   },
 
   addExercise: (planId, dayId, exercise) => {
@@ -228,7 +241,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     );
     const activePlan = plans.find(p => p.isActive) ?? null;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 
   updateExercise: (planId, dayId, exerciseId, partial) => {
@@ -241,7 +255,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     );
     const activePlan = plans.find(p => p.isActive) ?? null;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 
   deleteExercise: (planId, dayId, exerciseId) => {
@@ -250,7 +265,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     );
     const activePlan = plans.find(p => p.isActive) ?? null;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 
   reorderExercises: (planId, dayId, orderedIds) => {
@@ -258,14 +274,22 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       p.id !== planId ? p : {
         ...p, days: p.days.map(d => {
           if (d.id !== dayId) return d;
-          const reordered = orderedIds.map((id, idx) => ({ ...d.exercises.find(e => e.id === id)!, order: idx + 1 }));
+          // Filter out ids no longer present in `exercises` first (e.g. a
+          // stale drag-and-drop id) — otherwise `find` returns undefined,
+          // and spreading it contributes nothing, persisting a malformed
+          // exercise object with only `{ order: N }`.
+          const reordered = orderedIds
+            .map(id => d.exercises.find(e => e.id === id))
+            .filter((e): e is Exercise => e !== undefined)
+            .map((e, idx) => ({ ...e, order: idx + 1 }));
           return { ...d, exercises: reordered };
         }),
       }
     );
     const activePlan = plans.find(p => p.isActive) ?? null;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 
   updateDay: (planId, dayId, partial) => {
@@ -274,6 +298,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     );
     const activePlan = plans.find(p => p.isActive) ?? null;
     set({ plans, activePlan });
-    get()._persist(plans);
+    const changed = plans.find(p => p.id === planId);
+    get()._persist(plans, changed);
   },
 }));

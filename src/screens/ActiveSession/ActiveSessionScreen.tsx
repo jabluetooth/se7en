@@ -23,6 +23,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
   const insets = useSafeAreaInsets();
+  const [isFinishing, setIsFinishing] = useState(false);
   const [restCtx, setRestCtx] = useState<{
     exerciseName:     string;
     setNumber:        number;
@@ -59,9 +60,18 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   })();
 
   const handleFinish = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    const session = await finishSession();
-    if (session) onFinish(session);
+    // Guard against a second tap re-entering finishSession while the first
+    // call's Firestore round-trip is still in flight — that could append a
+    // duplicate finished session and re-fire PR notifications.
+    if (isFinishing) return;
+    setIsFinishing(true);
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      const session = await finishSession();
+      if (session) onFinish(session);
+    } finally {
+      setIsFinishing(false);
+    }
   };
 
   const doSkip = async () => {
@@ -228,11 +238,13 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
           {/* ── Finish / Skip at end of list ───────────── */}
           <View style={s.finishSection}>
             <TouchableOpacity
-              style={s.finishBtn}
+              style={[s.finishBtn, isFinishing && { opacity: 0.6 }]}
               onPress={handleFinish}
+              disabled={isFinishing}
               activeOpacity={0.88}
               accessibilityRole="button"
               accessibilityLabel="Finish Workout"
+              accessibilityState={{ disabled: isFinishing, busy: isFinishing }}
             >
               <LinearGradient
                 colors={GRAD.accent}
@@ -240,7 +252,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
                 end={{ x: 1, y: 1 }}
                 style={s.finishGrad}
               >
-                <Text style={s.finishTxt}>Finish Workout</Text>
+                <Text style={s.finishTxt}>{isFinishing ? 'Finishing…' : 'Finish Workout'}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
