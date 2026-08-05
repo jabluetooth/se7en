@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -83,14 +83,7 @@ export function AuthScreen() {
           >
             {/* Logo */}
             <View style={s.logoWrap}>
-              <LinearGradient
-                colors={GRAD.accent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.logoBadge}
-              >
-                <Text style={s.logoNum}>7</Text>
-              </LinearGradient>
+              <Image source={require('../../../assets/icon.png')} style={s.logoBadge} />
               <Text style={s.logoWordmark}>
                 Se<Text style={{ color: COLORS.accent }}>7</Text>en
               </Text>
@@ -328,8 +321,7 @@ const s = StyleSheet.create({
   scroll:       { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
   logoWrap:     { alignItems: 'center', marginBottom: 36 },
-  logoBadge:    { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  logoNum:      { fontSize: 36, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.44 },
+  logoBadge:    { width: 64, height: 64, borderRadius: 18, marginBottom: 14 },
   logoWordmark: { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, marginBottom: 6 },
   logoTagline:  { fontSize: 14, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 20 },
 

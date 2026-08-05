@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
@@ -177,6 +178,7 @@ export function OnboardingScreen({ onComplete }: Props) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.welcomeContent}>
+          <Image source={require('../../../assets/icon.png')} style={styles.logoBadge} />
           <Text style={[styles.logo, { color: colors.accent }]}>Se7en</Text>
           <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
             Your personal gym companion
@@ -545,6 +547,7 @@ const styles = StyleSheet.create({
 
   // Welcome
   welcomeContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
+  logoBadge: { width: 88, height: 88, borderRadius: 22, marginBottom: SPACING.md },
   logo: { fontSize: 64, fontWeight: '800', fontFamily: FONTS.display, letterSpacing: -2.56, marginBottom: SPACING.sm },
   welcomeSubtitle: { fontSize: 18, fontWeight: '600', fontFamily: FONTS.semibold, marginBottom: SPACING.xl },
   features: { width: '100%', gap: SPACING.md, marginBottom: SPACING.xxl },

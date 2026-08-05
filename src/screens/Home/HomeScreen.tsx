@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
 import { InlineBanner } from '../../components/common/InlineBanner';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -179,9 +178,7 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
               })}
             </Text>
           </View>
-          <GlassView radius={14} glow style={s.logoBadge}>
-            <Text style={s.logoNum}>7</Text>
-          </GlassView>
+          <Image source={require('../../../assets/icon.png')} style={s.logoBadge} />
         </View>
 
         {(loadError || prLoadError) && (
@@ -262,8 +259,7 @@ const s = StyleSheet.create({
   header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
   planLabel:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
   dateText:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88 },
-  logoBadge:  { width: 46, height: 46, alignItems: 'center', justifyContent: 'center' },
-  logoNum:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent },
+  logoBadge:  { width: 46, height: 46, borderRadius: 12 },
   scroll:      { flex: 1 },
   scrollContent: { paddingTop: 4, paddingBottom: 8 },
   sectionGap:  { height: 8 },
