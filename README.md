@@ -1,9 +1,9 @@
 <div align="center">
 
-# Se7en — Gym Tracker
+# Se7en - Gym Tracker
 
 **A full-featured, AI-powered gym tracking app built with React Native + Expo.**
-Track workouts, visualize progress, and get coaching insights — all offline-first with real-time cloud sync.
+Track workouts, visualize progress, and get coaching insights - all offline-first with real-time cloud sync.
 
 [![Built with Expo](https://img.shields.io/badge/Built%20with-Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -16,7 +16,7 @@ Track workouts, visualize progress, and get coaching insights — all offline-fi
 ## Try It Live
 
 > **Scan with your phone to open instantly in Expo Go.**
-> *(Download [Expo Go](https://expo.dev/go) on iOS or Android — free, no account needed)*
+> *(Download [Expo Go](https://expo.dev/go) on iOS or Android - free, no account needed)*
 
 <div align="center">
 
@@ -31,14 +31,14 @@ Track workouts, visualize progress, and get coaching insights — all offline-fi
 
 ## What It Does
 
-Se7en uses a **7-day rotating cycle** model — workouts rotate by slot, not by calendar date, so your training program adapts to your schedule instead of breaking when life gets in the way.
+Se7en uses a **7-day rotating cycle** model - workouts rotate by slot, not by calendar date, so your training program adapts to your schedule instead of breaking when life gets in the way.
 
 | Feature | Description |
 |---|---|
 | **Live Workout Tracking** | Log sets in real-time with auto PR detection and elapsed timer |
 | **AI Coach** | Contextual insights powered by Groq LLM + your own session history (RAG) |
 | **Progress Analytics** | Heatmaps, volume charts, sparklines, and a 14-day completion history |
-| **Post-Workout Card** | Shareable workout summary with custom background — exportable as PNG |
+| **Post-Workout Card** | Shareable workout summary with custom background - exportable as PNG |
 | **Plan Builder** | Drag-to-reorder days and exercises, plan templates (PPL, Upper/Lower, etc.) |
 | **Rest Timer** | Between-set countdown with per-exercise configurable durations |
 | **Offline-First** | Instant load from local cache, background sync to Firestore |
@@ -55,14 +55,14 @@ Se7en uses a **7-day rotating cycle** model — workouts rotate by slot, not by 
 
 ## Tech Highlights
 
-This project was built to demonstrate production-quality React Native architecture — not just a tutorial app.
+This project was built to demonstrate production-quality React Native architecture - not just a tutorial app.
 
-- **100+ TypeScript types** — full schema coverage, no `any`
-- **Custom component library** — glassmorphism UI system with SVG charts built from scratch (no chart library)
-- **State machines over booleans** — `BarState = 'done' | 'rest' | 'missed' | 'pending'` prevents logic bugs
-- **Two-phase data load** — AsyncStorage for instant UI, Firestore as authoritative source in background
-- **AI Coach with RAG** — HuggingFace embeddings stored in Neon pgvector, retrieved per query, fed to Groq Llama 3.3 70B
-- **Reanimated 4 animations** — fluid gesture interactions (drag-sort, swipe actions, spring transitions)
+- **100+ TypeScript types** - full schema coverage, no `any`
+- **Custom component library** - glassmorphism UI system with SVG charts built from scratch (no chart library)
+- **State machines over booleans** - `BarState = 'done' | 'rest' | 'missed' | 'pending'` prevents logic bugs
+- **Two-phase data load** - AsyncStorage for instant UI, Firestore as authoritative source in background
+- **AI Coach with RAG** - HuggingFace embeddings stored in Neon pgvector, retrieved per query, fed to Groq Llama 3.3 70B
+- **Reanimated 4 animations** - fluid gesture interactions (drag-sort, swipe actions, spring transitions)
 
 ---
 
@@ -75,7 +75,7 @@ This project was built to demonstrate production-quality React Native architectu
 | State | Zustand + AsyncStorage (offline-first) |
 | Backend | Firebase Firestore + Auth |
 | AI | Groq (Llama 3.3 70B) · HuggingFace (embeddings) |
-| Vector DB | Neon — PostgreSQL + pgvector |
+| Vector DB | Neon - PostgreSQL + pgvector |
 | Animation | Reanimated 4 · Lottie |
 | Gestures | react-native-gesture-handler |
 | Build | EAS Build · Expo Updates (OTA) |
@@ -98,7 +98,7 @@ npm run ios      # iOS simulator
 npm run android  # Android emulator
 ```
 
-The AI Coach (Groq, HuggingFace, Neon) runs through a Cloud Functions proxy so those credentials never ship inside the app — see [`functions/README.md`](functions/README.md) to configure and deploy it.
+The AI Coach (Groq, HuggingFace, Neon) runs through a Cloud Functions proxy so those credentials never ship inside the app - see [`functions/README.md`](functions/README.md) to configure and deploy it.
 
 ---
 
