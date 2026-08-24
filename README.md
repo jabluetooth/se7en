@@ -5,9 +5,20 @@
 **A full-featured, AI-powered gym tracking app built with React Native + Expo.**
 Track workouts, visualize progress, and get coaching insights - all offline-first with real-time cloud sync.
 
-[![Built with Expo](https://img.shields.io/badge/Built%20with-Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
+![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Groq](https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white)
+
+<br>
+
+<!-- HERO: replace the "Screens" table below with an actual 4-panel screenshot montage,
+     or better, a short screen-recording GIF (10-15s) of one full loop: open the app on
+     Home -> start a session and log a set (auto PR detection firing) -> open the AI
+     Coach and show a contextual insight. That loop demonstrates the offline-first +
+     RAG-coach angle in one clip. Save as docs/demo.gif, add here as: -->
+<!-- <p align="center"><img src="docs/demo.gif" alt="Se7en demo" width="800"></p> -->
 
 </div>
 
@@ -102,8 +113,13 @@ The AI Coach (Groq, HuggingFace, Neon) runs through a Cloud Functions proxy so t
 
 ---
 
-<div align="center">
+## About the developer
 
-Built by [Fil Heinz Re La Torre](https://www.filheinzrelatorre.com) · [GitHub](https://github.com/jabluetooth) · [LinkedIn](https://ph.linkedin.com/in/filheinzrelatorre)
+**Fil Heinz O. Re La Torre** - Automation & AI Solutions Engineer, building integrations and AI-backed workflows that go from idea to production in days.
 
-</div>
+[![Portfolio](https://img.shields.io/badge/Portfolio-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://www.filheinzrelatorre.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://ph.linkedin.com/in/filheinzrelatorre)
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jabluetooth)
+[![Gmail](https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:filheinz27@gmail.com)
+
+**Other projects:** [Match](https://github.com/jabluetooth/match) · [ZeroPress](https://github.com/jabluetooth/zeropress) · [Mimo](https://github.com/jabluetooth/mimo) · [Insight](https://github.com/jabluetooth/insight) · [see all →](https://github.com/jabluetooth)
