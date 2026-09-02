@@ -33,7 +33,7 @@ Track workouts, visualize progress, and get coaching insights - all offline-firs
 
 <img src="docs/qr-expo-go.png" alt="Scan to try Se7en" width="220"/>
 
-**[Open in Expo Go →](https://expo.dev/accounts/bonsky/projects/se7en/updates/1e773123-4ac0-45a7-b3f5-2d1ca781dbf7)**
+**[Open in Expo Go →](https://expo.dev/accounts/bonsky/projects/se7en/updates/57a146a9-956a-48f5-b853-3145cf0daadf)**
 *(on desktop? open that link on your phone, or scan the QR above)*
 
 </div>
