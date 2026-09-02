@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+// No Reanimated here — isolating whether any of its hooks used on a
+// per-set-row basis (multiplied across every SetLogger instance mounted
+// simultaneously) is the cause of a reproducible native "Exception in
+// HostFunction" crash. PR feedback below is static styling only for now.
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GlassView } from '../common/GlassView';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { SetLog, SessionExercise } from '../../types';
+import { usePRStore } from '../../stores/prStore';
+import { isSetPR } from '../../utils/prDetection';
 
 interface Props {
   set:             SetLog;
@@ -128,11 +134,25 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
   const [reps,     setReps    ] = useState(String(isFailure ? (set.actualRepsToFailure ?? '') : (set.actualReps || '')));
   const [note,     setNote    ] = useState(set.notes ?? '');
   const [showRest, setShowRest] = useState(false);
+  const [justPRed, setJustPRed] = useState(false);
 
   const handleComplete = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const actualRepsNum   = parseInt(reps, 10) || 0;
     const actualWeightNum = isBodyweight ? null : parseFloat(weight) || 0;
+
+    // Live, best-effort check against the exerciseId's current PR — the
+    // authoritative record is still only written by detectPRs() at
+    // finishSession(); this just lets the celebration fire the moment the set
+    // is logged instead of only after the whole workout ends.
+    const existingPR = usePRStore.getState().getPR(exercise.exerciseId);
+    const setPR = isSetPR(actualWeightNum, actualRepsNum, isFailure ? actualRepsNum : null, existingPR);
+    if (setPR) {
+      setJustPRed(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
+
     onComplete({
       actualReps:          isFailure ? 0 : actualRepsNum,
       actualRepsToFailure: isFailure ? actualRepsNum : null,
@@ -150,7 +170,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
     return (
       <View>
         {/* Done summary row */}
-        <View style={s.doneRow}>
+        <View style={[s.doneRow, justPRed && s.doneRowPR]}>
           <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.doneCheck}>
             <Ionicons name="checkmark" size={13} color="#000" />
           </LinearGradient>
@@ -162,6 +182,13 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
             {isFailure ? set.actualRepsToFailure : set.actualReps} reps
           </Text>
           {set.notes ? <Text style={s.doneNote} numberOfLines={1}>{set.notes}</Text> : null}
+
+          {justPRed && (
+            <View style={s.prBadge}>
+              <Ionicons name="trophy" size={9} color="#000" />
+              <Text style={s.prBadgeTxt}>PR</Text>
+            </View>
+          )}
 
           {/* Rest toggle button (visible when timer is not showing) */}
           {!showRest && (
@@ -248,10 +275,13 @@ const s = StyleSheet.create({
   checkBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
 
   doneRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, marginBottom: 0, gap: 8, backgroundColor: 'rgba(255,140,0,0.06)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
+  doneRowPR:    { backgroundColor: 'rgba(255,180,0,0.14)', borderColor: 'rgba(255,190,0,0.55)', shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 8 },
   doneCheck:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   doneLabel:    { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, width: 24 },
   doneVal:      { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
   doneNote:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, flex: 1 },
+  prBadge:      { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: COLORS.accent },
+  prBadgeTxt:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: 0.4 },
   restToggle:   { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.10)' },
   restToggleTxt:{ fontSize: 9, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase' },
 });

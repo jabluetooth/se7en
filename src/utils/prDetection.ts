@@ -73,3 +73,29 @@ export function detectPRs(
 
   return { updatedPRs, prsBreached };
 }
+
+/**
+ * Lightweight, single-set PR check for real-time celebration UI during an active
+ * session (SetLogger) — NOT the authoritative record, which is still only written
+ * by detectPRs() at finishSession(). Mirrors detectPRs' per-metric comparison
+ * (weight/reps/volume, any one is enough) so the live celebration and the
+ * eventual session-end record never disagree about what counts as a PR. With no
+ * existing PR at all, any completed set with weight or reps trivially "breaks"
+ * the implicit 0 baseline — same behavior as detectPRs for a first-time exercise.
+ */
+export function isSetPR(
+  actualWeight: number | null,
+  actualReps: number,
+  actualRepsToFailure: number | null,
+  existingPR: PersonalRecord | undefined,
+): boolean {
+  const weight = actualWeight ?? 0;
+  const reps = actualRepsToFailure && actualRepsToFailure > 0 ? actualRepsToFailure : actualReps;
+  const volume = reps * weight;
+
+  const prevWeight = existingPR?.heaviestWeight ?? 0;
+  const prevReps = existingPR?.mostReps ?? 0;
+  const prevVolume = existingPR?.highestVolume ?? 0;
+
+  return weight > prevWeight || reps > prevReps || volume > prevVolume;
+}
