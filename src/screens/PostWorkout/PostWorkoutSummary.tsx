@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert, Image,
   useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
@@ -42,6 +42,7 @@ interface Props {
 
 export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const { width }  = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const [bgImage,   setBgImage]   = useState<string | null>(null);
   const [menuOpen,  setMenuOpen]  = useState(false);
@@ -134,10 +135,18 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
       ) : (
         <AppBackground />
       )}
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
 
         {/* ── Persistent header ─────────────────────────── */}
-        <View style={hd.bar}>
+        {/* Explicit inset + buffer instead of SafeAreaView's own top edge —
+            inside a fullScreen Modal on iOS, SafeAreaView's computed top inset
+            has been landing too small, leaving the back/options buttons in the
+            top corners sitting inside the strip where iOS's own Control Center
+            (top-right) / Notification Center (top-left) swipe gestures take
+            priority over app touches. The extra buffer is deliberate headroom,
+            not a precise measurement — the point is clearing that zone with
+            margin rather than getting the exact inset value right. */}
+        <View style={[hd.bar, { paddingTop: insets.top + 12 }]}>
           <TouchableOpacity
             onPress={onDone}
             style={hd.backBtn}
@@ -240,7 +249,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
 // Header
 const hd = StyleSheet.create({
-  bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, height: 44, zIndex: 10 },
+  bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, minHeight: 44, zIndex: 10 },
   backBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   title:      { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.45, flex: 1, textAlign: 'center' },
   rightSlot:  { width: 36, height: 36, alignItems: 'flex-end', justifyContent: 'center' },

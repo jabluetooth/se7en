@@ -106,7 +106,6 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
         visible={!!restCtx}
         animationType="slide"
         presentationStyle="fullScreen"
-        statusBarTranslucent
         onRequestClose={() => setRestCtx(null)}
       >
         {restCtx && (
@@ -145,25 +144,32 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
           <Text style={s.headerTitle}>{activeSession.dayLabel}</Text>
         </View>
 
-        {/* ── Stats row ──────────────────────────────────── */}
+        {/* ── Stats row — bare typographic numbers, no glass/border. The
+             exercise cards below are this screen's one elevated surface;
+             boxing every stat too flattens that hierarchy instead of
+             creating it. ─────────────────────────────────────────────── */}
         <View style={s.statsRow}>
-          <GlassView radius={12} style={s.statChip}>
+          <View style={s.statBlock}>
             <Text style={s.statValue}>{doneSets}/{totalSets}</Text>
             <Text style={s.statLabel}>Sets Done</Text>
-          </GlassView>
+          </View>
 
-          <GlassView radius={12} style={s.statChip}>
+          <View style={s.statDivider} />
+
+          <View style={s.statBlock}>
             <View style={s.timerInner}>
               <View style={s.glowDot} />
               <Text style={s.statValueAccent}>{timeStr}</Text>
             </View>
             <Text style={s.statLabel}>in progress</Text>
-          </GlassView>
+          </View>
 
-          <GlassView radius={12} style={s.statChip}>
+          <View style={s.statDivider} />
+
+          <View style={s.statBlock}>
             <Text style={s.statValue}>{volume}</Text>
             <Text style={s.statLabel}>Volume ({volumeUnit})</Text>
-          </GlassView>
+          </View>
         </View>
 
         {/* ── Session progress card ───────────────────────── */}
@@ -246,14 +252,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
               accessibilityLabel="Finish Workout"
               accessibilityState={{ disabled: isFinishing, busy: isFinishing }}
             >
-              <LinearGradient
-                colors={GRAD.accent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.finishGrad}
-              >
-                <Text style={s.finishTxt}>{isFinishing ? 'Finishing…' : 'Finish Workout'}</Text>
-              </LinearGradient>
+              <Text style={s.finishTxt}>{isFinishing ? 'Finishing…' : 'Finish Workout'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -287,10 +286,11 @@ const s = StyleSheet.create({
   headerSup:     { fontSize: 12, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
   headerTitle:   { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20, lineHeight: 33 },
 
-  statsRow:      { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 10 },
-  statChip:      { flex: 1, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
-  statValue:     { fontSize: 17, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.68, fontVariant: ['tabular-nums'] },
-  statValueAccent: { fontSize: 17, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.68, fontVariant: ['tabular-nums'] },
+  statsRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 18 },
+  statBlock:     { flex: 1, alignItems: 'center', gap: 3 },
+  statDivider:   { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: 'rgba(255,240,220,0.14)' },
+  statValue:     { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  statValueAccent: { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   statLabel:     { fontSize: 10, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80 },
   timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
   glowDot:       { width: 7, height: 7, borderRadius: 99, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 4 },
@@ -314,8 +314,7 @@ const s = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16, paddingTop: 4 },
 
   finishSection: { marginTop: 24, gap: 10 },
-  finishBtn:     { borderRadius: 16, overflow: 'hidden' },
-  finishGrad:    { height: 56, alignItems: 'center', justifyContent: 'center' },
+  finishBtn:     { borderRadius: 16, height: 56, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
   finishTxt:     { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.64 },
   skipBtn:       { borderRadius: 16 },
   skipInner:     { height: 50, alignItems: 'center', justifyContent: 'center' },

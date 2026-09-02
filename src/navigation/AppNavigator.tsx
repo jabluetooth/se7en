@@ -184,12 +184,17 @@ function AppShell({
 
       {/* Single workout modal shared by ActiveSession and PostWorkoutSummary.
           Keeping it mounted through the active→summary swap avoids the iOS
-          dismiss+present race that previously dropped the post-workout screen. */}
+          dismiss+present race that previously dropped the post-workout screen.
+          No statusBarTranslucent: that prop is Android-oriented (this app
+          already handles Android's status bar via edgeToEdgeEnabled in
+          gradle.properties) and on iOS it was leaving a native status-bar-height
+          strip across the top of the screen that silently swallowed touches
+          meant for header buttons in the top corners — a fullScreen Modal
+          already positions content correctly below the status bar without it. */}
       <Modal
         visible={workoutModal.phase !== 'hidden'}
         animationType="slide"
         presentationStyle="fullScreen"
-        statusBarTranslucent
         onRequestClose={workoutModal.phase !== 'summary' ? onHideSession : () => {}}
       >
         <View style={{ flex: 1 }}>
@@ -210,15 +215,15 @@ function AppShell({
         </View>
       </Modal>
 
-      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
+      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
         <RestTimerScreen onClose={() => setShowRestTimer(false)} />
       </Modal>
 
-      <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
+      <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
         <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
       </Modal>
 
-      <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
+      <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen">
         <CoachScreen
           onClose={onCloseCoach}
           initialMessage={coachInitialMsg}
