@@ -1,11 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { WorkoutDay } from '../../types';
-import { COLORS, GRAD, FONTS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 
 // "Ready" indicator dot — was green, switched to the accent orange so the
 // home cycle palette stays warm.
@@ -113,14 +112,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
           accessibilityRole="button"
           accessibilityLabel="Resume workout"
         >
-          <LinearGradient
-            colors={GRAD.accent}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.ctaGrad}
-          >
-            <Text style={s.ctaTxt}>RESUME</Text>
-          </LinearGradient>
+          <Text style={s.ctaTxt}>RESUME</Text>
         </TouchableOpacity>
       )}
 
@@ -132,14 +124,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
           accessibilityRole="button"
           accessibilityLabel="Start session"
         >
-          <LinearGradient
-            colors={GRAD.accent}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.ctaGrad}
-          >
-            <Text style={s.ctaTxt}>START SESSION</Text>
-          </LinearGradient>
+          <Text style={s.ctaTxt}>START SESSION</Text>
         </TouchableOpacity>
       )}
 
@@ -163,8 +148,7 @@ const s = StyleSheet.create({
   badgeTxt: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
   title:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 4 },
   subtitle: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
-  ctaWrap:  { borderRadius: 14, overflow: 'hidden' },
-  ctaGrad:  { height: 50, alignItems: 'center', justifyContent: 'center' },
+  ctaWrap:  { borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
   ctaTxt:   { fontSize: 14, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 1.12, textTransform: 'uppercase' },
 
   doneFooter:    { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },

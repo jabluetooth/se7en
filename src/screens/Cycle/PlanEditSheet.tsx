@@ -7,7 +7,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, SPLIT_TYPES, FONTS } from '../../constants';
@@ -333,7 +332,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
           >
             {/* ── Plan name ── */}
             <Text style={f.sectionLabel}>Plan Name</Text>
-            <GlassView opacity="mid" radius={14} style={f.inputCard}>
+            <View style={f.inputCard}>
               <TextInput
                 style={f.textInput}
                 value={name}
@@ -343,7 +342,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
                 returnKeyType="done"
                 autoCorrect={false}
               />
-            </GlassView>
+            </View>
 
             {/* ── Split type ── */}
             <Text style={f.sectionLabel}>Split Type</Text>
@@ -370,7 +369,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
             {splitPreset === 'Custom' && (
               <>
                 <Text style={f.subLabel}>Custom name (optional)</Text>
-                <GlassView opacity="mid" radius={14} style={[f.inputCard, { marginTop: 6 }]}>
+                <View style={[f.inputCard, { marginTop: 6 }]}>
                   <TextInput
                     style={f.textInput}
                     value={customSplit}
@@ -379,13 +378,13 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
                     placeholderTextColor={COLORS.textMuted}
                     returnKeyType="done"
                   />
-                </GlassView>
+                </View>
               </>
             )}
 
             {/* ── Description ── */}
             <Text style={f.sectionLabel}>Description</Text>
-            <GlassView opacity="mid" radius={14} style={f.inputCard}>
+            <View style={f.inputCard}>
               <TextInput
                 style={[f.textInput, { minHeight: 64 }]}
                 value={description}
@@ -394,16 +393,16 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
                 placeholderTextColor={COLORS.textMuted}
                 multiline
               />
-            </GlassView>
+            </View>
 
             {/* ── Days order ── */}
             <View style={f.daysHeader}>
               <Text style={f.sectionLabel}>Day Order</Text>
               <Text style={f.daysHint}>Hold ≡ and drag to rearrange</Text>
             </View>
-            <GlassView opacity="low" radius={14} style={f.daysCard}>
+            <View style={f.daysCard}>
               <DayDragSort days={localDays} onReorder={handleReorderDays} />
-            </GlassView>
+            </View>
 
             {/* ── Danger zone ── */}
             <View style={f.dangerSection}>
@@ -432,7 +431,7 @@ const f = StyleSheet.create({
   sectionLabel: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 10, marginTop: 20 },
   subLabel:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
 
-  inputCard:    { paddingHorizontal: 14, paddingVertical: 13 },
+  inputCard:    { paddingHorizontal: 14, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   textInput:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
 
   chipGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -443,7 +442,7 @@ const f = StyleSheet.create({
 
   daysHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, marginTop: 20 },
   daysHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
-  daysCard:     { paddingVertical: 4, overflow: 'hidden' },
+  daysCard:     { paddingVertical: 4, overflow: 'hidden', borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
 
   dangerSection:{ marginTop: 32, alignItems: 'center' },
   deleteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', backgroundColor: 'rgba(255,69,58,0.08)' },

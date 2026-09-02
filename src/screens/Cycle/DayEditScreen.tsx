@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
 import { usePlanStore } from '../../stores/planStore';
 import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
@@ -249,7 +248,7 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           {/* Day name */}
-          <GlassView opacity="mid" radius={14} style={s.nameCard}>
+          <View style={s.nameCard}>
             <Text style={s.fieldLbl}>Day Name</Text>
             <TextInput
               style={s.nameInput}
@@ -260,10 +259,10 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
               placeholderTextColor={COLORS.textMuted}
               returnKeyType="done"
             />
-          </GlassView>
+          </View>
 
           {/* Rest day toggle */}
-          <GlassView opacity="mid" radius={14} style={s.toggleCard}>
+          <View style={s.toggleCard}>
             <View>
               <Text style={s.toggleLbl}>Rest Day</Text>
               <Text style={s.toggleSub}>No exercises — recovery only</Text>
@@ -275,7 +274,7 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
               thumbColor="#fff"
               ios_backgroundColor="rgba(255,240,220,0.12)"
             />
-          </GlassView>
+          </View>
 
           {/* Exercise order (reorder only) */}
           {!isRest && exercises.length > 0 && (
@@ -284,22 +283,22 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
                 <Text style={s.exTitle}>Exercise Order</Text>
                 <Text style={s.exHint}>Hold ≡ to reorder</Text>
               </View>
-              <GlassView opacity="low" radius={14} style={s.exCard}>
+              <View style={s.exCard}>
                 <DragList
                   exercises={exercises}
                   onReorder={ids => reorderExercises(planId, day.id, ids)}
                 />
-              </GlassView>
+              </View>
               <Text style={s.tip}>Add, edit, or delete exercises from the Cycle screen cabinet.</Text>
             </>
           )}
 
           {!isRest && exercises.length === 0 && (
-            <GlassView opacity="low" radius={14} style={s.emptyCard}>
+            <View style={s.emptyCard}>
               <Ionicons name="barbell-outline" size={28} color={COLORS.textLabel} style={{ marginBottom: 8 }} />
               <Text style={s.emptyTxt}>No exercises yet</Text>
               <Text style={s.emptySub}>Tap a day card on the Cycle screen to add exercises.</Text>
-            </GlassView>
+            </View>
           )}
 
           <View style={{ height: 100 }} />
@@ -316,21 +315,21 @@ const s = StyleSheet.create({
   dayPos:     { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
   scroll:     { paddingHorizontal: 16, paddingTop: 4 },
 
-  nameCard:   { padding: 14, marginBottom: 10 },
+  nameCard:   { padding: 14, marginBottom: 10, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   fieldLbl:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
   nameInput:  { fontSize: 18, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.54, paddingVertical: 2 },
 
-  toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20 },
+  toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   toggleLbl:  { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
   toggleSub:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   exHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
   exTitle:    { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
   exHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
-  exCard:     { paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12 },
+  exCard:     { paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   tip:        { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 16 },
 
-  emptyCard:  { padding: 32, alignItems: 'center', marginTop: 4 },
+  emptyCard:  { padding: 32, alignItems: 'center', marginTop: 4, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   emptyTxt:   { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 6 },
   emptySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
 });

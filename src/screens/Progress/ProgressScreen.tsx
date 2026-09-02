@@ -104,32 +104,37 @@ export function ProgressScreen() {
         </View>
 
         <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
-          {/* Summary stats */}
+          {/* Summary stats — bare typographic numbers, no glass. The Activity
+              heatmap below is this screen's genuinely distinct visual surface;
+              three more glass boxes just to show three numbers ahead of it
+              was diminishing that instead of leading into it. */}
           <View style={s.statsRow}>
-            <GlassView radius={14} style={s.statCard}>
+            <View style={s.statCard}>
               <View style={s.statHeader}>
-                <Ionicons name="barbell-outline" size={14} color={COLORS.accent} />
+                <Ionicons name="barbell-outline" size={13} color={COLORS.accent} />
                 <Text style={s.statLabel}>Workouts</Text>
               </View>
               <Text style={s.statValue}>{totalWorkouts}</Text>
-            </GlassView>
-            <GlassView radius={14} style={s.statCard}>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statCard}>
               <View style={s.statHeader}>
-                <Ionicons name="trending-up-outline" size={14} color={COLORS.accent} />
+                <Ionicons name="trending-up-outline" size={13} color={COLORS.accent} />
                 <Text style={s.statLabel}>Volume</Text>
               </View>
               <Text style={[s.statValue, s.statAccent]}>
                 {fmtVol(recentVolume)}
                 <Text style={s.statUnit}>kg</Text>
               </Text>
-            </GlassView>
-            <GlassView radius={14} style={s.statCard}>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statCard}>
               <View style={s.statHeader}>
-                <Ionicons name="list-outline" size={14} color={COLORS.accent} />
+                <Ionicons name="list-outline" size={13} color={COLORS.accent} />
                 <Text style={s.statLabel}>Exercises</Text>
               </View>
               <Text style={s.statValue}>{exerciseCount}</Text>
-            </GlassView>
+            </View>
           </View>
 
           {/* Activity heatmap */}
@@ -271,9 +276,10 @@ const s = StyleSheet.create({
   sub:              { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
   scroll:           { paddingHorizontal: 16 },
 
-  // Stats row
-  statsRow:         { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  statCard:         { flex: 1, padding: 12 },
+  // Stats row — bare, no card background
+  statsRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 18, paddingHorizontal: 4 },
+  statCard:         { flex: 1, alignItems: 'center' },
+  statDivider:      { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: 'rgba(255,240,220,0.14)' },
   statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
   statLabel:        { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
   statValue:        { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },

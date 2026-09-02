@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
 import { AppBackground } from '../../components/ui/AppBackground';
 import {
   COLORS, MUSCLE_TAGS, MUSCLE_TAG_COLOR,
@@ -473,7 +472,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                   <View style={[f.quickRow, { marginTop: 20 }]}>
                     <View style={f.quickField}>
                       <Text style={f.fieldLabel}>Weight</Text>
-                      <GlassView opacity="low" radius={12} style={f.weightWrap}>
+                      <View style={f.weightWrap}>
                         <TextInput
                           style={f.weightInput}
                           value={weight}
@@ -483,7 +482,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                           keyboardType="decimal-pad"
                           selectTextOnFocus
                         />
-                      </GlassView>
+                      </View>
                     </View>
                     <View style={f.quickDivider} />
                     <View style={f.quickField}>
@@ -530,7 +529,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 
                   {/* Notes */}
                   <Text style={[f.fieldLabel, { marginTop: 20 }]}>Notes</Text>
-                  <GlassView opacity="low" radius={12} style={f.notesWrap}>
+                  <View style={f.notesWrap}>
                     <TextInput
                       style={f.notesInput}
                       value={notes}
@@ -539,7 +538,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                       placeholderTextColor="rgba(255,240,220,0.25)"
                       multiline
                     />
-                  </GlassView>
+                  </View>
                 </>
               )}
 
@@ -593,7 +592,7 @@ const f = StyleSheet.create({
   chipTxtActive: { color: COLORS.accent },
 
   // Weight
-  weightWrap:  { paddingHorizontal: 14, paddingVertical: 14 },
+  weightWrap:  { paddingHorizontal: 14, paddingVertical: 14, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   weightInput: { fontSize: 22, fontWeight: '700', color: '#fff', padding: 0, textAlign: 'center' },
 
   // Unit
@@ -604,6 +603,6 @@ const f = StyleSheet.create({
   unitTxtActive: { color: COLORS.accent },
 
   // Notes
-  notesWrap:  { paddingHorizontal: 14, paddingVertical: 12 },
+  notesWrap:  { paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   notesInput: { fontSize: 15, fontFamily: FONTS.body, color: '#fff', padding: 0, minHeight: 60 },
 });

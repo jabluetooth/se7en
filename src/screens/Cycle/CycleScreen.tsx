@@ -296,7 +296,7 @@ export function CycleScreen() {
 
             {/* Plan name */}
             <Text style={s.cabinetLabel}>PLAN NAME</Text>
-            <GlassView opacity="low" radius={10} style={s.nameField}>
+            <View style={s.nameField}>
               <TextInput
                 style={s.nameInput}
                 value={editName}
@@ -306,7 +306,7 @@ export function CycleScreen() {
                 returnKeyType="done"
                 autoCorrect={false}
               />
-            </GlassView>
+            </View>
 
             {/* Split type */}
             <Text style={[s.cabinetLabel, { marginTop: 14 }]}>SPLIT TYPE</Text>
@@ -328,10 +328,8 @@ export function CycleScreen() {
                 <Ionicons name="bookmark-outline" size={14} color={COLORS.accent} />
                 <Text style={s.presetBtnTxt}>Save as Preset</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={savePlan} style={s.saveBtn} activeOpacity={0.85} disabled={!editName.trim()}>
-                <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveGrad}>
-                  <Text style={s.saveTxt}>Save</Text>
-                </LinearGradient>
+              <TouchableOpacity onPress={savePlan} style={[s.saveBtn, { backgroundColor: COLORS.accent }]} activeOpacity={0.85} disabled={!editName.trim()}>
+                <Text style={s.saveTxt}>Save</Text>
               </TouchableOpacity>
             </View>
           </GlassView>
@@ -422,7 +420,7 @@ const s = StyleSheet.create({
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
   cabinetLabel:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
-  nameField:      { paddingHorizontal: 12, paddingVertical: 11 },
+  nameField:      { paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.borderFaint },
   nameInput:      { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
   splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.07)' },
   splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -431,9 +429,8 @@ const s = StyleSheet.create({
   cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
   presetBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.08)' },
   presetBtnTxt:   { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
-  saveBtn:        { borderRadius: 10, overflow: 'hidden' },
-  saveGrad:       { paddingHorizontal: 22, paddingVertical: 9 },
-  saveTxt:        { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  saveBtn:        { borderRadius: 10, paddingHorizontal: 22, paddingVertical: 9 },
+  saveTxt:        { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#000' },
 
   // Completion card
   rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },

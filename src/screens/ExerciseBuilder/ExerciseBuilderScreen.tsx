@@ -1,12 +1,11 @@
 ﻿import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
 import { SetTypeBadge } from '../../components/common/SetTypeBadge';
 import { Button } from '../../components/common/Button';
-import { GRAD, COLORS, SPACING, SET_TYPE_LABELS, BORDER_RADIUS, FONTS } from '../../constants';
+import { COLORS, SPACING, SET_TYPE_LABELS, BORDER_RADIUS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { SetType, BarType, WeightUnit } from '../../types';
 
@@ -47,9 +46,9 @@ function StepDot({ i, step, onJump }:
         style={[s.stepDot, i === step && s.stepDotActive, i < step && s.stepDotDone]}
       >
         {i < step ? (
-          <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.stepDotGrad}>
+          <View style={[s.stepDotGrad, { backgroundColor: COLORS.accent }]}>
             <Text style={s.stepCheckmark}>+</Text>
-          </LinearGradient>
+          </View>
         ) : (
           <Text style={[s.stepNum, i === step && s.stepNumActive]}>{i + 1}</Text>
         )}
@@ -67,7 +66,7 @@ function LabelRow({ label }: { label: string }) {
 function Counter({ value, onChange, min = 1, max = 20 }:
   { value: number; onChange: (v: number) => void; min?: number; max?: number }) {
   return (
-    <GlassView radius={12} style={s.counter}>
+    <View style={s.counter}>
       <TouchableOpacity onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
         <Text style={s.counterBtnText}>-</Text>
       </TouchableOpacity>
@@ -75,7 +74,7 @@ function Counter({ value, onChange, min = 1, max = 20 }:
       <TouchableOpacity onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
         <Text style={s.counterBtnText}>+</Text>
       </TouchableOpacity>
-    </GlassView>
+    </View>
   );
 }
 
@@ -131,7 +130,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                   style={[s.typeBtn, setType === st.id && s.typeBtnActive]}>
                   <View style={[s.typeIcon, setType === st.id && s.typeIconActive]}>
                     {setType === st.id
-                      ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.typeIconGrad}><Text style={s.typeIconTextActive}>{st.icon}</Text></LinearGradient>
+                      ? <View style={[s.typeIconGrad, { backgroundColor: COLORS.accent }]}><Text style={s.typeIconTextActive}>{st.icon}</Text></View>
                       : <Text style={s.typeIconText}>{st.icon}</Text>}
                   </View>
                   <View style={{ flex: 1 }}>
@@ -139,9 +138,9 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                     <Text style={s.typeDesc}>{st.desc}</Text>
                   </View>
                   {setType === st.id && (
-                    <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.typeCheck}>
+                    <View style={[s.typeCheck, { backgroundColor: COLORS.accent }]}>
                       <Text style={s.typeCheckText}>+</Text>
-                    </LinearGradient>
+                    </View>
                   )}
                 </TouchableOpacity>
               ))}
@@ -158,27 +157,27 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                 <>
                   <LabelRow label={setType === 'repRange' ? 'Rep Range' : 'Target Reps'} />
                   <View style={s.repRow}>
-                    <GlassView radius={12} style={s.repField}>
+                    <View style={s.repField}>
                       <Text style={s.repSubLabel}>Min</Text>
                       <TextInput style={s.repInput} value={String(repsMin)} onChangeText={v => setRepsMin(parseInt(v) || 0)} keyboardType="numeric" />
-                    </GlassView>
+                    </View>
                     {setType === 'repRange' && (
                       <>
                         <Text style={s.repDash}>-</Text>
-                        <GlassView radius={12} style={s.repField}>
+                        <View style={s.repField}>
                           <Text style={s.repSubLabel}>Max</Text>
                           <TextInput style={s.repInput} value={String(repsMax)} onChangeText={v => setRepsMax(parseInt(v) || 0)} keyboardType="numeric" />
-                        </GlassView>
+                        </View>
                       </>
                     )}
                   </View>
                 </>
               )}
               {isFailure && (
-                <GlassView radius={12} style={s.failureNote}>
+                <View style={s.failureNote}>
                   <Text style={s.failureTitle}>To Failure</Text>
                   <Text style={s.failureDesc}>Log actual reps reached after each set.</Text>
-                </GlassView>
+                </View>
               )}
 
               <LabelRow label="Weight Unit" />
@@ -186,7 +185,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                 {WEIGHT_UNITS.map(u => (
                   <TouchableOpacity key={u} onPress={() => setWeightUnit(u)} style={[s.unitBtn, weightUnit === u && s.unitBtnActive]}>
                     {weightUnit === u
-                      ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.unitGrad}><Text style={s.unitTextActive}>{u}</Text></LinearGradient>
+                      ? <View style={[s.unitGrad, { backgroundColor: COLORS.accent }]}><Text style={s.unitTextActive}>{u}</Text></View>
                       : <Text style={s.unitText}>{u}</Text>}
                   </TouchableOpacity>
                 ))}
@@ -204,7 +203,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                   ))}
 
                   <LabelRow label={'Target Weight (' + weightUnit + ')'} />
-                  <GlassView radius={12} style={s.weightCounter}>
+                  <View style={s.weightCounter}>
                     <TouchableOpacity onPress={() => setWeight(w => Math.max(0, w - 2.5))} style={s.counterBtn}>
                       <Text style={s.counterBtnText}>-</Text>
                     </TouchableOpacity>
@@ -212,7 +211,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                     <TouchableOpacity onPress={() => setWeight(w => w + 2.5)} style={s.counterBtn}>
                       <Text style={s.counterBtnText}>+</Text>
                     </TouchableOpacity>
-                  </GlassView>
+                  </View>
                 </>
               )}
 
@@ -257,9 +256,9 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
           )}
           <TouchableOpacity style={s.nextBtn} activeOpacity={0.9}
             onPress={step < 2 ? () => setStep(s => s + 1) : handleSave}>
-            <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.nextGrad}>
+            <View style={[s.nextGrad, { backgroundColor: COLORS.accent }]}>
               <Text style={s.nextText}>{step === 2 ? 'Add Exercise' : 'Continue'}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -301,16 +300,16 @@ const s = StyleSheet.create({
   typeDesc:         { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 1 },
   typeCheck:        { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   typeCheckText:    { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
-  counter:          { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 4 },
+  counter:          { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 4, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   counterBtn:       { width: 42, height: 42, borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', alignItems: 'center', justifyContent: 'center' },
   counterBtnText:   { fontSize: 20, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
   counterValue:     { flex: 1, textAlign: 'center', fontSize: 34, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -1.36 },
   repRow:           { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  repField:         { flex: 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4 },
+  repField:         { flex: 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   repSubLabel:      { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 3 },
   repInput:         { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', height: 44, letterSpacing: -0.88 },
   repDash:          { fontSize: 18, fontFamily: FONTS.body, color: COLORS.textMuted },
-  failureNote:      { padding: 14 },
+  failureNote:      { padding: 14, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   failureTitle:     { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.danger, marginBottom: 3 },
   failureDesc:      { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, lineHeight: 18 },
   unitRow:          { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
@@ -324,7 +323,7 @@ const s = StyleSheet.create({
   barLabel:         { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
   barLabelActive:   { color: COLORS.accent },
   barWeight:        { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
-  weightCounter:    { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  weightCounter:    { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   weightValue:      { flex: 1, textAlign: 'center', fontSize: 30, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.20 },
   weightUnit:       { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
   notesInput:       { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 12, padding: 12, color: '#fff', fontSize: 14, fontFamily: FONTS.body, minHeight: 80 },

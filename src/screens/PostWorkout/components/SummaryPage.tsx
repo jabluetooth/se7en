@@ -98,23 +98,28 @@ export function SummaryPage({ session, width }: Props) {
           </View>
         </View>
 
-        {/* ── Stats: Reps × Sets = Volume ─────────────────── */}
-        <GlassView radius={14} style={s.statsStrip}>
-          <View style={s.statCell}>
-            <Text style={s.statVal}>{totalReps}</Text>
-            <Text style={s.statLabel}>Reps</Text>
+        {/* ── Stats: Reps × Sets = Volume — the payoff number of the whole
+             page, so it gets a bare typographic moment instead of being boxed
+             at the same visual weight as every other stat in the app. ───── */}
+        <View style={s.statsStrip}>
+          <View style={s.statsDivider} />
+          <View style={s.statsRow}>
+            <View style={s.statCell}>
+              <Text style={s.statVal}>{totalReps}</Text>
+              <Text style={s.statLabel}>Reps</Text>
+            </View>
+            <Text style={s.statOpTxt}>×</Text>
+            <View style={s.statCell}>
+              <Text style={s.statVal}>{totalSets}</Text>
+              <Text style={s.statLabel}>Sets</Text>
+            </View>
+            <Text style={s.statOpTxt}>=</Text>
+            <View style={s.statCell}>
+              <Text style={[s.statVal, s.statValHero]}>{volDisplay}</Text>
+              <Text style={s.statLabel}>Volume</Text>
+            </View>
           </View>
-          <View style={s.statOp}><Text style={s.statOpTxt}>×</Text></View>
-          <View style={s.statCell}>
-            <Text style={s.statVal}>{totalSets}</Text>
-            <Text style={s.statLabel}>Sets</Text>
-          </View>
-          <View style={s.statOp}><Text style={s.statOpTxt}>=</Text></View>
-          <View style={s.statCell}>
-            <Text style={s.statVal}>{volDisplay}</Text>
-            <Text style={s.statLabel}>Volume</Text>
-          </View>
-        </GlassView>
+        </View>
 
       </View>
     </View>
@@ -145,11 +150,14 @@ const s = StyleSheet.create({
   peakLbl:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
   peakVal:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 
-  // Stats strip
-  statsStrip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
-  statCell:   { flex: 1, alignItems: 'center', paddingVertical: 14 },
-  statOp:     { paddingHorizontal: 2, alignItems: 'center', justifyContent: 'center' },
-  statOpTxt:  { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  statVal:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
-  statLabel:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 3 },
+  // Stats strip — bare, no glass card. A hairline divider separates it from
+  // the graph above instead of a full bordered box.
+  statsStrip:   { alignSelf: 'stretch', paddingTop: 18 },
+  statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,240,220,0.14)', marginBottom: 18 },
+  statsRow:     { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  statCell:     { flex: 1, alignItems: 'center' },
+  statOpTxt:    { fontSize: 18, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, paddingHorizontal: 2 },
+  statVal:      { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.0 },
+  statValHero:  { color: COLORS.accent, fontSize: 34 },
+  statLabel:    { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 3 },
 });

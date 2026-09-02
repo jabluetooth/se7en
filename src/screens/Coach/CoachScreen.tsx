@@ -7,11 +7,10 @@ import {
   View, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { GlassView } from '../../components/common/GlassView';
-import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
+import { COLORS, SPACING, FONTS } from '../../constants';
 import { continueConversation, ConversationMessage } from '../../services/coachService';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -181,14 +180,9 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMess
   if (msg.role === 'user') {
     return (
       <Animated.View style={[b.userRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <LinearGradient
-          colors={GRAD.accent}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={b.userBubble}
-        >
+        <View style={[b.userBubble, { backgroundColor: COLORS.accent }]}>
           <Text style={b.userText}>{msg.text}</Text>
-        </LinearGradient>
+        </View>
       </Animated.View>
     );
   }
@@ -414,14 +408,9 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
               accessibilityState={{ disabled: !input.trim() || loading }}
             >
               {input.trim() && !loading ? (
-                <LinearGradient
-                  colors={GRAD.accent}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={s.sendBtn}
-                >
+                <View style={[s.sendBtn, { backgroundColor: COLORS.accent }]}>
                   <SendSvg active />
-                </LinearGradient>
+                </View>
               ) : (
                 <View style={[s.sendBtn, s.sendInactive]}>
                   <SendSvg active={false} />

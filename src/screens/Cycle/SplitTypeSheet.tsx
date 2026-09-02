@@ -5,10 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { GlassView } from '../../components/common/GlassView';
-import { COLORS, GRAD, DAY_COLOR, FONTS } from '../../constants';
+import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { PlanPreset } from '../../types';
 
 // ─── Split preview data ───────────────────────────────────────────────────────
@@ -151,9 +150,9 @@ function SplitCard({ split, active, onSelect }: {
             <Text style={c.cardFreq}>{split.frequency}</Text>
           </View>
           {active && (
-            <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.checkBadge}>
-              <Ionicons name="checkmark" size={14} color="#fff" />
-            </LinearGradient>
+            <View style={[c.checkBadge, { backgroundColor: COLORS.accent }]}>
+              <Ionicons name="checkmark" size={14} color="#000" />
+            </View>
           )}
         </View>
 
@@ -209,9 +208,9 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
           </View>
           <View style={c.presetActions}>
             {active && (
-              <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.checkBadge}>
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              </LinearGradient>
+              <View style={[c.checkBadge, { backgroundColor: COLORS.accent }]}>
+                <Ionicons name="checkmark" size={14} color="#000" />
+              </View>
             )}
             <TouchableOpacity
               onPress={onDelete}

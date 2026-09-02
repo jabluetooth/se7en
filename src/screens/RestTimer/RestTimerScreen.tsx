@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
-import { GRAD, COLORS, FONTS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { widgetService } from '../../services/widgetService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -309,9 +308,9 @@ export function RestTimerScreen({
             accessibilityLabel={done ? 'Back to Session' : running ? 'Pause rest timer' : 'Resume rest timer'}
           >
             {(!running || done)
-              ? <LinearGradient colors={GRAD.accent} start={{x:0,y:0}} end={{x:1,y:1}} style={s.mainGrad}>
+              ? <View style={[s.mainGrad, { backgroundColor: COLORS.accent }]}>
                   <Text style={s.mainText}>{done ? 'Back to Session' : 'Resume'}</Text>
-                </LinearGradient>
+                </View>
               : <GlassView opacity="high" radius={14} style={s.mainGlass}>
                   <Text style={s.pauseText}>Pause</Text>
                 </GlassView>}
