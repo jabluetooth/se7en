@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  Easing, ReduceMotion, SlideInDown, SlideOutDown, cancelAnimation,
+  Easing, ReduceMotion, cancelAnimation,
   useAnimatedProps, useSharedValue, withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
-import { SPRING } from '../../motion/tokens';
+import { enterDock, exitDock } from '../../motion/presets';
 import { COLORS, FONTS } from '../../constants';
 import { widgetService } from '../../services/widgetService';
 import {
@@ -137,8 +137,8 @@ export function RestTimerBar({ ctx, bottom, onDismiss }: Props) {
 
   return (
     <Animated.View
-      entering={SlideInDown.springify().damping(SPRING.gentle.damping).stiffness(SPRING.gentle.stiffness)}
-      exiting={SlideOutDown.duration(220)}
+      entering={enterDock}
+      exiting={exitDock}
       style={[s.bar, done && s.barDone, { bottom }]}
       accessibilityLiveRegion="polite"
     >

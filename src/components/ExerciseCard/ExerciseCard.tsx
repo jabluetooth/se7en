@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Animated, { FadeIn, LinearTransition, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { SPRING } from '../../motion/tokens';
+import { TIMING } from '../../motion/tokens';
+import { enterFade, layoutSoft } from '../../motion/presets';
 import { lastPerformance } from '../../utils/exerciseHistory';
 import { GlassView } from '../common/GlassView';
 import { ProgressRing } from '../common/ProgressRing';
@@ -71,7 +72,7 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
   }, [allDone]);
 
   const chevron = useSharedValue(expanded ? 1 : 0);
-  useEffect(() => { chevron.value = withSpring(expanded ? 1 : 0, SPRING.snappy); }, [expanded]);
+  useEffect(() => { chevron.value = withTiming(expanded ? 1 : 0, TIMING.standard); }, [expanded]);
   const chevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chevron.value * 180}deg` }] }));
 
   // Wrapping up: rating (or skipping) effort collapses the card and hands off
@@ -87,7 +88,7 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
   const muscleTags = (libEx?.muscleTags ?? planEx?.muscleTags ?? []).slice(0, 2);
 
   return (
-    <Animated.View layout={LinearTransition.springify().damping(SPRING.gentle.damping).stiffness(SPRING.gentle.stiffness)}>
+    <Animated.View layout={layoutSoft}>
     <GlassView
       radius={16}
       style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
@@ -146,7 +147,7 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
       </AnimatedPressable>
 
       {expanded && (
-        <Animated.View entering={FadeIn.duration(220)} style={s.sets}>
+        <Animated.View entering={enterFade} style={s.sets}>
           {exercise.sets.map((set, idx) => (
             <SetLogger
               key={set.id}

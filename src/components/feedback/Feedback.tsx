@@ -13,12 +13,12 @@ import React, {
   createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState,
 } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, FadeOutUp, LinearTransition, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
-import { SPRING } from '../../motion/tokens';
+import { enterFade, enterFromTop, enterSheet, exitFade, exitSheet, exitToTop, layoutSoft } from '../../motion/presets';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -190,9 +190,9 @@ function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id
         return (
           <Animated.View
             key={t.id}
-            entering={FadeInDown.springify().damping(SPRING.gentle.damping).stiffness(SPRING.gentle.stiffness)}
-            exiting={FadeOutUp.duration(180)}
-            layout={LinearTransition.springify().damping(SPRING.snappy.damping)}
+            entering={enterFromTop}
+            exiting={exitToTop}
+            layout={layoutSoft}
             style={ts.toast}
             accessibilityLiveRegion="polite"
             accessibilityRole="alert"
@@ -236,7 +236,7 @@ function ConfirmSheet({ item, onAnswer }: { item: ConfirmItem; onAnswer: (ok: bo
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
+      <Animated.View entering={enterFade} exiting={exitFade} style={StyleSheet.absoluteFill}>
         <Pressable
           style={cs.backdrop}
           onPress={() => onAnswer(false)}
@@ -245,8 +245,8 @@ function ConfirmSheet({ item, onAnswer }: { item: ConfirmItem; onAnswer: (ok: bo
         />
       </Animated.View>
       <Animated.View
-        entering={SlideInDown.springify().damping(SPRING.gentle.damping).stiffness(SPRING.gentle.stiffness)}
-        exiting={SlideOutDown.duration(200)}
+        entering={enterSheet}
+        exiting={exitSheet}
         style={[cs.sheet, { paddingBottom: insets.bottom + 16 }]}
         accessibilityViewIsModal
       >

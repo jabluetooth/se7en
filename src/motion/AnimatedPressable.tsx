@@ -1,8 +1,8 @@
 import React, { forwardRef } from 'react';
 import { Pressable, type PressableProps, type StyleProp, type View, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { PRESS_SCALE, SPRING } from './tokens';
+import { PRESS_SCALE, TIMING } from './tokens';
 
 export type HapticKind = 'none' | 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning';
 
@@ -34,9 +34,10 @@ export interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
 }
 
 /**
- * The app's standard tappable surface: Pressable plus a spring "squish" on the
- * UI thread and optional haptic feedback. Replaces TouchableOpacity, whose
- * opacity flash gives no sense of physical press.
+ * The app's standard tappable surface: Pressable plus a barely-there press
+ * (a 1-2% shrink on an ease-out curve, on the UI thread) and optional
+ * haptics. Replaces TouchableOpacity, whose opacity flash gives no sense of
+ * physical press.
  *
  * `style` lands on the Pressable itself, exactly like TouchableOpacity, so
  * layout (flex, width, margins) behaves the same after a swap.
@@ -58,11 +59,11 @@ export const AnimatedPressable = forwardRef<View, AnimatedPressableProps>(functi
       ref={ref}
       disabled={disabled}
       onPressIn={e => {
-        pressed.value = withSpring(1, SPRING.press);
+        pressed.value = withTiming(1, TIMING.press);
         onPressIn?.(e);
       }}
       onPressOut={e => {
-        pressed.value = withSpring(0, SPRING.snappy);
+        pressed.value = withTiming(0, TIMING.release);
         onPressOut?.(e);
       }}
       onPress={e => {

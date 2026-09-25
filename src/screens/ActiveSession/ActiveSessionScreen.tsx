@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
-import { SPRING, TIMING } from '../../motion/tokens';
+import { TIMING } from '../../motion/tokens';
 import { useFeedback } from '../../components/feedback/Feedback';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
@@ -41,18 +41,12 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   const pct       = totalSets > 0 ? doneSets / totalSets : 0;
   const allDone   = totalSets > 0 && doneSets === totalSets;
 
-  // Footer progress bar fills smoothly; Finish gives one soft pulse the
-  // moment the last set is logged, so the next step is obvious.
+  // Footer progress bar fills smoothly. When the last set is logged, the
+  // Finish button fills in with the accent colour and a haptic confirms it.
   const fill = useSharedValue(pct);
-  const pulse = useSharedValue(1);
   useEffect(() => { fill.value = withTiming(pct, TIMING.emphasis); }, [pct]);
-  useEffect(() => {
-    if (!allDone) return;
-    pulse.value = withSequence(withSpring(1.04, SPRING.snappy), withSpring(1, SPRING.gentle));
-    fireHaptic('success');
-  }, [allDone]);
-  const fillStyle  = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
-  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+  useEffect(() => { if (allDone) fireHaptic('success'); }, [allDone]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
 
   if (!activeSession) return null;
 
@@ -241,7 +235,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
             <LinearGradient colors={GRAD.progress} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
           </Animated.View>
         </View>
-        <Animated.View style={pulseStyle}>
+        <View>
           <AnimatedPressable
             scale="subtle"
             style={[s.finishBtn, !allDone && s.finishBtnQuiet, isFinishing && { opacity: 0.6 }]}
@@ -255,7 +249,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
               {isFinishing ? 'Finishing…' : allDone ? 'Finish workout' : `Finish workout · ${doneSets}/${totalSets} sets`}
             </Text>
           </AnimatedPressable>
-        </Animated.View>
+        </View>
       </View>
     </View>
   );

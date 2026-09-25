@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
-import { SPRING } from '../../motion/tokens';
+import { enterFade, enterSettle } from '../../motion/presets';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { SetLog, SessionExercise } from '../../types';
 import { usePRStore } from '../../stores/prStore';
@@ -148,8 +148,8 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
   if (set.isCompleted) {
     const repsDone = isFailure ? set.actualRepsToFailure : set.actualReps;
     return (
-      <Animated.View entering={FadeIn.duration(200)} style={[s.doneRow, justPRed && s.doneRowPR]}>
-        <Animated.View entering={ZoomIn.springify().damping(SPRING.bouncy.damping).stiffness(SPRING.bouncy.stiffness)}>
+      <Animated.View entering={enterFade} style={[s.doneRow, justPRed && s.doneRowPR]}>
+        <Animated.View entering={enterSettle}>
           <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.doneCheck}>
             <Ionicons name="checkmark" size={15} color="#000" />
           </LinearGradient>
@@ -162,7 +162,7 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
         </Text>
         {justPRed && (
           <Animated.View
-            entering={ZoomIn.springify().damping(SPRING.bouncy.damping).stiffness(SPRING.bouncy.stiffness)}
+            entering={enterSettle}
             style={s.prBadge}
           >
             <Ionicons name="trophy" size={11} color="#000" />
