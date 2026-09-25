@@ -81,7 +81,7 @@ This project was built to demonstrate production-quality React Native architectu
 
 | Layer | Technology |
 |---|---|
-| Framework | React Native 0.81 · Expo 54 |
+| Framework | React Native 0.86 · Expo 57 |
 | Language | TypeScript 5.9 (strict) |
 | State | Zustand + AsyncStorage (offline-first) |
 | Backend | Firebase Firestore + Auth |

@@ -161,7 +161,7 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel, activePlan, c
 
 const s = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center' },
-  overlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  overlay:   { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
   lbl:      { fontSize: 11,  fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.72, textTransform: 'uppercase', marginBottom: 4 },
   // Fixed-width chord that fits inside the inner ring (ri=68 → diameter 136).
   // Gives adjustsFontSizeToFit something concrete to shrink against.

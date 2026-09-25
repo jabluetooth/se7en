@@ -425,7 +425,7 @@ export const dc = StyleSheet.create({
   swipeContent: { borderRadius: 16, overflow: 'hidden' },
   editorClip:   { overflow: 'hidden', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   card:         { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
-  dimOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
+  dimOverlay:   { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.28)' },
   dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },
   cardCurrent:  {},
   numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

@@ -8,7 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
-import { ViewShot, captureRef, isViewShotAvailable } from '../../compat/viewShot';
+import { ViewShot, captureRef, isViewShotAvailable, type ViewShotRef } from '../../compat/viewShot';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { COLORS, FONTS } from '../../constants';
@@ -51,7 +51,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const [menuOpen,  setMenuOpen]  = useState(false);
   const [busy,      setBusy]      = useState(false);
   const scrollRef  = useRef<ScrollView>(null);
-  const shotRef    = useRef<InstanceType<typeof ViewShot>>(null);
+  const shotRef    = useRef<ViewShotRef>(null);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const newPage = Math.round(e.nativeEvent.contentOffset.x / width);
