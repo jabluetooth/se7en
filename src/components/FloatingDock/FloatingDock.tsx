@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -66,29 +67,27 @@ function DockContent({ activeTab, onTabPress }: Props) {
             end={{ x: 1, y: 1 }}
             style={s.iconCircle}
           >
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.iconInner}
               onPress={() => handlePress(tab.name)}
-              activeOpacity={0.9}
               accessibilityRole="tab"
               accessibilityLabel={tab.name}
               accessibilityState={{ selected: true }}
             >
               <Ionicons name={tab.iconFocused as any} size={24} color="#fff" />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </LinearGradient>
         ) : (
-          <TouchableOpacity
+          <AnimatedPressable
             key={tab.name}
             style={s.iconCircle}
             onPress={() => onTabPress(tab.name)}
-            activeOpacity={0.65}
             accessibilityRole="tab"
             accessibilityLabel={tab.name}
             accessibilityState={{ selected: false }}
           >
             <Ionicons name={tab.icon as any} size={22} color={COLORS.textSecondary} />
-          </TouchableOpacity>
+          </AnimatedPressable>
         );
       })}
     </>

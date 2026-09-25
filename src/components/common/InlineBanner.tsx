@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
 
@@ -26,16 +27,15 @@ export function InlineBanner({ message, onRetry, variant = 'warning' }: Props) {
       <Ionicons name="cloud-offline-outline" size={15} color={color} style={{ marginTop: 1 }} />
       <Text style={[ib.text, { color }]}>{message}</Text>
       {onRetry && (
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={onRetry}
-          activeOpacity={0.75}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={[ib.retryBtn, { borderColor: color + '50' }]}
           accessibilityRole="button"
           accessibilityLabel="Retry sync"
         >
           <Text style={[ib.retryTxt, { color }]}>Retry</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       )}
     </View>
   );

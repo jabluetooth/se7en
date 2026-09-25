@@ -9,6 +9,8 @@ import { GlassView } from '../../components/common/GlassView';
 import { FadeInItem } from '../../components/common/FadeInItem';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { sessionLoad } from '../../utils/volume';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { fmtVol } from '../../utils/format';
@@ -25,6 +27,7 @@ type SortMode = 'recent' | 'volume' | 'name';
 export function ProgressScreen() {
   const { sessions }   = useSessionStore();
   const { activePlan } = usePlanStore();
+  const unit           = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
   const { width: windowWidth } = useWindowDimensions();
   const dockClearance  = useDockClearance();
 
@@ -46,9 +49,9 @@ export function ProgressScreen() {
     const recent14  = completed.slice(-14);
     return {
       totalWorkouts: completed.length,
-      recentVolume:  recent14.reduce((a, s) => a + s.totalVolume, 0),
+      recentVolume:  recent14.reduce((a, s) => a + sessionLoad(s.exercises, unit), 0),
     };
-  }, [sessions]);
+  }, [sessions, unit]);
 
   const histories = useMemo(() => aggregateExercises(sessions), [sessions]);
   const exerciseCount = histories.length;
@@ -124,7 +127,7 @@ export function ProgressScreen() {
               </View>
               <Text style={[s.statValue, s.statAccent]}>
                 {fmtVol(recentVolume)}
-                <Text style={s.statUnit}>kg</Text>
+                <Text style={s.statUnit}>{unit}</Text>
               </Text>
             </View>
             <View style={s.statDivider} />
@@ -281,7 +284,7 @@ const s = StyleSheet.create({
   statCard:         { flex: 1, alignItems: 'center' },
   statDivider:      { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: 'rgba(255,240,220,0.14)' },
   statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  statLabel:        { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
+  statLabel:        { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
   statValue:        { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
   statAccent:       { color: PROGRESS_GREEN_TXT },
   statUnit:         { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
@@ -298,7 +301,7 @@ const s = StyleSheet.create({
   toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 8, padding: 2, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
   togglePill:       { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
   togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
-  toggleTxt:        { fontSize: 10, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  toggleTxt:        { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
   toggleTxtActive:  { color: '#fff', fontWeight: '800', fontFamily: FONTS.display },
 
   // Search bar (replaces section header when active)

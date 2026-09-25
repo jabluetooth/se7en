@@ -252,6 +252,6 @@ const s = StyleSheet.create({
   tdRight:   { textAlign: 'right' },
   // Exercise note
   noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  noteLabel: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 2, width: 34 },
+  noteLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 2, width: 34 },
   noteTxt:   { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
 });

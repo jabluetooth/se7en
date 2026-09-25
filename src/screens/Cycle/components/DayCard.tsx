@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Alert, TextInput, Switch,
+  View, Text, ScrollView, StyleSheet, TextInput, Switch,
 } from 'react-native';
+import { AnimatedPressable } from '../../../motion/AnimatedPressable';
+import { useFeedback } from '../../../components/feedback/Feedback';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,7 @@ export function DayCard({
   onEdit, onClear, onDone, dragHandlers, onMoveUp, onMoveDown, onScrollEnabledChange,
 }: Props) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
+  const { confirm } = useFeedback();
   const swipeRef   = useRef<Swipeable>(null);
   const isCurrent  = isToday;
   const isDone     = status === 'completed';
@@ -85,11 +87,14 @@ export function DayCard({
     setEditingEx(null);
   };
 
-  const handleDelete = (ex: Exercise) => {
-    Alert.alert(`Remove "${ex.name}"?`, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteExercise(planId, day.id, ex.id) },
-    ]);
+  const handleDelete = async (ex: Exercise) => {
+    const ok = await confirm({
+      title: `Remove ${ex.name}?`,
+      message: `It comes off ${day.label}. Past workouts keep their logged sets.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (ok) deleteExercise(planId, day.id, ex.id);
   };
 
   const quickAdd = (item: ExerciseLibraryItem) => {
@@ -167,8 +172,7 @@ export function DayCard({
             Swipeable's action areas — the outer dc.wrap has no overflow:hidden. */}
         <View style={dc.swipeContent}>
           {/* ── Card header ── */}
-          <TouchableOpacity
-            activeOpacity={0.85}
+          <AnimatedPressable
             onPress={() => { setShowList(l => !l); setShowEditor(false); }}
             accessibilityRole="button"
             accessibilityLabel={`${day.label}, ${isRest ? 'recovery day' : `${day.exercises.length} exercises`}`}
@@ -263,7 +267,7 @@ export function DayCard({
                 />
               </View>
             </GlassView>
-          </TouchableOpacity>
+          </AnimatedPressable>
 
           {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
@@ -361,10 +365,10 @@ export function DayCard({
                   <Text style={dc.recLabel}>Suggested for {day.label}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={dc.recRow}>
                     {recommended.map(item => (
-                      <TouchableOpacity key={item.id} style={dc.recChip} onPress={() => quickAdd(item)} activeOpacity={0.75}>
+                      <AnimatedPressable key={item.id} style={dc.recChip} onPress={() => quickAdd(item)}>
                         <Ionicons name="add" size={13} color={COLORS.accent} />
                         <Text style={dc.recChipTxt} numberOfLines={1}>{item.name}</Text>
-                      </TouchableOpacity>
+                      </AnimatedPressable>
                     ))}
                   </ScrollView>
                 </View>
@@ -387,12 +391,12 @@ export function DayCard({
                 <Text style={dc.emptyTxt}>No exercises yet. Tap Add Exercise to get started.</Text>
               )}
 
-              <TouchableOpacity style={dc.addBtn} onPress={openAdd} activeOpacity={0.8}>
+              <AnimatedPressable style={dc.addBtn} onPress={openAdd}>
                 <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.addGrad}>
                   <Ionicons name="add" size={16} color="#fff" />
                   <Text style={dc.addTxt}>Add Exercise</Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </>
           )}
         </GlassView>
@@ -435,16 +439,16 @@ export const dc = StyleSheet.create({
   sub:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, marginBottom: 6 },
   tagsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   tag:          { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:       { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   right:        { alignItems: 'flex-end', justifyContent: 'center', gap: 0 },
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  labelHint:    { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 7 },
+  labelHint:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 7 },
   labelField:   { paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
   labelInput:   { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, padding: 0 },
   recSection:   { marginBottom: 12 },
-  recLabel:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
+  recLabel:     { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
   recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.10)' },
   recChipTxt:   { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent, maxWidth: 120 },
@@ -456,7 +460,7 @@ export const dc = StyleSheet.create({
   readName:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
   readMeta:     { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   readTag:      { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, marginLeft: 8 },
-  readTagTxt:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  readTagTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   emptyTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
   addBtn:       { borderRadius: 12, overflow: 'hidden', marginBottom: 12, marginTop: 4 },
   addGrad:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
@@ -466,5 +470,5 @@ export const dc = StyleSheet.create({
   restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
   restToggleLbl: { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   readLastChip:  { marginTop: 4, alignSelf: 'flex-start', backgroundColor: 'rgba(255,140,0,0.12)', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', paddingHorizontal: 7, paddingVertical: 2 },
-  readLastTxt:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
+  readLastTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
 });

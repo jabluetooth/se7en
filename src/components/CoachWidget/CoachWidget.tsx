@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated, StyleSheet, Text, TouchableOpacity, View,
+  Animated, StyleSheet, Text, View,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import Svg, { Path } from 'react-native-svg';
 import { GlassView } from '../common/GlassView';
 import { askCoachProactive, clearCoachCache } from '../../services/coachService';
@@ -120,9 +121,9 @@ function RateLimitBanner({ secsLeft, onRetry }: { secsLeft: number; onRetry: () 
   return (
     <View style={rl.wrap}>
       <Text style={rl.txt}>Rate limit — retrying in {secsLeft}s</Text>
-      <TouchableOpacity onPress={onRetry} activeOpacity={0.75} style={rl.btn}>
+      <AnimatedPressable onPress={onRetry} style={rl.btn}>
         <Text style={rl.btnTxt}>Try now</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -175,10 +176,10 @@ function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolea
 
 const ih = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.sm },
-  label:     { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
+  label:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
   line:      { flex: 1, height: 1, backgroundColor: 'rgba(255,140,0,0.15)' },
   cachedPill:{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
-  cachedTxt: { fontSize: 9, color: COLORS.textLabel, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  cachedTxt: { fontSize: 11, color: COLORS.textLabel, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
 });
 
 // ─── CoachWidget ──────────────────────────────────────────────────────────────
@@ -302,18 +303,17 @@ export function CoachWidget({ onAskMore }: Props) {
         {/* Footer */}
         {showFooter && (
           <View style={s.footer}>
-            <TouchableOpacity onPress={() => fetchMessage(true)} activeOpacity={0.7} style={s.refreshBtn}>
+            <AnimatedPressable onPress={() => fetchMessage(true)} style={s.refreshBtn}>
               <RefreshSvg size={12} />
               <Text style={s.refreshTxt}>Refresh</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
             {onAskMore && (
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => onAskMore(message || undefined)}
-                activeOpacity={0.8}
                 style={s.askBtn}
               >
                 <Text style={s.askTxt}>Ask Coach →</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             )}
           </View>
         )}

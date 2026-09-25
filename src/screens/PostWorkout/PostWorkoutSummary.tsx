@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Pressable, StyleSheet, Modal, Alert, Image,
-  useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
+  View, Text, ScrollView, Pressable, StyleSheet, Modal, Image, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { AppBackground } from '../../components/ui/AppBackground';
 import { SummaryPage } from './components/SummaryPage';
 import { ExercisesPage } from './components/ExercisesPage';
 import { NextUpPage } from './components/NextUpPage';
+import { FeedbackHost } from '../../components/feedback/Feedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ interface Props {
 export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const { width }  = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { toast } = useFeedback();
   const [page, setPage] = useState(0);
   const [bgImage,   setBgImage]   = useState<string | null>(null);
   const [menuOpen,  setMenuOpen]  = useState(false);
@@ -83,7 +86,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
       const uri = res.assets?.[0]?.uri;
       if (uri) setBgImage(uri);
     } catch (e) {
-      Alert.alert('Could not pick image', e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e), { title: 'Could not pick an image' });
     } finally {
       setMenuOpen(false);
     }
@@ -94,24 +97,21 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const saveAsImage = () => afterMenuClose(async () => {
     if (busy) return;
     if (!isViewShotAvailable) {
-      Alert.alert(
-        'Not available in Expo Go',
-        'Screenshot export requires a development build. Run `expo run:ios` or `expo run:android` to enable it.',
-      );
+      toast.info('Saving the summary as an image needs the full app build, not Expo Go.', { title: 'Not available in Expo Go' });
       return;
     }
     try {
       setBusy(true);
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Permission needed', 'Allow photo access so the workout image can be saved.');
+        toast.warning('Allow photo access in Settings to save your workout image.', { title: 'Photo access needed' });
         return;
       }
       const uri = await captureRef(shotRef, { format: 'png', quality: 1, result: 'tmpfile' });
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert('Saved', 'Workout summary saved to your Photos.');
+      toast.success('Saved to your Photos');
     } catch (e) {
-      Alert.alert('Could not save', e instanceof Error ? e.message : 'Unknown error');
+      toast.error(e instanceof Error ? e.message : 'Something went wrong.', { title: 'Could not save the image' });
     } finally {
       setBusy(false);
     }
@@ -147,32 +147,30 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
             not a precise measurement — the point is clearing that zone with
             margin rather than getting the exact inset value right. */}
         <View style={[hd.bar, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={onDone}
             style={hd.backBtn}
-            activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="Done"
           >
             <ChevronLeft />
-          </TouchableOpacity>
+          </AnimatedPressable>
 
           <Text style={hd.title} accessibilityRole="header">{PAGE_NAMES[page]}</Text>
 
           {/* Top-right options — background / save (Page 1 only) */}
           <View style={hd.rightSlot}>
             {page === 0 && (
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => setMenuOpen(true)}
                 style={hd.iconBtn}
-                activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
                 accessibilityLabel="More options"
               >
                 <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.accent} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             )}
           </View>
         </View>
@@ -239,6 +237,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
               <Text style={mn.itemTxt}>{busy ? 'Saving…' : 'Save as Image'}</Text>
             </Pressable>
           </View>
+          <FeedbackHost />
         </View>
       </Modal>
     </ViewShot>

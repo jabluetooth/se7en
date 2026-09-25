@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { InlineBanner } from '../../components/common/InlineBanner';
@@ -17,7 +18,7 @@ import { ContributionHeatmap } from './ContributionHeatmap';
 import { HighlightSlideshow } from './HighlightSlideshow';
 import { CoachWidget } from '../../components/CoachWidget/CoachWidget';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
-import { computeDayPosition, localDateStr } from '../../utils/cycleUtils';
+import { computeDayPosition, localDateStr, localDateOf } from '../../utils/cycleUtils';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import { scheduleWorkoutReminder, cancelWorkoutReminders } from '../../services/notificationService';
 
@@ -63,7 +64,7 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
         const done = sessions.some(
           s => s.status === 'completed' &&
                s.dayPosition === day.dayPosition &&
-               s.finishedAt?.slice(0, 10) === dateStr,
+               localDateOf(s.finishedAt) === dateStr,
         );
         if (done) return;
 
@@ -110,8 +111,8 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
   // drag-reorder on Cycle. If a completed session exists for today's calendar
   // date, MissionCard flips to its done state and the start button targets
   // the NEXT mission instead of re-offering today's work.
-  const todayStr        = new Date().toISOString().slice(0, 10);
-  const todayDoneSess   = planSessions.find(s => s.status === 'completed' && s.finishedAt?.slice(0, 10) === todayStr);
+  const todayStr        = localDateStr(new Date());
+  const todayDoneSess   = planSessions.find(s => s.status === 'completed' && localDateOf(s.finishedAt) === todayStr);
   const completedToday  = todayDoneSess ? { dayLabel: todayDoneSess.dayLabel } : null;
 
   // Next mission resolution — finds the next non-rest workout, walking forward
@@ -150,15 +151,14 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
         <Ionicons name="barbell-outline" size={32} color={COLORS.textLabel} style={{ marginBottom: 12 }} />
         <Text style={s.emptyTitle}>No plan active</Text>
         <Text style={s.emptySub}>Set up a workout plan to start tracking your training.</Text>
-        <TouchableOpacity
+        <AnimatedPressable
           style={s.emptyCta}
           onPress={() => onNavigate('Settings')}
-          activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Go to Settings to set up a plan"
         >
           <Text style={s.emptyCtaTxt}>Go to Settings</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     );
   }

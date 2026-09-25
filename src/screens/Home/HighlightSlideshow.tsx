@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Dimensions,
-  TouchableOpacity, NativeSyntheticEvent, NativeScrollEvent, Platform,
+  View, Text, ScrollView, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -215,14 +215,13 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
         scrollEventThrottle={16}
       >
         {cards.map((card, i) => (
-          <TouchableOpacity
+          <AnimatedPressable
             key={card.id}
-            activeOpacity={0.88}
             onPress={() => onNavigate(card.tab)}
             style={i < cards.length - 1 ? s.cardGap : undefined}
           >
             <CardView card={card} ringColor={ringColor} />
-          </TouchableOpacity>
+          </AnimatedPressable>
         ))}
       </ScrollView>
 
@@ -315,7 +314,7 @@ const s = StyleSheet.create({
     borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
-  tagTxt:     { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.64, textTransform: 'uppercase' },
+  tagTxt:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.64, textTransform: 'uppercase' },
   iconCircle: {
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.24)',

@@ -162,10 +162,10 @@ export function CycleOrbitWidget({ currentDay, sessions, dayLabel, activePlan, c
 const s = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'center' },
   overlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  lbl:      { fontSize: 9,  fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.72, textTransform: 'uppercase', marginBottom: 4 },
+  lbl:      { fontSize: 11,  fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.72, textTransform: 'uppercase', marginBottom: 4 },
   // Fixed-width chord that fits inside the inner ring (ri=68 → diameter 136).
   // Gives adjustsFontSizeToFit something concrete to shrink against.
   nameWrap: { width: 124, alignItems: 'center', justifyContent: 'center' },
   name:     { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, textAlign: 'center' },
-  pct:      { fontSize: 10, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary, marginTop: 4 },
+  pct:      { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary, marginTop: 4 },
 });

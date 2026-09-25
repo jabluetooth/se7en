@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
-  KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator,
-  Alert,
+  View, Text, TextInput, StyleSheet, Image, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ type Tab = 'login' | 'signup';
 
 export function AuthScreen() {
   const { signIn, signUp, resetPassword, loading, error, clearError } = useAuthStore();
+  const { toast } = useFeedback();
   const [tab,         setTab        ] = useState<Tab>('login');
   const [name,        setName       ] = useState('');
   const [email,       setEmail      ] = useState('');
@@ -64,7 +65,7 @@ export function AuthScreen() {
     setFieldErrors(prev => ({ ...prev, email: undefined }));
     try {
       await resetPassword(email.trim().toLowerCase());
-      Alert.alert('Check your inbox', 'A password reset link has been sent.');
+      toast.success('A password reset link is on its way.', { title: 'Check your inbox' });
     } catch {}
   };
 
@@ -93,11 +94,10 @@ export function AuthScreen() {
             {/* Tab switcher */}
             <View style={s.tabs}>
               {(['login', 'signup'] as Tab[]).map(t => (
-                <TouchableOpacity
+                <AnimatedPressable
                   key={t}
                   onPress={() => switchTab(t)}
                   style={[s.tab, tab === t && s.tabActive]}
-                  activeOpacity={0.8}
                   accessibilityRole="tab"
                   accessibilityLabel={t === 'login' ? 'Sign In' : 'Create Account'}
                   accessibilityState={{ selected: tab === t }}
@@ -105,7 +105,7 @@ export function AuthScreen() {
                   <Text style={[s.tabTxt, tab === t && s.tabTxtActive]}>
                     {t === 'login' ? 'Sign In' : 'Create Account'}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </View>
 
@@ -159,14 +159,14 @@ export function AuthScreen() {
                 onSubmitEditing={tab === 'login' ? handleLogin : () => confirmRef.current?.focus()}
                 error={fieldErrors.password}
                 rightEl={
-                  <TouchableOpacity
+                  <AnimatedPressable
                     onPress={() => setShowPass(p => !p)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     accessibilityRole="button"
                     accessibilityLabel={showPass ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textMuted} />
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 }
               />
 
@@ -184,30 +184,29 @@ export function AuthScreen() {
                   onSubmitEditing={handleSignUp}
                   error={fieldErrors.confirm}
                   rightEl={
-                    <TouchableOpacity
+                    <AnimatedPressable
                       onPress={() => setShowConfirm(p => !p)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       accessibilityRole="button"
                       accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
                     >
                       <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={18} color={COLORS.textMuted} />
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   }
                 />
               )}
 
               {/* Forgot password (login only) */}
               {tab === 'login' && (
-                <TouchableOpacity onPress={handleForgotPassword} style={s.forgotBtn} activeOpacity={0.7}>
+                <AnimatedPressable onPress={handleForgotPassword} style={s.forgotBtn}>
                   <Text style={s.forgotTxt}>Forgot password?</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               )}
 
               {/* Primary CTA */}
-              <TouchableOpacity
+              <AnimatedPressable
                 style={s.ctaWrap}
                 onPress={tab === 'login' ? handleLogin : handleSignUp}
-                activeOpacity={0.85}
                 disabled={loading}
                 accessibilityRole="button"
                 accessibilityLabel={tab === 'login' ? 'Sign In' : 'Create Account'}
@@ -227,7 +226,7 @@ export function AuthScreen() {
                     </Text>
                   )}
                 </LinearGradient>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </GlassView>
 
             {/* Footer */}

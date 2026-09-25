@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
@@ -47,15 +48,14 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
       <View style={s.headerRow}>
         <Text style={s.title}>How did that feel?</Text>
         {onSkip && (
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={onSkip}
-            activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
             accessibilityLabel="Skip RPE rating"
           >
             <Text style={s.skip}>Skip</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         )}
       </View>
 
@@ -68,17 +68,16 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
               const color    = rpeColor(n);
               const isActive = selected === n;
               return (
-                <TouchableOpacity
+                <AnimatedPressable
                   key={n}
                   onPress={() => { setSelected(n); Haptics.selectionAsync().catch(() => {}); }}
-                  activeOpacity={0.75}
                   style={[s.cell, isActive && { backgroundColor: color + '22', borderColor: color }]}
                   accessibilityRole="radio"
                   accessibilityLabel={`RPE ${n} — ${RPE_LABELS[n]}`}
                   accessibilityState={{ selected: isActive }}
                 >
                   <Text style={[s.cellNum, { color: isActive ? color : COLORS.textMuted }]}>{n}</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               );
             })}
           </View>
@@ -105,9 +104,9 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
       />
 
       {/* Save button */}
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={handleSave}
-        activeOpacity={selected !== null ? 0.85 : 1}
+        scale={selected !== null ? 'normal' : 1}
         style={[s.saveWrap, selected === null && s.saveDisabled]}
         disabled={selected === null}
         accessibilityRole="button"
@@ -117,7 +116,7 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
         <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.saveBtn}>
           <Text style={s.saveTxt}>Log RPE</Text>
         </LinearGradient>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }

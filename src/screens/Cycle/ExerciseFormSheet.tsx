@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Modal, KeyboardAvoidingView, Platform, PanResponder,
+  View, Text, TextInput, ScrollView, StyleSheet, Modal, KeyboardAvoidingView, Platform, PanResponder,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppBackground } from '../../components/ui/AppBackground';
@@ -13,6 +13,7 @@ import {
 import { Exercise, SetType, WeightUnit } from '../../types';
 import { EXERCISE_LIBRARY } from '../../data/exercises';
 import { ExerciseLibraryItem } from '../../types';
+import { FeedbackHost } from '../../components/feedback/Feedback';
 
 // ─── Keyword → muscle group mapping ──────────────────────────────────────────
 
@@ -61,29 +62,27 @@ function Stepper({
         if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(min, value - 1));
       }}
     >
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => onChange(Math.max(min, value - 1))}
         style={st.btn}
-        activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel="Decrease"
         disabled={value <= min}
       >
         <Ionicons name="remove" size={20} color={value <= min ? COLORS.textLabel : COLORS.textSecondary} />
-      </TouchableOpacity>
+      </AnimatedPressable>
       <View style={st.val}>
         <Text style={st.num}>{value}</Text>
       </View>
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => onChange(Math.min(max, value + 1))}
         style={st.btn}
-        activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel="Increase"
         disabled={value >= max}
       >
         <Ionicons name="add" size={20} color={value >= max ? COLORS.textLabel : COLORS.textSecondary} />
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -120,7 +119,7 @@ function Suggestions({
         {query.trim().length >= 2 ? 'Matching' : `Suggested for "${dayLabel}"`}
       </Text>
       {items.map(item => (
-        <TouchableOpacity key={item.id} style={sg.row} onPress={() => onSelect(item)} activeOpacity={0.75}>
+        <AnimatedPressable key={item.id} style={sg.row} onPress={() => onSelect(item)}>
           <View style={sg.left}>
             <Text style={sg.name}>{item.name}</Text>
             <Text style={sg.meta}>
@@ -133,7 +132,7 @@ function Suggestions({
               {item.muscleGroup}
             </Text>
           </View>
-        </TouchableOpacity>
+        </AnimatedPressable>
       ))}
     </View>
   );
@@ -141,13 +140,13 @@ function Suggestions({
 
 const sg = StyleSheet.create({
   wrap:     { marginTop: 10, marginBottom: 6 },
-  label:    { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  label:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)', backgroundColor: 'rgba(255,240,220,0.04)', marginBottom: 6 },
   left:     { flex: 1 },
   name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
   meta:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
   badge:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  badgeTxt: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  badgeTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
 });
 
 // ─── Form ──────────────────────────────────────────────────────────────────────
@@ -251,7 +250,7 @@ const sl = StyleSheet.create({
   tickWrap: { alignItems: 'center', gap: 3 },
   tick:     { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(255,240,220,0.18)' },
   tickActive:   { backgroundColor: COLORS.accent },
-  tickLbl:      { fontSize: 9, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
+  tickLbl:      { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
   tickLblActive:{ fontFamily: FONTS.headline, color: COLORS.accent, fontWeight: '700' },
 });
 
@@ -355,9 +354,9 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 
           {/* Header */}
           <View style={f.header}>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={f.headerSide} accessibilityRole="button" accessibilityLabel="Cancel">
+            <AnimatedPressable onPress={onClose} style={f.headerSide} accessibilityRole="button" accessibilityLabel="Cancel">
               <Text style={f.cancel}>Cancel</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
             <TextInput
               style={f.titleInput}
               value={name}
@@ -369,17 +368,16 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               autoFocus={!isEdit}
               textAlign="center"
             />
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={handleSave}
               disabled={!canSave}
-              activeOpacity={0.8}
               style={[f.headerSide, f.headerRight, !canSave && { opacity: 0.35 }]}
               accessibilityRole="button"
               accessibilityLabel="Save"
               accessibilityState={{ disabled: !canSave }}
             >
               <Text style={f.save}>Save</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -435,10 +433,9 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               </View>
 
               {/* ── Advanced toggle ── */}
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => setAdvanced(a => !a)}
                 style={f.advancedToggle}
-                activeOpacity={0.75}
               >
                 <Text style={f.advancedLabel}>Advanced</Text>
                 <View style={f.advancedRight}>
@@ -447,7 +444,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                   )}
                   <Ionicons name={advanced ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textMuted} />
                 </View>
-              </TouchableOpacity>
+              </AnimatedPressable>
 
               {advanced && (
                 <>
@@ -455,16 +452,15 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                   <Text style={[f.fieldLabel, { marginTop: 20 }]}>Set Type</Text>
                   <View style={f.chipGrid}>
                     {SET_TYPES.map(st => (
-                      <TouchableOpacity
+                      <AnimatedPressable
                         key={st}
                         onPress={() => setSetType(st)}
                         style={[f.chip, setType === st && f.chipActive]}
-                        activeOpacity={0.8}
                       >
                         <Text style={[f.chipTxt, setType === st && f.chipTxtActive]}>
                           {SET_TYPE_LABELS[st]}
                         </Text>
-                      </TouchableOpacity>
+                      </AnimatedPressable>
                     ))}
                   </View>
 
@@ -489,14 +485,13 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                       <Text style={f.fieldLabel}>Unit</Text>
                       <View style={f.unitCol}>
                         {WEIGHT_UNITS.map(u => (
-                          <TouchableOpacity
+                          <AnimatedPressable
                             key={u}
                             onPress={() => setWeightUnit(u)}
                             style={[f.unitBtn, weightUnit === u && f.unitBtnActive]}
-                            activeOpacity={0.8}
                           >
                             <Text style={[f.unitTxt, weightUnit === u && f.unitTxtActive]}>{u}</Text>
-                          </TouchableOpacity>
+                          </AnimatedPressable>
                         ))}
                       </View>
                     </View>
@@ -509,10 +504,9 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                       const active = tags.includes(tag);
                       const color  = MUSCLE_TAG_COLOR[tag] ?? COLORS.accent;
                       return (
-                        <TouchableOpacity
+                        <AnimatedPressable
                           key={tag}
                           onPress={() => toggleTag(tag)}
-                          activeOpacity={0.8}
                           style={[
                             f.chip,
                             active
@@ -522,7 +516,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                         >
                           {active && <Ionicons name="checkmark-circle" size={12} color={color} style={{ marginRight: 3 }} />}
                           <Text style={[f.chipTxt, active && { color }]}>{tag}</Text>
-                        </TouchableOpacity>
+                        </AnimatedPressable>
                       );
                     })}
                   </View>
@@ -546,6 +540,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
+        <FeedbackHost />
       </View>
     </Modal>
   );
@@ -563,7 +558,7 @@ const f = StyleSheet.create({
   save:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:     { paddingHorizontal: 20, paddingTop: 4 },
-  fieldLabel: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
 
   // Vertically stacked sections (sets, min reps, max reps)
   stackSection: { marginTop: 24 },

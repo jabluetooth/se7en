@@ -125,7 +125,7 @@ const s = StyleSheet.create({
     gap: 3,
   },
   activeNum: { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.80 },
-  activeSub: { fontSize: 8,  fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(0,0,0,0.55)', letterSpacing: 0.64, textTransform: 'uppercase' },
+  activeSub: { fontSize: 11,  fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(0,0,0,0.55)', letterSpacing: 0.64, textTransform: 'uppercase' },
 
   item: {
     width: ITEM_W, height: ITEM_H,
@@ -147,6 +147,6 @@ const s = StyleSheet.create({
   },
   num:     { fontSize: 18, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.textMuted },
   numPast: { color: COLORS.accent },
-  sub:     { fontSize: 8, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase' },
+  sub:     { fontSize: 11, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase' },
   subPast: { color: 'rgba(255,140,0,0.70)' },
 });

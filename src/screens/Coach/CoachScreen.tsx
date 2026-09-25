@@ -2,10 +2,9 @@ import React, {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 import {
-  Animated, FlatList, KeyboardAvoidingView, Platform,
-  StyleSheet, Text, TextInput, TouchableOpacity,
-  View, ScrollView,
+  Animated, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View, ScrollView,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { AppBackground } from '../../components/ui/AppBackground';
@@ -298,16 +297,15 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 
         {/* ── Header ── */}
         <View style={s.header}>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={onClose}
             style={s.backBtn}
-            activeOpacity={0.7}
             hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
             accessibilityRole="button"
             accessibilityLabel="Close coach chat"
           >
             <BackSvg />
-          </TouchableOpacity>
+          </AnimatedPressable>
 
           <View style={s.headerCenter}>
             <BoltAvatar size={30} glow={loading} />
@@ -354,15 +352,14 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
               keyboardShouldPersistTaps="handled"
             >
               {QUICK_CHIPS.map(chip => (
-                <TouchableOpacity
+                <AnimatedPressable
                   key={chip}
                   onPress={() => send(chip)}
-                  activeOpacity={0.75}
                   style={s.chip}
                   disabled={loading}
                 >
                   <Text style={[s.chipTxt, loading && s.chipTxtDisabled]}>{chip}</Text>
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </ScrollView>
           )}
@@ -398,9 +395,9 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
               onBlur={() => setInputFocused(false)}
               accessibilityLabel="Message to coach"
             />
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={() => send(input)}
-              activeOpacity={input.trim() ? 0.85 : 1}
+              scale={input.trim() ? 'normal' : 1}
               disabled={!input.trim() || loading}
               style={s.sendWrap}
               accessibilityRole="button"
@@ -416,7 +413,7 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
                   <SendSvg active={false} />
                 </View>
               )}
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -436,7 +433,7 @@ const s = StyleSheet.create({
   backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
   titleText:    { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.64 },
-  subtitleText: { fontSize: 10, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+  subtitleText: { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
 
   // Message list
   listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },

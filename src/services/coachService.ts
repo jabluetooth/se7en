@@ -19,7 +19,7 @@ import { useSessionStore }  from '../stores/sessionStore';
 import { usePlanStore }     from '../stores/planStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { getRpeTrends, searchRelevantNotes, getRecentNotes } from './embeddingService';
-import { computeDayPosition } from '../utils/cycleUtils';
+import { computeDayPosition, localDateStr, localDateOf } from '../utils/cycleUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -161,13 +161,15 @@ async function buildStructuredContext(uid: string): Promise<string> {
   const dates = [...new Set(
     [...completed]
       .sort((a, b) => (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''))
-      .map(s => s.finishedAt?.slice(0, 10))
+      .map(s => localDateOf(s.finishedAt))
       .filter(Boolean) as string[],
   )];
   let streak = 0;
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = localDateStr(now);
   for (let i = 0; i < dates.length; i++) {
-    const expected = new Date(now.getTime() - i * 86_400_000).toISOString().slice(0, 10);
+    const day = new Date(now);
+    day.setDate(now.getDate() - i);   // calendar-day steps, safe across DST
+    const expected = localDateStr(day);
     if (dates[i] === expected || (i === 0 && dates[0] === todayStr)) {
       streak++;
     } else {

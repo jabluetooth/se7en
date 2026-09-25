@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { GlassView } from '../common/GlassView';
 import { ProgressRing } from '../common/ProgressRing';
 import { SetTypeBadge } from '../common/SetTypeBadge';
@@ -71,10 +72,9 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                    'rgba(255,255,255,0.10)'
       }
     >
-      <TouchableOpacity
+      <AnimatedPressable
         style={s.header}
         onPress={() => setExpanded(p => !p)}
-        activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={`${exercise.exerciseName}, ${done} of ${total} sets complete`}
         accessibilityState={{ expanded }}
@@ -116,7 +116,7 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
         <View style={[s.chevron, expanded && s.chevronUp]}>
           <Text style={s.chevronText}>{'>'}</Text>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
 
       {expanded && (
         <View style={s.sets}>
@@ -134,25 +134,23 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
           {/* Add / Remove set controls — always visible when expanded */}
           <View style={s.setControls}>
             {exercise.sets.length > 1 && !exercise.sets[exercise.sets.length - 1]?.isCompleted && (
-              <TouchableOpacity
+              <AnimatedPressable
                 style={s.removeSetBtn}
                 onPress={() => removeLastSet(exercise.id)}
-                activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityLabel="Remove last set"
               >
                 <Text style={s.removeSetTxt}>− Remove Set</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             )}
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.addSetBtn}
               onPress={() => addSet(exercise.id)}
-              activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Add set"
             >
               <Text style={s.addSetTxt}>+ Add Set</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
           {/* RPE capture — shown once all sets are done */}
@@ -169,9 +167,9 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                   {exercise.exerciseNote ? (
                     <Text style={s.rpeSavedNote} numberOfLines={2}>{exercise.exerciseNote}</Text>
                   ) : null}
-                  <TouchableOpacity onPress={() => setEditingRpe(true)} activeOpacity={0.7} style={s.rpeEditBtn}>
+                  <AnimatedPressable onPress={() => setEditingRpe(true)} style={s.rpeEditBtn}>
                     <Text style={s.rpeEditTxt}>Edit</Text>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 </View>
               );
             }
@@ -210,9 +208,9 @@ const s = StyleSheet.create({
   metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   meta:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   musclePill:    { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  musclePillText:{ fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  musclePillText:{ fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   rpePill:       { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  rpePillText:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.display },
+  rpePillText:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display },
   chevron:       { transform: [{ rotate: '90deg' }] },
   chevronUp:     { transform: [{ rotate: '270deg' }] },
   chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline },

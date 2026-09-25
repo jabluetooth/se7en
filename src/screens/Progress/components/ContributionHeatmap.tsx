@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
+import { localDateStr, localDateOf } from '../../../utils/cycleUtils';
 
 const HM_WEEKS    = 8;
 const HM_SHIFT_BY = 4;   // shift the window by 4 weeks per ‹ / › tap
@@ -52,8 +53,7 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
     const m = new Map<string, number>();
     for (const s of sessions) {
       if (s.status !== 'completed' || !s.finishedAt) continue;
-      const d = new Date(s.finishedAt); d.setHours(0, 0, 0, 0);
-      const key = d.toISOString().slice(0, 10);
+      const key = localDateOf(s.finishedAt)!;
       m.set(key, (m.get(key) ?? 0) + 1);
     }
     return m;
@@ -141,7 +141,7 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
           {days.map((week, wi) => (
             <View key={wi} style={s.weekCol}>
               {week.map((day, di) => {
-                const key = day.toISOString().slice(0, 10);
+                const key = localDateStr(day);
                 const c = counts.get(key) ?? 0;
                 const isFuture = day > today;
                 return (
@@ -189,6 +189,6 @@ const s = StyleSheet.create({
   weekCol:    { gap: HM_GAP },
   cell:       { width: HM_CELL, height: HM_CELL, borderRadius: 5 },
   legendRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12, justifyContent: 'flex-end' },
-  legendTxt:  { fontSize: 9, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
+  legendTxt:  { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
   legendCell: { width: 12, height: 12, borderRadius: 3 },
 });

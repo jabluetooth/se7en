@@ -10,6 +10,18 @@ export function localDateStr(d: Date): string {
 }
 
 /**
+ * The user's local calendar date (YYYY-MM-DD) of a stored ISO timestamp.
+ * Timestamps are saved in UTC (`toISOString()`), so slicing the first 10
+ * characters gives the UTC date — in UTC+8 a workout finished at 7am local
+ * would land on the previous day. Always go through this instead.
+ */
+export function localDateOf(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : localDateStr(d);
+}
+
+/**
  * Today's 1-based slot index in the active plan cycle.
  * Pass `cycleLen` (activePlan.days.length) so non-7-day plans work correctly.
  */

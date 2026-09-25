@@ -205,7 +205,7 @@ const s = StyleSheet.create({
   meta:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   prBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: COLORS.accent },
-  prTxt:   { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 0.64, textTransform: 'uppercase' },
+  prTxt:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 0.64, textTransform: 'uppercase' },
 
   // Circular +/- trend indicator near the sparkline
   trendDot:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
@@ -215,7 +215,7 @@ const s = StyleSheet.create({
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip:     { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', flexDirection: 'column', gap: 1 },
-  chipLbl:  { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.64, textTransform: 'uppercase' },
+  chipLbl:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.64, textTransform: 'uppercase' },
   chipVal:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
 
   // Regression banner — appears only when a sustained decline exists
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   expanded: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
 
   logHead:  { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.07)' },
-  logCol:   { fontSize: 9, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.72 },
+  logCol:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.72 },
   logRight: { textAlign: 'right' },
   logRow:   { flexDirection: 'row', paddingVertical: 6 },
   logCell:  { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },

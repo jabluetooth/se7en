@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
@@ -260,25 +261,23 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
           </Text>
         </View>
         <View style={s.navRow}>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={() => navMonth(-1)}
             hitSlop={{top:10,bottom:10,left:10,right:6}}
-            activeOpacity={0.5}
             accessibilityRole="button"
             accessibilityLabel="Previous month"
           >
             <Text style={s.navArrow}>‹</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
           <Text style={s.navLabel}>{MONTH_FULL[month].slice(0,3).toUpperCase()} {year}</Text>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={() => navMonth(1)}
             hitSlop={{top:10,bottom:10,left:6,right:10}}
-            activeOpacity={0.5}
             accessibilityRole="button"
             accessibilityLabel="Next month"
           >
             <Text style={s.navArrow}>›</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
       </View>
 
@@ -398,10 +397,9 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                               : 'no session';
 
                             return (
-                              <TouchableOpacity
+                              <AnimatedPressable
                                 key={di}
                                 onPress={() => onPress(day)}
-                                activeOpacity={0.75}
                                 style={[s.cell, bgStyle, todayD && s.cellToday, active && s.cellActive]}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${cellDateLabel}, ${cellStatusLabel}`}
@@ -421,7 +419,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                 ]}>
                                   {day}
                                 </Text>
-                              </TouchableOpacity>
+                              </AnimatedPressable>
                             );
                           })}
                         </View>
@@ -616,11 +614,11 @@ const s = StyleSheet.create({
   enclosure: { borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 16, padding: 12, marginBottom: 10 },
 
   dayNameRow: { flexDirection: 'row', marginBottom: 4 },
-  dayName:    { flex: 1, textAlign: 'center', fontSize: 9, fontWeight: '700', fontFamily: FONTS.headline, color: 'rgba(255,240,220,0.22)' },
+  dayName:    { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: 'rgba(255,240,220,0.22)' },
 
   activeCycleRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
   activeCycleBanner: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  activeCycleName:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase', textAlign: 'center' },
+  activeCycleName:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase', textAlign: 'center' },
 
   grid:          { gap: GAP },
   weekWrap:      {},
@@ -645,7 +643,7 @@ const s = StyleSheet.create({
   card:        { marginTop: 10 },
   cardBody:    { padding: 14, gap: 5 },
   cardTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  cardDateTxt: { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0.80, textTransform: 'uppercase' },
+  cardDateTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0.80, textTransform: 'uppercase' },
   cardPill:    { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
   cardPillTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   cardVolRow:  { flexDirection: 'row', alignItems: 'baseline' },
@@ -665,6 +663,6 @@ const s = StyleSheet.create({
   legendWorkout:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendCell:     { width: 16, height: 16, borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   legendFill:     { width: '100%' },
-  legendWorkoutTxt:{ fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, maxWidth: 70 },
-  legendNote:     { fontSize: 9, fontFamily: FONTS.body, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
+  legendWorkoutTxt:{ fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, maxWidth: 70 },
+  legendNote:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
 });

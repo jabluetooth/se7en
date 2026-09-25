@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  Animated, PanResponder, LayoutAnimation, Platform,
+  View, Text, StyleSheet, Animated, PanResponder, LayoutAnimation, Platform,
 } from 'react-native';
+import { AnimatedPressable } from '../../../motion/AnimatedPressable';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../../constants';
 import { Exercise } from '../../../types';
@@ -19,7 +19,7 @@ const er = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   setInfo: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textSecondary },
   tag:     { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 });
 
@@ -187,24 +187,22 @@ export function ExerciseDragSort({
                   ))}
                 </View>
               </View>
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => onEdit(ex)}
                 style={er.iconBtn}
-                activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`Edit ${ex.name}`}
               >
                 <Ionicons name="pencil-outline" size={16} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity
+              </AnimatedPressable>
+              <AnimatedPressable
                 onPress={() => onDelete(ex)}
                 style={er.iconBtn}
-                activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`Delete ${ex.name}`}
               >
                 <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
             {showBelow && <View style={ed.line} />}
           </View>

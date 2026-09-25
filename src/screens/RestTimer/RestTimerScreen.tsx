@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, AppState, AppStateStatus, Animated } from 'react-native';
+import { View, Text, StyleSheet, AppState, AppStateStatus, Animated } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
@@ -271,39 +272,37 @@ export function RestTimerScreen({
 
           {/* Adjust */}
           <View style={s.adjust}>
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={() => { setSeconds(s => Math.max(5, s - 15)); setTotal(t => Math.max(5, t - 15)); }}
               style={s.adjustBtn}
               accessibilityRole="button"
               accessibilityLabel="Subtract 15 seconds"
-            ><Text style={s.adjustText}>-15</Text></TouchableOpacity>
+            ><Text style={s.adjustText}>-15</Text></AnimatedPressable>
             <Text style={s.adjustLabel}>adjust</Text>
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={() => { setSeconds(s => s + 15); setTotal(t => t + 15); }}
               style={s.adjustBtn}
               accessibilityRole="button"
               accessibilityLabel="Add 15 seconds"
-            ><Text style={s.adjustText}>+15</Text></TouchableOpacity>
+            ><Text style={s.adjustText}>+15</Text></AnimatedPressable>
           </View>
         </View>
 
         {/* ── Bottom controls ─────────────────────────────── */}
         <View style={s.controls}>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={skip}
             style={s.skipBtn}
-            activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel="Skip rest"
           >
             <GlassView radius={14} style={s.skipInner}>
               <Text style={s.skipText}>Skip</Text>
             </GlassView>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </AnimatedPressable>
+          <AnimatedPressable
             onPress={toggle}
             style={s.mainBtn}
-            activeOpacity={0.9}
             accessibilityRole="button"
             accessibilityLabel={done ? 'Back to Session' : running ? 'Pause rest timer' : 'Resume rest timer'}
           >
@@ -314,7 +313,7 @@ export function RestTimerScreen({
               : <GlassView opacity="high" radius={14} style={s.mainGlass}>
                   <Text style={s.pauseText}>Pause</Text>
                 </GlassView>}
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
 
       </SafeAreaView>
@@ -330,7 +329,7 @@ const s = StyleSheet.create({
 
   summaryCard:      { marginHorizontal: 20, marginBottom: 4, paddingVertical: 14, flexDirection: 'row', alignItems: 'center' },
   summaryItem:      { flex: 1, alignItems: 'center', gap: 3 },
-  summaryLbl:       { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80 },
+  summaryLbl:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80 },
   summaryVal:       { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
   summaryValAccent: { color: COLORS.accent },
   summarySub:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },

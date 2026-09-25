@@ -1,14 +1,16 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, Modal, Alert,
+  View, Text, ScrollView, StyleSheet, Modal,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { PlanPreset } from '../../types';
+import { FeedbackHost } from '../../components/feedback/Feedback';
 
 // ─── Split preview data ───────────────────────────────────────────────────────
 
@@ -131,9 +133,8 @@ function SplitCard({ split, active, onSelect }: {
   onSelect: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       onPress={onSelect}
-      activeOpacity={0.85}
       style={c.cardWrap}
       accessibilityRole="button"
       accessibilityLabel={`${split.type} split, ${split.frequency}`}
@@ -172,7 +173,7 @@ function SplitCard({ split, active, onSelect }: {
 
         <Text style={c.desc}>{split.description}</Text>
       </GlassView>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -188,7 +189,7 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
   const savedDate   = new Date(preset.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
-    <TouchableOpacity onPress={onSelect} activeOpacity={0.85} style={c.cardWrap}>
+    <AnimatedPressable onPress={onSelect} style={c.cardWrap}>
       <GlassView
         radius={18}
         style={[c.card, active && c.cardActive]}
@@ -212,16 +213,15 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
                 <Ionicons name="checkmark" size={14} color="#000" />
               </View>
             )}
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={onDelete}
               hitSlop={8}
               style={c.deleteBtn}
-              activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={`Delete preset ${preset.name}`}
             >
               <Ionicons name="trash-outline" size={16} color={COLORS.danger ?? '#FF6B6B'} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
         </View>
 
@@ -248,7 +248,7 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
         </Text>
         <Text style={c.presetSaved}>Saved {savedDate}</Text>
       </GlassView>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -265,15 +265,15 @@ interface Props {
 }
 
 export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSelectPreset, onDeletePreset, onClose }: Props) {
-  const handleDeletePreset = (preset: PlanPreset) => {
-    Alert.alert(
-      `Delete "${preset.name}"?`,
-      'This removes the preset permanently. Your active plan is not affected.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => onDeletePreset?.(preset.id) },
-      ],
-    );
+  const { confirm } = useFeedback();
+  const handleDeletePreset = async (preset: PlanPreset) => {
+    const ok = await confirm({
+      title: `Delete ${preset.name}?`,
+      message: 'The preset is removed. Your active plan is not affected.',
+      confirmLabel: 'Delete preset',
+      destructive: true,
+    });
+    if (ok) onDeletePreset?.(preset.id);
   };
 
   return (
@@ -291,9 +291,9 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
           <View style={c.handle} />
 
           <View style={c.header}>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+            <AnimatedPressable onPress={onClose}>
               <Text style={c.cancel}>Cancel</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
             <Text style={c.title}>Split Type</Text>
             <View style={{ width: 60 }} />
           </View>
@@ -331,6 +331,7 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
             <View style={{ height: 40 }} />
           </ScrollView>
         </SafeAreaView>
+        <FeedbackHost />
       </View>
     </Modal>
   );
@@ -345,7 +346,7 @@ const c = StyleSheet.create({
   title:       { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51 },
   subtitle:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
 
-  sectionLabel: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
 
   scroll:      { paddingHorizontal: 16 },
 
@@ -362,17 +363,17 @@ const c = StyleSheet.create({
   // Preset-specific
   presetNameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   presetBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(255,140,0,0.20)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)' },
-  presetBadgeTxt: { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.64, textTransform: 'uppercase' },
+  presetBadgeTxt: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.64, textTransform: 'uppercase' },
   presetActions:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteBtn:      { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.12)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)' },
-  presetSaved:    { fontSize: 10, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },
+  presetSaved:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },
 
   grid:        { flexDirection: 'row', gap: 4, marginBottom: 14 },
   gridCol:     { flex: 1, alignItems: 'center', gap: 5 },
-  dayLetter:   { fontSize: 10, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  dayLetter:   { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
   dayBlock:    { width: '100%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   dayDot:      { width: 6, height: 6, borderRadius: 3 },
-  dayLabel:    { fontSize: 8, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, textAlign: 'center' },
+  dayLabel:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, textAlign: 'center' },
   dayLabelRest:{ color: COLORS.textLabel },
 
   desc:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18 },

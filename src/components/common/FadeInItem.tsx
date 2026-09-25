@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleProp, ViewStyle } from 'react-native';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { MOTION } from '../../constants/motion';
+import React from 'react';
+import { StyleProp, ViewStyle } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
+import { MAX_STAGGER_ITEMS, SPRING, STAGGER_MS } from '../../motion/tokens';
 
 interface Props {
   /** Position in the list — drives the stagger delay. Capped internally so
@@ -11,41 +11,22 @@ interface Props {
   style?:    StyleProp<ViewStyle>;
 }
 
-const MAX_STAGGER_INDEX = 8;
-
-// Tasteful fade + rise entrance for list items (Cycle days, Progress cards,
-// Coach messages, …) — mounts once per item (keyed by the caller's `key`
-// prop) so reordering an already-mounted item does NOT retrigger the
-// animation, only genuinely new items entering the list. Honors reduced-motion.
+// Fade + rise + slight spring entrance for list items (Cycle days, Progress
+// cards, Coach messages, …). Runs on the UI thread via a Reanimated layout
+// animation, once per mount (keyed by the caller's `key`), so reordering an
+// already-mounted item does not replay it; only genuinely new items animate.
+// Skipped entirely when the OS "Reduce Motion" setting is on.
 export function FadeInItem({ index = 0, children, style }: Props) {
-  const reducedMotion = useReducedMotion();
-  const opacity        = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
-  const translateY      = useRef(new Animated.Value(reducedMotion ? 0 : 10)).current;
-
-  useEffect(() => {
-    if (reducedMotion) {
-      opacity.setValue(1);
-      translateY.setValue(0);
-      return;
-    }
-    const delay = Math.min(index, MAX_STAGGER_INDEX) * MOTION.stagger;
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1, duration: MOTION.standard.duration, delay,
-        easing: MOTION.standard.easing, useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0, duration: MOTION.standard.duration, delay,
-        easing: MOTION.standard.easing, useNativeDriver: true,
-      }),
-    ]).start();
-    // Intentionally runs once per mount (+ once more if reduced-motion toggles
-    // mid-flight) — not on every `index` change from a reorder.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion]);
+  const entering = FadeInDown
+    .delay(Math.min(index, MAX_STAGGER_ITEMS) * STAGGER_MS)
+    .springify()
+    .damping(SPRING.gentle.damping)
+    .stiffness(SPRING.gentle.stiffness)
+    .withInitialValues({ opacity: 0, transform: [{ translateY: 14 }] })
+    .reduceMotion(ReduceMotion.System);
 
   return (
-    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+    <Animated.View entering={entering} style={style}>
       {children}
     </Animated.View>
   );

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Modal, Alert, Animated, PanResponder,
-  LayoutAnimation, UIManager, Platform,
+  View, Text, TextInput, ScrollView, StyleSheet, Modal, Animated, PanResponder, LayoutAnimation, UIManager, Platform,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, SPLIT_TYPES, FONTS } from '../../constants';
 import { WorkoutDay, WorkoutPlan } from '../../types';
+import { FeedbackHost } from '../../components/feedback/Feedback';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -207,6 +208,7 @@ const dd = StyleSheet.create({
 export function PlanEditSheet({ visible, plan, onClose }: Props) {
   const { updatePlan, deletePlan } = usePlanStore();
   const { settings, setActivePlan } = useSettingsStore();
+  const { confirm } = useFeedback();
 
   const [name,        setName      ] = useState('');
   const [splitPreset, setSplitPreset] = useState('');
@@ -257,41 +259,29 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
     }
   };
 
-  const handleCustomSplitSelect = () => {
-    Alert.alert(
-      'Use Custom Split?',
-      'This will clear all exercises from every day. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear & Use Custom',
-          style: 'destructive',
-          onPress: () => {
-            setSplitPreset('Custom');
-            setLocalDays(prev => prev.map(d => ({ ...d, exercises: [], isRestDay: false })));
-          },
-        },
-      ],
-    );
+  const handleCustomSplitSelect = async () => {
+    const ok = await confirm({
+      title: 'Start a custom split?',
+      message: 'Every day is emptied so you can build your own. Your workout history stays.',
+      confirmLabel: 'Clear and customise',
+      destructive: true,
+    });
+    if (!ok) return;
+    setSplitPreset('Custom');
+    setLocalDays(prev => prev.map(d => ({ ...d, exercises: [], isRestDay: false })));
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      `Delete "${plan.name}"?`,
-      'All exercises and history linked to this plan will be lost.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Plan',
-          style: 'destructive',
-          onPress: () => {
-            if (settings.activePlanId === plan.id) setActivePlan(null);
-            deletePlan(plan.id);
-            onClose();
-          },
-        },
-      ],
-    );
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete ${plan.name}?`,
+      message: 'The plan, its exercises and the history linked to it are gone for good.',
+      confirmLabel: 'Delete plan',
+      destructive: true,
+    });
+    if (!ok) return;
+    if (settings.activePlanId === plan.id) setActivePlan(null);
+    deletePlan(plan.id);
+    onClose();
   };
 
   return (
@@ -311,18 +301,17 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
 
           {/* Header */}
           <View style={f.header}>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+            <AnimatedPressable onPress={onClose}>
               <Text style={f.cancel}>Cancel</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
             <Text style={f.title}>Plan Settings</Text>
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={handleSave}
               disabled={!name.trim()}
-              activeOpacity={0.8}
               style={!name.trim() ? { opacity: 0.35 } : undefined}
             >
               <Text style={f.save}>Save</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
           <ScrollView
@@ -350,10 +339,9 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
               {SPLIT_TYPES.map(sp => {
                 const active = splitPreset === sp;
                 return (
-                  <TouchableOpacity
+                  <AnimatedPressable
                     key={sp}
                     onPress={() => sp === 'Custom' ? handleCustomSplitSelect() : handleSplitPreset(sp)}
-                    activeOpacity={0.8}
                     style={[f.chip, active && f.chipActive]}
                   >
                     {active
@@ -361,7 +349,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
                       : null
                     }
                     <Text style={[f.chipTxt, active && f.chipTxtActive]}>{sp}</Text>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 );
               })}
             </View>
@@ -406,15 +394,16 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
 
             {/* ── Danger zone ── */}
             <View style={f.dangerSection}>
-              <TouchableOpacity onPress={handleDelete} style={f.deleteBtn} activeOpacity={0.8}>
+              <AnimatedPressable onPress={handleDelete} style={f.deleteBtn}>
                 <Ionicons name="trash-outline" size={15} color={COLORS.danger} />
                 <Text style={f.deleteTxt}>Delete Plan</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             <View style={{ height: 40 }} />
           </ScrollView>
         </SafeAreaView>
+        <FeedbackHost />
       </View>
     </Modal>
   );

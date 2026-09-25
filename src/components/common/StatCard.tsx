@@ -21,7 +21,7 @@ export function StatCard({ label, value, unit, delta, accent, style }: Props) {
 }
 
 const s = StyleSheet.create({
-  label:  { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 5 },
+  label:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 5 },
   row:    { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   value:  { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.04, lineHeight: 30 },
   accent: { color: COLORS.accent },

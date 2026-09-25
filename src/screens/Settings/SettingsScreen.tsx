@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
@@ -48,9 +50,9 @@ interface RowProps {
 }
 function Row({ label, sub, right, onPress, danger, last }: RowProps) {
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
+      scale={onPress ? 'normal' : 1}
       disabled={!onPress}
       style={[s.row, !last && s.rowBorder]}
       accessibilityRole={onPress ? 'button' : undefined}
@@ -61,7 +63,7 @@ function Row({ label, sub, right, onPress, danger, last }: RowProps) {
         {sub ? <Text style={s.rowSub}>{sub}</Text> : null}
       </View>
       {right}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -76,17 +78,16 @@ function SegControl<T extends string>({ options, value, onChange }: SegControlPr
       {options.map(opt => {
         const active = value === opt;
         return (
-          <TouchableOpacity
+          <AnimatedPressable
             key={opt}
             onPress={() => onChange(opt)}
             style={[s.segBtn, active && s.segBtnActive]}
-            activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={opt}
             accessibilityState={{ selected: active }}
           >
             <Text style={active ? s.segTextActive : s.segText}>{opt}</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         );
       })}
     </View>
@@ -95,16 +96,15 @@ function SegControl<T extends string>({ options, value, onChange }: SegControlPr
 
 function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       onPress={onToggle}
-      activeOpacity={0.8}
       style={[s.toggle, on && s.toggleOn]}
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
     >
       <View style={[s.toggleThumb, on && s.toggleThumbOn]} />
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -128,19 +128,18 @@ interface Props {
 export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, userName }: Props) {
   const { activePlan }              = usePlanStore();
   const { settings, save, loadError, load: loadSettings } = useSettingsStore();
+  const { toast, confirm } = useFeedback();
   const { clearAllSessions }        = useSessionStore();
   const dockClearance               = useDockClearance();
   const uid                         = useAuthStore(u => u.user?.uid);
 
   const handleClearHistory = () =>
-    Alert.alert(
-      'Clear Session History?',
-      'This permanently deletes all logged workouts. Your plan and settings are kept.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: () => clearAllSessions() },
-      ],
-    );
+    confirm({
+      title: 'Clear all workout history?',
+      message: 'Every logged workout is deleted for good. Your plan and settings stay.',
+      confirmLabel: 'Clear history',
+      destructive: true,
+    }).then(ok => { if (ok) clearAllSessions(); });
 
   return (
     <View style={{ flex: 1 }}>
@@ -234,10 +233,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
                         settings.coachNotificationMinute,
                       );
                       if (!ok) {
-                        Alert.alert(
-                          'Permission needed',
-                          'Allow notifications in your device settings to receive daily coaching tips.',
-                        );
+                        toast.warning('Turn on notifications for Se7en in your device settings to get daily tips.', { title: 'Notifications are off' });
                         await save({ coachNotificationsEnabled: false });
                       }
                     } else {

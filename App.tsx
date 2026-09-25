@@ -20,6 +20,7 @@ import { AuthScreen }       from './src/screens/Auth/AuthScreen';
 import { OnboardingScreen } from './src/screens/Onboarding/OnboardingScreen';
 import { AppNavigator }     from './src/navigation/AppNavigator';
 import { COLORS }           from './src/constants';
+import { FeedbackProvider, FeedbackHost } from './src/components/feedback/Feedback';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -130,8 +131,11 @@ export default function App() {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-          <AuthScreen />
+          <FeedbackProvider>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+            <AuthScreen />
+            <FeedbackHost />
+          </FeedbackProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     );
@@ -176,12 +180,15 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-        {settings.activePlanId === null ? (
-          <OnboardingScreen onComplete={() => {}} />
-        ) : (
-          <AppNavigator />
-        )}
+        <FeedbackProvider>
+          <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+          {settings.activePlanId === null ? (
+            <OnboardingScreen onComplete={() => {}} />
+          ) : (
+            <AppNavigator />
+          )}
+          <FeedbackHost />
+        </FeedbackProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

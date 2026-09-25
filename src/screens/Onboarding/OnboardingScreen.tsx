@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Image,
+  View, Text, TextInput, ScrollView, StyleSheet, Image,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -77,6 +72,7 @@ const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string; desc: string }[]
 
 export function OnboardingScreen({ onComplete }: Props) {
   const { save } = useSettingsStore();
+  const { toast, confirm } = useFeedback();
   const { createPlanFromTemplate, setActivePlan, importPlan } = usePlanStore();
 
   // Step state
@@ -123,7 +119,7 @@ export function OnboardingScreen({ onComplete }: Props) {
       await save({ activePlanId: plan.id });
       onComplete();
     } catch (e) {
-      Alert.alert('Error', 'Failed to create plan. Please try again.');
+      toast.error('Could not create your plan. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -136,7 +132,7 @@ export function OnboardingScreen({ onComplete }: Props) {
 
       const fileInfo = await FileSystem.getInfoAsync(result.assets[0].uri);
       if (fileInfo.exists && 'size' in fileInfo && (fileInfo.size as number) > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Import file must be under 10 MB.');
+        toast.error('That file is over 10 MB. Pick a smaller plan file.', { title: 'File too large' });
         return;
       }
 
@@ -144,7 +140,7 @@ export function OnboardingScreen({ onComplete }: Props) {
       const raw = JSON.parse(content);
       const validation = validateImportJSON(raw);
       if (!validation.valid) {
-        Alert.alert('Import Error', validation.errors.join('\n'));
+        toast.error(validation.errors.join('\n'), { title: 'That plan could not be imported', duration: 6000 });
         return;
       }
       const doImport = async () => {
@@ -154,19 +150,17 @@ export function OnboardingScreen({ onComplete }: Props) {
         onComplete();
       };
       if (validation.warnings.length > 0) {
-        Alert.alert(
-          'Import Warnings',
-          validation.warnings.join('\n') + '\n\nImport anyway?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Import', onPress: doImport },
-          ],
-        );
+        const ok = await confirm({
+          title: 'Import anyway?',
+          message: validation.warnings.join('\n'),
+          confirmLabel: 'Import plan',
+        });
+        if (ok) await doImport();
         return;
       }
       await doImport();
     } catch {
-      Alert.alert('Error', 'Failed to read file. Make sure it is a valid JSON file.');
+      toast.error('Could not read that file. Make sure it is a Se7en plan (.json).');
     }
   };
 
@@ -198,11 +192,11 @@ export function OnboardingScreen({ onComplete }: Props) {
           </View>
 
           <Button label="Get Started" onPress={() => setStep(2)} style={styles.mainCta} />
-          <TouchableOpacity onPress={handleImportJSON} style={styles.importLink}>
+          <AnimatedPressable onPress={handleImportJSON} style={styles.importLink}>
             <Text style={[styles.importLinkText, { color: colors.textMuted }]}>
               Import existing plan →
             </Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
       </SafeAreaView>
     );
@@ -223,7 +217,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Your Goal</Text>
           <View style={styles.cardGrid}>
             {GOAL_OPTIONS.map((opt) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={opt.value}
                 style={[
                   styles.quizCard,
@@ -241,7 +235,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                   {opt.label}
                 </Text>
                 <Text style={[styles.quizCardDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
@@ -249,7 +243,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Experience Level</Text>
           <View style={styles.chipRow}>
             {EXPERIENCE_OPTIONS.map((opt) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={opt.value}
                 style={[
                   styles.chip,
@@ -268,7 +262,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                   {opt.label}
                 </Text>
                 <Text style={[styles.chipDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
@@ -276,7 +270,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Days Per Week</Text>
           <View style={styles.daysRow}>
             {DAYS_OPTIONS.map((d) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={d}
                 style={[
                   styles.dayChip,
@@ -294,7 +288,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                   {d}
                 </Text>
                 <Text style={[styles.dayChipSub, { color: colors.textMuted }]}>days</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
@@ -302,7 +296,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Equipment Available</Text>
           <View style={styles.chipRow}>
             {EQUIPMENT_OPTIONS.map((opt) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={opt.value}
                 style={[
                   styles.chip,
@@ -321,7 +315,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                   {opt.label}
                 </Text>
                 <Text style={[styles.chipDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
@@ -353,9 +347,8 @@ export function OnboardingScreen({ onComplete }: Props) {
 
           {/* Primary recommendation */}
           {primaryTemplate && (
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={() => handleSelectTemplate(primaryTemplate.id)}
-              activeOpacity={0.85}
             >
               <Card
                 style={{ ...styles.primaryCard, borderColor: colors.accent }}
@@ -391,7 +384,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                   style={styles.primaryCta}
                 />
               </Card>
-            </TouchableOpacity>
+            </AnimatedPressable>
           )}
 
           {/* Alternatives */}
@@ -399,10 +392,9 @@ export function OnboardingScreen({ onComplete }: Props) {
             <>
               <Text style={[styles.altTitle, { color: colors.textSecondary }]}>Other Options</Text>
               {altTemplates.map((t) => (
-                <TouchableOpacity
+                <AnimatedPressable
                   key={t.id}
                   onPress={() => handleSelectTemplate(t.id)}
-                  activeOpacity={0.85}
                 >
                   <Card style={{ ...styles.altCard, borderColor: colors.border }}>
                     <View style={styles.altCardInner}>
@@ -415,26 +407,25 @@ export function OnboardingScreen({ onComplete }: Props) {
                       <Text style={[styles.altArrow, { color: colors.accent }]}>→</Text>
                     </View>
                   </Card>
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </>
           )}
 
           {/* Browse all */}
           {!showAllTemplates ? (
-            <TouchableOpacity onPress={() => setShowAllTemplates(true)} style={styles.browseBtn}>
+            <AnimatedPressable onPress={() => setShowAllTemplates(true)} style={styles.browseBtn}>
               <Text style={[styles.browseBtnText, { color: colors.textMuted }]}>
                 Browse all {PLAN_TEMPLATES.length} templates ↓
               </Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           ) : (
             <>
               <Text style={[styles.altTitle, { color: colors.textSecondary }]}>All Templates</Text>
               {PLAN_TEMPLATES.filter((t) => !rankedIds.slice(0, 1).includes(t.id)).map((t) => (
-                <TouchableOpacity
+                <AnimatedPressable
                   key={t.id}
                   onPress={() => handleSelectTemplate(t.id)}
-                  activeOpacity={0.85}
                 >
                   <Card style={{ ...styles.altCard, borderColor: colors.border }}>
                     <View style={styles.altCardInner}>
@@ -447,7 +438,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                       <Text style={[styles.altArrow, { color: colors.accent }]}>→</Text>
                     </View>
                   </Card>
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </>
           )}

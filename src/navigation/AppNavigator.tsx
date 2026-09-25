@@ -15,6 +15,7 @@ import { useSessionStore }          from '../stores/sessionStore';
 import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
 import { WorkoutSession, WorkoutDay } from '../types';
+import { FeedbackHost } from '../components/feedback/Feedback';
 
 // The floating dock is an overlay — it sits ON TOP of screen content so the
 // page background extends edge-to-edge (including behind the dock + home
@@ -212,15 +213,18 @@ function AppShell({
               onDone={onPostWorkoutDone}
             />
           )}
+          <FeedbackHost />
         </View>
       </Modal>
 
       <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
         <RestTimerScreen onClose={() => setShowRestTimer(false)} />
+        <FeedbackHost />
       </Modal>
 
       <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
         <ExerciseBuilderScreen onClose={() => setShowBuilder(false)} />
+        <FeedbackHost />
       </Modal>
 
       <Modal visible={showCoach} animationType="slide" presentationStyle="fullScreen">
@@ -228,6 +232,7 @@ function AppShell({
           onClose={onCloseCoach}
           initialMessage={coachInitialMsg}
         />
+        <FeedbackHost />
       </Modal>
     </View>
   );

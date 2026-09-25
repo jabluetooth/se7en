@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Modal } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +14,7 @@ import { GRAD, COLORS, FONTS } from '../../constants';
 import { WorkoutSession } from '../../types';
 import { sessionTotalVolume } from '../../utils/volume';
 import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
+import { FeedbackHost } from '../../components/feedback/Feedback';
 
 interface Props {
   onFinish: (session: WorkoutSession) => void;
@@ -22,6 +25,7 @@ interface Props {
 export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
+  const { confirm } = useFeedback();
   const insets = useSafeAreaInsets();
   const [isFinishing, setIsFinishing] = useState(false);
   const [restCtx, setRestCtx] = useState<{
@@ -85,17 +89,17 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
     clearActiveSession();
   };
 
-  const handleSkip = () => {
-    Alert.alert(
-      `Skip ${activeSession.dayLabel}?`,
-      doneSets > 0
-        ? `You've logged ${doneSets} set${doneSets === 1 ? '' : 's'} — skipping discards this in-progress session instead of finishing it.`
-        : 'This discards the in-progress session instead of finishing it.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip Day', style: 'destructive', onPress: doSkip },
-      ],
-    );
+  const handleSkip = async () => {
+    const ok = await confirm({
+      title: `Skip ${activeSession.dayLabel}?`,
+      message: doneSets > 0
+        ? `You've logged ${doneSets} set${doneSets === 1 ? '' : 's'}. Skipping throws this session away instead of saving it.`
+        : 'This ends the session without saving it.',
+      confirmLabel: 'Skip day',
+      cancelLabel: 'Keep training',
+      destructive: true,
+    });
+    if (ok) await doSkip();
   };
 
   return (
@@ -120,23 +124,23 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
             onClose={() => setRestCtx(null)}
           />
         )}
+        <FeedbackHost />
       </Modal>
 
       <View style={[s.safe, { paddingTop: insets.top }]}>
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
           {onBack && (
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.backBtn}
               onPress={onBack}
-              activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityRole="button"
               accessibilityLabel="Back to Home"
             >
               <Text style={s.backIcon}>‹</Text>
               <Text style={s.backTxt}>Home</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           )}
           <Text style={s.headerSup}>
             Day {activeSession.dayPosition} · {activePlan?.name ?? ''}
@@ -243,29 +247,27 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
 
           {/* ── Finish / Skip at end of list ───────────── */}
           <View style={s.finishSection}>
-            <TouchableOpacity
+            <AnimatedPressable
               style={[s.finishBtn, isFinishing && { opacity: 0.6 }]}
               onPress={handleFinish}
               disabled={isFinishing}
-              activeOpacity={0.88}
               accessibilityRole="button"
               accessibilityLabel="Finish Workout"
               accessibilityState={{ disabled: isFinishing, busy: isFinishing }}
             >
               <Text style={s.finishTxt}>{isFinishing ? 'Finishing…' : 'Finish Workout'}</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
 
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.skipBtn}
               onPress={handleSkip}
-              activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel="Skip Day"
             >
               <GlassView radius={16} style={s.skipInner}>
                 <Text style={s.skipTxt}>Skip Day</Text>
               </GlassView>
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
           <View style={{ height: 40 }} />
@@ -291,7 +293,7 @@ const s = StyleSheet.create({
   statDivider:   { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: 'rgba(255,240,220,0.14)' },
   statValue:     { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   statValueAccent: { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  statLabel:     { fontSize: 10, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80 },
+  statLabel:     { fontSize: 11, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80 },
   timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
   glowDot:       { width: 7, height: 7, borderRadius: 99, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 4 },
 

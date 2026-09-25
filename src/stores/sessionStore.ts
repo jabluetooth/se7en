@@ -10,6 +10,7 @@ import { generateId } from '../utils/idGen';
 import { sessionTotalVolume } from '../utils/volume';
 import { detectPRs } from '../utils/prDetection';
 import type { Unsubscribe } from 'firebase/firestore';
+import { localDateOf } from '../utils/cycleUtils';
 // Lazy imports to avoid circular dependencies — resolved at call time.
 const getWidgetService = () => import('../services/widgetService').then(m => m.widgetService);
 const getActivePlan    = () => import('./planStore').then(m => m.usePlanStore.getState().activePlan);
@@ -318,7 +319,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         muscleTags:   exercise.muscleTags,
         rpe,
         note,
-        workoutDate:  session.startedAt?.slice(0, 10) ?? null,
+        workoutDate:  localDateOf(session.startedAt),
       }).catch(e => __DEV__ && console.warn('[se7en/embed]', e));
     });
   },

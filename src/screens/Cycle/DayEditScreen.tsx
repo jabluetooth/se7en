@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Switch, Animated, PanResponder,
-  LayoutAnimation, UIManager, Platform,
+  View, Text, TextInput, ScrollView, StyleSheet, Switch, Animated, PanResponder, LayoutAnimation, UIManager, Platform,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlanStore } from '../../stores/planStore';
@@ -195,7 +194,7 @@ const dl = StyleSheet.create({
   name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 3 },
   tagsRow:  { flexDirection: 'row', gap: 4 },
   tag:      { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:   { fontSize: 9, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   setInfo:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, flexShrink: 0 },
   line:     { height: 2, marginHorizontal: 8, borderRadius: 1, backgroundColor: COLORS.accent },
   float:    {
@@ -234,10 +233,10 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
 
         {/* Header */}
         <View style={s.header}>
-          <TouchableOpacity onPress={onBack} style={s.backBtn} activeOpacity={0.7}>
+          <AnimatedPressable onPress={onBack} style={s.backBtn}>
             <Ionicons name="chevron-back" size={22} color={COLORS.accent} />
             <Text style={s.backTxt}>Cycle</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
           <Text style={s.dayPos}>Day {day.dayPosition}</Text>
         </View>
 
@@ -316,7 +315,7 @@ const s = StyleSheet.create({
   scroll:     { paddingHorizontal: 16, paddingTop: 4 },
 
   nameCard:   { padding: 14, marginBottom: 10, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  fieldLbl:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
+  fieldLbl:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
   nameInput:  { fontSize: 18, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.54, paddingVertical: 2 },
 
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },

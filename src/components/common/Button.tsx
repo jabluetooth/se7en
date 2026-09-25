@@ -1,8 +1,8 @@
 import React from 'react';
 import {
-  TouchableOpacity, Text, StyleSheet, ActivityIndicator,
-  ViewStyle, View,
+  Text, StyleSheet, ActivityIndicator, ViewStyle, View,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRAD, COLORS, BORDER_RADIUS, SPACING, FONTS } from '../../constants';
 
@@ -59,10 +59,10 @@ export function Button({
   // Gradient variants
   if (variant === 'primary') {
     return (
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={onPress}
+        haptic="light"
         disabled={disabled || loading}
-        activeOpacity={0.82}
         style={[
           { borderRadius: r, overflow: 'hidden', opacity: disabled ? 0.4 : 1 },
           fullWidth && { width: '100%' },
@@ -80,16 +80,16 @@ export function Button({
         >
           {inner}
         </LinearGradient>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   }
 
   if (variant === 'danger') {
     return (
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={onPress}
+        haptic="light"
         disabled={disabled || loading}
-        activeOpacity={0.82}
         style={[
           { borderRadius: r, overflow: 'hidden', opacity: disabled ? 0.4 : 1 },
           fullWidth && { width: '100%' },
@@ -107,7 +107,7 @@ export function Button({
         >
           {inner}
         </LinearGradient>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   }
 
@@ -125,10 +125,10 @@ export function Button({
     : 'rgba(255,240,220,0.14)';
 
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       onPress={onPress}
+      haptic="selection"
       disabled={disabled || loading}
-      activeOpacity={0.75}
       style={[
         { borderRadius: r, backgroundColor: bg, borderWidth: 1, borderColor: bc, opacity: disabled ? 0.4 : 1 },
         fullWidth && { width: '100%' },
@@ -139,7 +139,7 @@ export function Button({
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {inner}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 

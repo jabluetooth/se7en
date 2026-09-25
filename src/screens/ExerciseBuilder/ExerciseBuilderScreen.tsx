@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassView } from '../../components/common/GlassView';
 import { Badge } from '../../components/common/Badge';
@@ -41,7 +42,7 @@ function StepDot({ i, step, onJump }:
   { i: number; step: number; onJump: (i: number) => void }) {
   return (
     <View style={s.stepRow}>
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => i < step && onJump(i)}
         style={[s.stepDot, i === step && s.stepDotActive, i < step && s.stepDotDone]}
       >
@@ -52,7 +53,7 @@ function StepDot({ i, step, onJump }:
         ) : (
           <Text style={[s.stepNum, i === step && s.stepNumActive]}>{i + 1}</Text>
         )}
-      </TouchableOpacity>
+      </AnimatedPressable>
       <Text style={[s.stepLabel, i === step && s.stepLabelActive]}>{STEP_LABELS[i]}</Text>
       {i < STEP_LABELS.length - 1 && <View style={[s.stepLine, i < step && s.stepLineDone]} />}
     </View>
@@ -67,13 +68,13 @@ function Counter({ value, onChange, min = 1, max = 20 }:
   { value: number; onChange: (v: number) => void; min?: number; max?: number }) {
   return (
     <View style={s.counter}>
-      <TouchableOpacity onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
+      <AnimatedPressable onPress={() => onChange(Math.max(min, value - 1))} style={s.counterBtn}>
         <Text style={s.counterBtnText}>-</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
       <Text style={s.counterValue}>{value}</Text>
-      <TouchableOpacity onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
+      <AnimatedPressable onPress={() => onChange(Math.min(max, value + 1))} style={s.counterBtn}>
         <Text style={s.counterBtnText}>+</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }
@@ -102,9 +103,9 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
       <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={s.header}>
-          <TouchableOpacity onPress={onClose} style={s.backBtn}>
+          <AnimatedPressable onPress={onClose} style={s.backBtn}>
             <Text style={s.backText}>{'<'} Back</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
           <Text style={s.title}>{name || 'New Exercise'}</Text>
         </View>
 
@@ -126,7 +127,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
 
               <LabelRow label="Set Type" />
               {SET_TYPES.map(st => (
-                <TouchableOpacity key={st.id} onPress={() => setSetType(st.id)} activeOpacity={0.8}
+                <AnimatedPressable key={st.id} onPress={() => setSetType(st.id)}
                   style={[s.typeBtn, setType === st.id && s.typeBtnActive]}>
                   <View style={[s.typeIcon, setType === st.id && s.typeIconActive]}>
                     {setType === st.id
@@ -142,7 +143,7 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                       <Text style={s.typeCheckText}>+</Text>
                     </View>
                   )}
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </>
           )}
@@ -183,11 +184,11 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
               <LabelRow label="Weight Unit" />
               <View style={s.unitRow}>
                 {WEIGHT_UNITS.map(u => (
-                  <TouchableOpacity key={u} onPress={() => setWeightUnit(u)} style={[s.unitBtn, weightUnit === u && s.unitBtnActive]}>
+                  <AnimatedPressable key={u} onPress={() => setWeightUnit(u)} style={[s.unitBtn, weightUnit === u && s.unitBtnActive]}>
                     {weightUnit === u
                       ? <View style={[s.unitGrad, { backgroundColor: COLORS.accent }]}><Text style={s.unitTextActive}>{u}</Text></View>
                       : <Text style={s.unitText}>{u}</Text>}
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ))}
               </View>
 
@@ -195,22 +196,22 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
                 <>
                   <LabelRow label="Bar Type" />
                   {BAR_TYPES.map(bt => (
-                    <TouchableOpacity key={bt.id} onPress={() => setBarType(bt.id)} activeOpacity={0.8}
+                    <AnimatedPressable key={bt.id} onPress={() => setBarType(bt.id)}
                       style={[s.barBtn, barType === bt.id && s.barBtnActive]}>
                       <Text style={[s.barLabel, barType === bt.id && s.barLabelActive]}>{bt.label}</Text>
                       <Text style={s.barWeight}>{bt.weight}</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   ))}
 
                   <LabelRow label={'Target Weight (' + weightUnit + ')'} />
                   <View style={s.weightCounter}>
-                    <TouchableOpacity onPress={() => setWeight(w => Math.max(0, w - 2.5))} style={s.counterBtn}>
+                    <AnimatedPressable onPress={() => setWeight(w => Math.max(0, w - 2.5))} style={s.counterBtn}>
                       <Text style={s.counterBtnText}>-</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                     <Text style={s.weightValue}>{weight} <Text style={s.weightUnit}>{weightUnit}</Text></Text>
-                    <TouchableOpacity onPress={() => setWeight(w => w + 2.5)} style={s.counterBtn}>
+                    <AnimatedPressable onPress={() => setWeight(w => w + 2.5)} style={s.counterBtn}>
                       <Text style={s.counterBtnText}>+</Text>
-                    </TouchableOpacity>
+                    </AnimatedPressable>
                   </View>
                 </>
               )}
@@ -250,16 +251,16 @@ export function ExerciseBuilderScreen({ onClose, onSave }: Props) {
         {/* Bottom nav */}
         <View style={s.bottomNav}>
           {step > 0 && (
-            <TouchableOpacity onPress={() => setStep(s => s - 1)} style={s.backNavBtn}>
+            <AnimatedPressable onPress={() => setStep(s => s - 1)} style={s.backNavBtn}>
               <GlassView radius={14} style={s.backNavInner}><Text style={s.backNavText}>Back</Text></GlassView>
-            </TouchableOpacity>
+            </AnimatedPressable>
           )}
-          <TouchableOpacity style={s.nextBtn} activeOpacity={0.9}
+          <AnimatedPressable style={s.nextBtn}
             onPress={step < 2 ? () => setStep(s => s + 1) : handleSave}>
             <View style={[s.nextGrad, { backgroundColor: COLORS.accent }]}>
               <Text style={s.nextText}>{step === 2 ? 'Add Exercise' : 'Continue'}</Text>
             </View>
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
       </SafeAreaView>
     </View>
@@ -306,7 +307,7 @@ const s = StyleSheet.create({
   counterValue:     { flex: 1, textAlign: 'center', fontSize: 34, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -1.36 },
   repRow:           { flexDirection: 'row', alignItems: 'center', gap: 10 },
   repField:         { flex: 1, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  repSubLabel:      { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 3 },
+  repSubLabel:      { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 3 },
   repInput:         { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', height: 44, letterSpacing: -0.88 },
   repDash:          { fontSize: 18, fontFamily: FONTS.body, color: COLORS.textMuted },
   failureNote:      { padding: 14, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },

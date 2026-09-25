@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, Animated } from 'react-native';
+import { AnimatedPressable } from '../../../motion/AnimatedPressable';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
 
@@ -28,14 +29,14 @@ export function SwipeActions({
 
   return (
     <Animated.View style={[sw.row, sw.rowRight, { transform: [{ translateX }], opacity }]}>
-      <TouchableOpacity style={sw.editBtn} onPress={onEdit} activeOpacity={0.8}>
+      <AnimatedPressable style={sw.editBtn} onPress={onEdit}>
         <Ionicons name="pencil" size={16} color="#fff" />
         <Text style={sw.editTxt}>Edit</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={sw.clearBtn} onPress={onClear} activeOpacity={0.8}>
+      </AnimatedPressable>
+      <AnimatedPressable style={sw.clearBtn} onPress={onClear}>
         <Ionicons name="trash-outline" size={16} color="#fff" />
         <Text style={sw.clearTxt}>Clear</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </Animated.View>
   );
 }
@@ -76,10 +77,10 @@ export function DoneAction({
 
   return (
     <Animated.View style={[sd.row, sd.rowLeft, { transform: [{ translateX }], opacity }]}>
-      <TouchableOpacity style={sd.btn} onPress={onPress} activeOpacity={0.8}>
+      <AnimatedPressable style={sd.btn} onPress={onPress}>
         <Ionicons name="checkmark-circle" size={18} color="#000" />
         <Text style={sd.txt}>Done</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </Animated.View>
   );
 }

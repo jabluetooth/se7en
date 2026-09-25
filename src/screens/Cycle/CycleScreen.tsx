@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Alert, TextInput,
-  UIManager, Platform,
+  View, Text, ScrollView, StyleSheet, TextInput, UIManager, Platform,
 } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export function CycleScreen() {
   const { activePlan, updateDay, updatePlan, loadError, load: loadPlans } = usePlanStore();
+  const { toast, confirm } = useFeedback();
   const { sessions, quickCompleteDay }        = useSessionStore();
   const { settings, shiftCycle }              = useSettingsStore();
   const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
@@ -65,7 +66,7 @@ export function CycleScreen() {
   const handleSaveAsPreset = () => {
     if (!activePlan) return;
     savePreset(activePlan);
-    Alert.alert('Preset Saved', `"${activePlan.name}" has been saved as a preset. You can load it from the Split Type sheet.`);
+    toast.success(`Load it any time from the Split Type sheet.`, { title: `${activePlan.name} saved as a preset` });
   };
 
   // Applies a saved preset to the active plan — keeps day IDs stable so
@@ -95,24 +96,18 @@ export function CycleScreen() {
     setEditSplit(preset.splitType);
   };
 
-  const handleSplitSelect = (sp: string) => {
+  const handleSplitSelect = async (sp: string) => {
     if (sp === 'Custom') {
-      Alert.alert(
-        'Use Custom Split?',
-        'This will clear all exercises from every day.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Clear & Use Custom',
-            style: 'destructive',
-            onPress: () => {
-              setEditSplit('Custom');
-              activePlan?.days.forEach(d =>
-                updateDay(activePlan.id, d.id, { exercises: [], isRestDay: false }),
-              );
-            },
-          },
-        ],
+      const ok = await confirm({
+        title: 'Start a custom split?',
+        message: 'Every day is emptied so you can build your own. Your workout history stays.',
+        confirmLabel: 'Clear and customise',
+        destructive: true,
+      });
+      if (!ok) return;
+      setEditSplit('Custom');
+      activePlan?.days.forEach(d =>
+        updateDay(activePlan.id, d.id, { exercises: [], isRestDay: false }),
       );
     } else {
       setEditSplit(sp);
@@ -217,43 +212,37 @@ export function CycleScreen() {
     };
   })();
 
-  const handleClear = (day: WorkoutDay) => {
-    Alert.alert(
-      `Clear ${day.label}?`,
-      'This will remove all exercises and mark it as a rest day.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: () => updateDay(activePlan.id, day.id, { isRestDay: true, exercises: [] }) },
-      ],
-    );
+  const handleClear = async (day: WorkoutDay) => {
+    const ok = await confirm({
+      title: `Clear ${day.label}?`,
+      message: 'All its exercises are removed and it becomes a rest day.',
+      confirmLabel: 'Clear day',
+      destructive: true,
+    });
+    if (ok) updateDay(activePlan.id, day.id, { isRestDay: true, exercises: [] });
   };
 
-  const handleQuickDone = (day: WorkoutDay) => {
-    Alert.alert(
-      `Mark ${day.label} as done?`,
-      'This will log a completed session for this day.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Done',
-          onPress: () => {
-            // Use SLOT INDEX (position in the days array) not day.dayPosition.
-            // After drag-and-drop reordering, dayPosition is a stable content-id that
-            // no longer matches the calendar offset from cycleStartDate. The slot index
-            // is the correct offset: cycleStartDate + slotIdx = the calendar date for
-            // that slot's workout.
-            const dayIdx       = days.findIndex(d => d.id === day.id);
-            const todaySlotIdx = currentDayPos - 1;
-
-            quickCompleteDay(activePlan.id, day, settings.cycleStartDate, dayIdx)
-              .then(() => {
-                if (dayIdx === todaySlotIdx) shiftCycle(-1);
-              })
-              .catch(() => Alert.alert('Error', 'Could not log the session. Please try again.'));
-          },
-        },
-      ],
-    );
+  const handleQuickDone = async (day: WorkoutDay) => {
+    const ok = await confirm({
+      title: `Mark ${day.label} as done?`,
+      message: 'Logs it as a completed workout without entering sets.',
+      confirmLabel: 'Mark done',
+    });
+    if (!ok) return;
+    // Use SLOT INDEX (position in the days array) not day.dayPosition.
+    // After drag-and-drop reordering, dayPosition is a stable content-id that
+    // no longer matches the calendar offset from cycleStartDate. The slot index
+    // is the correct offset: cycleStartDate + slotIdx = the calendar date for
+    // that slot's workout.
+    const dayIdx       = days.findIndex(d => d.id === day.id);
+    const todaySlotIdx = currentDayPos - 1;
+    try {
+      await quickCompleteDay(activePlan.id, day, settings.cycleStartDate, dayIdx);
+      if (dayIdx === todaySlotIdx) shiftCycle(-1);
+      toast.success(`${day.label} logged as done`);
+    } catch {
+      toast.error('Could not log that workout. Check your connection and try again.');
+    }
   };
 
   return (
@@ -267,10 +256,9 @@ export function CycleScreen() {
             <Text style={s.planLabel}>{activePlan.splitType}</Text>
             <Text style={s.title}>{activePlan.name}</Text>
           </View>
-          <TouchableOpacity
+          <AnimatedPressable
             onPress={openPlanEdit}
             style={[s.editBtn, planExpanded && s.editBtnActive]}
-            activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={planExpanded ? 'Close plan editor' : 'Edit plan'}
             accessibilityState={{ expanded: planExpanded }}
@@ -280,7 +268,7 @@ export function CycleScreen() {
               size={17}
               color={planExpanded ? COLORS.accent : COLORS.textSecondary}
             />
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
 
         {loadError && (
@@ -310,27 +298,26 @@ export function CycleScreen() {
 
             {/* Split type */}
             <Text style={[s.cabinetLabel, { marginTop: 14 }]}>SPLIT TYPE</Text>
-            <TouchableOpacity
+            <AnimatedPressable
               style={s.splitBtn}
               onPress={() => setSplitSheetOpen(true)}
-              activeOpacity={0.8}
             >
               <View style={s.splitBtnLeft}>
                 <View style={s.splitDot} />
                 <Text style={s.splitBtnTxt}>{editSplit || 'Select split…'}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
-            </TouchableOpacity>
+            </AnimatedPressable>
 
             {/* Actions row */}
             <View style={s.cabinetActions}>
-              <TouchableOpacity onPress={handleSaveAsPreset} style={s.presetBtn} activeOpacity={0.8}>
+              <AnimatedPressable onPress={handleSaveAsPreset} style={s.presetBtn}>
                 <Ionicons name="bookmark-outline" size={14} color={COLORS.accent} />
                 <Text style={s.presetBtnTxt}>Save as Preset</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={savePlan} style={[s.saveBtn, { backgroundColor: COLORS.accent }]} activeOpacity={0.85} disabled={!editName.trim()}>
+              </AnimatedPressable>
+              <AnimatedPressable onPress={savePlan} style={[s.saveBtn, { backgroundColor: COLORS.accent }]} disabled={!editName.trim()}>
                 <Text style={s.saveTxt}>Save</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
           </GlassView>
         )}
@@ -419,7 +406,7 @@ const s = StyleSheet.create({
 
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
-  cabinetLabel:   { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
+  cabinetLabel:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
   nameField:      { paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.borderFaint },
   nameInput:      { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
   splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.07)' },

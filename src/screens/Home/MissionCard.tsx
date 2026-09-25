@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -105,27 +106,25 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
       <Text style={s.subtitle}>{subtitle}</Text>
 
       {isInProgress && (
-        <TouchableOpacity
+        <AnimatedPressable
           style={s.ctaWrap}
           onPress={onResume}
-          activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Resume workout"
         >
           <Text style={s.ctaTxt}>RESUME</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       )}
 
       {showStart && (
-        <TouchableOpacity
+        <AnimatedPressable
           style={s.ctaWrap}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onStart(); }}
-          activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Start session"
         >
           <Text style={s.ctaTxt}>START SESSION</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       )}
 
       {isDone && !isInProgress && (
@@ -145,7 +144,7 @@ const s = StyleSheet.create({
   dotRing:  { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN },
   dot:      { width: 8, height: 8, borderRadius: 4 },
 
-  badgeTxt: { fontSize: 10, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
+  badgeTxt: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
   title:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 4 },
   subtitle: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
   ctaWrap:  { borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },

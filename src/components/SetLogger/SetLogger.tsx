@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
 // No Reanimated here — isolating whether any of its hooks used on a
 // per-set-row basis (multiplied across every SetLogger instance mounted
 // simultaneously) is the cause of a reproducible native "Exception in
@@ -93,11 +94,10 @@ function InlineRestTimer({ onDismiss }: { onDismiss: () => void }) {
         {/* Preset pills */}
         <View style={r.presetsCol}>
           {REST_PRESETS.map(p => (
-            <TouchableOpacity
+            <AnimatedPressable
               key={p}
               onPress={() => applyPreset(p)}
               style={[r.preset, seconds === p && !isDone && r.presetActive]}
-              activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={`${p < 60 ? `${p} seconds` : `${p / 60} minute`} rest`}
               accessibilityState={{ selected: seconds === p && !isDone }}
@@ -105,20 +105,19 @@ function InlineRestTimer({ onDismiss }: { onDismiss: () => void }) {
               <Text style={[r.presetTxt, seconds === p && !isDone && r.presetTxtActive]}>
                 {p < 60 ? `${p}s` : `${p / 60}m`}
               </Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           ))}
         </View>
 
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={onDismiss}
           style={r.closeBtn}
-          activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
           accessibilityLabel="Dismiss rest timer"
         >
           <Text style={r.closeTxt}>✕</Text>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -192,16 +191,15 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
 
           {/* Rest toggle button (visible when timer is not showing) */}
           {!showRest && (
-            <TouchableOpacity
+            <AnimatedPressable
               onPress={() => setShowRest(true)}
               style={s.restToggle}
-              activeOpacity={0.75}
               hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
               accessibilityRole="button"
               accessibilityLabel={`Start rest timer after set ${set.setNumber}`}
             >
               <Text style={s.restToggleTxt}>REST</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           )}
         </View>
 
@@ -246,9 +244,8 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
           />
         </View>
       </View>
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={handleComplete}
-        activeOpacity={0.85}
         style={s.checkWrap}
         hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
         accessibilityRole="button"
@@ -257,7 +254,7 @@ export function SetLogger({ set, setIndex, exercise, onComplete, onSetComplete }
         <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.checkBtn}>
           <Ionicons name="checkmark" size={18} color="#000" />
         </LinearGradient>
-      </TouchableOpacity>
+      </AnimatedPressable>
     </GlassView>
   );
 }
@@ -269,7 +266,7 @@ const s = StyleSheet.create({
   setNum:       { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, width: 24, letterSpacing: -0.48 },
   fields:       { flex: 1, flexDirection: 'row', gap: 6 },
   field:        { flex: 1 },
-  fieldLbl:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 },
+  fieldLbl:     { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 },
   input:        { backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 8, height: 40, textAlign: 'center', fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
   checkWrap:    { borderRadius: 10, overflow: 'hidden' },
   checkBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
@@ -281,9 +278,9 @@ const s = StyleSheet.create({
   doneVal:      { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
   doneNote:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, flex: 1 },
   prBadge:      { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: COLORS.accent },
-  prBadgeTxt:   { fontSize: 10, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: 0.4 },
+  prBadgeTxt:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: 0.4 },
   restToggle:   { marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.10)' },
-  restToggleTxt:{ fontSize: 9, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase' },
+  restToggleTxt:{ fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase' },
 });
 
 const r = StyleSheet.create({
@@ -293,7 +290,7 @@ const r = StyleSheet.create({
   icon:          { fontSize: 16, color: COLORS.rest },
   iconDone:      { color: COLORS.accent },
   centerCol:     { flex: 1, minWidth: 0 },
-  restLabel:     { fontSize: 8, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.rest, letterSpacing: 0.64, textTransform: 'uppercase', marginBottom: 2 },
+  restLabel:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.rest, letterSpacing: 0.64, textTransform: 'uppercase', marginBottom: 2 },
   countdownRow:  { gap: 4 },
   countdown:     { fontSize: 20, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.80, fontVariant: ['tabular-nums'] },
   dotTrack:      { height: 3, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.10)', overflow: 'hidden', marginTop: 2 },
@@ -302,7 +299,7 @@ const r = StyleSheet.create({
   presetsCol:    { flexDirection: 'row', gap: 4 },
   preset:        { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },
   presetActive:  { borderColor: COLORS.rest, backgroundColor: 'rgba(100,210,255,0.13)' },
-  presetTxt:     { fontSize: 10, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
+  presetTxt:     { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
   presetTxtActive:{ color: COLORS.rest },
   closeBtn:      { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   closeTxt:      { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.textMuted, fontWeight: '700' },
