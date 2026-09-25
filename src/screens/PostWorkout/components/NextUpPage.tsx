@@ -1,25 +1,31 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated } from 'react-native';
-import { TrophyIcon } from '../../../components/common/TrophyIcon';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay, Exercise } from '../../../types';
+import { enterFade, enterRise } from '../../../motion/presets';
 
 interface Props {
-  nextDay?: WorkoutDay;
-  width:    number;
-  visible:  boolean;
+  nextDay?:    WorkoutDay;
+  width:       number;
+  visible:     boolean;
+  bottomInset: number;
 }
 
-// Page 3 — minimal centered identity block + staggered bottom-to-top reveal
-// of the upcoming exercises. The `visible` prop drives the animation so it
-// only fires when the user actually swipes to this page.
-export function NextUpPage({ nextDay, width, visible }: Props) {
+// Page 3 — what's coming next time. The exercise list is only mounted the
+// first time this page is on screen, so its staggered entrance plays when
+// the user actually swipes here instead of finishing unseen off-screen.
+export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
+  const [seen, setSeen] = useState(visible);
+  useEffect(() => { if (visible) setSeen(true); }, [visible]);
+
   if (!nextDay) {
     return (
-      <View style={[s.page, { width, alignItems: 'center', justifyContent: 'center' }]}>
-        <TrophyIcon size={40} color={COLORS.textLabel} />
-        <Text style={s.empty}>No next workout scheduled</Text>
-        <Text style={s.emptySub}>Rest and recover — you've earned it.</Text>
+      <View style={[s.page, s.center, { width, paddingBottom: bottomInset }]}>
+        <Ionicons name="moon-outline" size={36} color={COLORS.textLabel} />
+        <Text style={s.empty}>Nothing scheduled next</Text>
+        <Text style={s.emptySub}>Rest and recover. You've earned it.</Text>
       </View>
     );
   }
@@ -27,100 +33,73 @@ export function NextUpPage({ nextDay, width, visible }: Props) {
   return (
     <ScrollView
       style={{ width }}
-      contentContainerStyle={[s.page, { width, alignItems: 'center', paddingBottom: 48 }]}
+      contentContainerStyle={[s.page, { paddingBottom: bottomInset }]}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
     >
-      {/* Centered identity block — mirrors the Summary page's header */}
       <View style={s.head}>
-        <Text style={s.eyebrow}>Up Next</Text>
+        <Text style={s.eyebrow}>Up next</Text>
         <Text style={s.dayName}>{nextDay.label}</Text>
         <Text style={s.daySub}>
           Day {nextDay.dayPosition} · {nextDay.exercises.length} exercise{nextDay.exercises.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
-      <View style={s.list}>
-        {nextDay.exercises.map((ex, i) => (
-          <UpcomingRow key={ex.id} ex={ex} index={i} visible={visible} />
-        ))}
-      </View>
+      {seen && (
+        <View style={s.list}>
+          {nextDay.exercises.map((ex, i) => (
+            <Animated.View key={ex.id} entering={enterRise(i)} style={s.row}>
+              <Text style={s.index}>{i + 1}</Text>
+              <View style={s.rowText}>
+                <Text style={s.exName} numberOfLines={1}>{ex.name}</Text>
+                <Text style={s.exMeta}>{planLabel(ex)}</Text>
+              </View>
+            </Animated.View>
+          ))}
+          <Animated.Text entering={enterFade.delay(260)} style={s.footnote}>
+            Your numbers from today will be waiting as "last time" on each set.
+          </Animated.Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
 
-function UpcomingRow({ ex, index, visible }:
-  { ex: Exercise; index: number; visible: boolean }) {
-  const translateY = useRef(new Animated.Value(28)).current;
-  const opacity    = useRef(new Animated.Value(0)).current;
-
-  // Drive the stagger off `visible` (true only when Page 3 is the active pager
-  // page). Without this gate the animations would all fire on mount of the
-  // pager — long before the user swiped over — and finish before being seen.
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 420,
-          delay: 80 + index * 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 420,
-          delay: 80 + index * 80,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      translateY.setValue(28);
-      opacity.setValue(0);
-    }
-  }, [visible, index, translateY, opacity]);
-
-  // Formula display: sets × reps × weight = volume
-  const repsLabel = ex.toFailure
-    ? 'fail'
-    : ex.targetRepsMin === ex.targetRepsMax || !ex.targetRepsMax
-      ? `${ex.targetRepsMin ?? '–'}`
-      : `${ex.targetRepsMin}–${ex.targetRepsMax}`;
-
-  const hasWeight = ex.targetWeight != null && ex.targetWeight > 0 && ex.weightUnit !== 'bodyweight';
-  const vol       = hasWeight && !ex.toFailure && ex.targetRepsMin
-    ? ex.targetSets * ex.targetRepsMin * (ex.targetWeight ?? 0)
-    : null;
-  const volLabel  = vol != null
-    ? vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : `${Math.round(vol)}`
-    : null;
-
-  return (
-    <Animated.View style={[s.row, { opacity, transform: [{ translateY }] }]}>
-      <Text style={s.exName} numberOfLines={1}>{ex.name}</Text>
-      <Text style={s.exMeta}>
-        {ex.targetSets} × {repsLabel}
-        {hasWeight ? ` × ${ex.targetWeight}${ex.weightUnit}` : ''}
-        {volLabel ? ` = ${volLabel}` : ''}
-      </Text>
-    </Animated.View>
-  );
+/** "4 sets × 8–10 · 60 kg", "3 sets to failure", "3 sets × 12". */
+function planLabel(ex: Exercise): string {
+  const sets = `${ex.targetSets} set${ex.targetSets === 1 ? '' : 's'}`;
+  const reps = ex.toFailure
+    ? ' to failure'
+    : ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin
+      ? ` × ${ex.targetRepsMin}–${ex.targetRepsMax}`
+      : ex.targetRepsMin ? ` × ${ex.targetRepsMin}` : '';
+  const weight = ex.targetWeight && ex.targetWeight > 0 && ex.weightUnit !== 'bodyweight'
+    ? ` · ${ex.targetWeight} ${ex.weightUnit}`
+    : '';
+  return sets + reps + weight;
 }
 
 const s = StyleSheet.create({
-  page:     { flex: 1, paddingHorizontal: 16, paddingTop: 8, justifyContent: 'space-between' },
+  page:     { paddingHorizontal: 16, paddingTop: 8 },
+  center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Empty state
-  empty:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, marginTop: 16 },
-  emptySub: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6 },
+  empty:    { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.textSecondary, marginTop: 14 },
+  emptySub: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 6 },
 
-  // Centered header
-  head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 28, alignSelf: 'stretch' },
-  eyebrow:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.88, textTransform: 'uppercase' },
-  dayName:  { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
+  head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 26 },
+  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  dayName:  { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
   daySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
-  // Animated list
-  list:     { gap: 22, alignSelf: 'stretch', alignItems: 'center', paddingHorizontal: 8 },
-  row:      { alignItems: 'center', gap: 5, alignSelf: 'stretch' },
-  exName:   { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, textAlign: 'center' },
-  exMeta:   { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  list:     { gap: 10 },
+  row:      {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16,
+    backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)',
+  },
+  index:    { width: 22, fontSize: 15, fontFamily: FONTS.dataBold, color: COLORS.textLabel, textAlign: 'center' },
+  rowText:  { flex: 1, minWidth: 0, gap: 3 },
+  exName:   { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.4 },
+  exMeta:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
+  footnote: { marginTop: 10, fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 18 },
 });

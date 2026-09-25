@@ -1,163 +1,233 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../../components/common/GlassView';
 import { TrophyIcon } from '../../../components/common/TrophyIcon';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
-import { fmtVol } from '../../../utils/format';
-import { VolumeLineGraph, SetPoint } from './VolumeLineGraph';
+import { useSessionStore } from '../../../stores/sessionStore';
+import { useSettingsStore } from '../../../stores/settingsStore';
+import { enterFade, enterRise } from '../../../motion/presets';
+import { COUNT_STAGGER, useCountUp } from '../../../motion/useCountUp';
+import { summarizeSession, prMetricLabel, fmtRecord } from '../../../utils/sessionSummary';
+import { VolumeLineGraph } from './VolumeLineGraph';
 
 interface Props {
   session: WorkoutSession;
   width:   number;
+  /** True while this page is the one on screen; counters and the graph wait for it. */
+  active:  boolean;
+  /** Space to leave under the content for the sticky Done button. */
+  bottomInset: number;
 }
 
-// Page 1 — workout-complete identity, line-graph hero, reps × sets = volume.
-export function SummaryPage({ session, width }: Props) {
-  // Build per-set data points for the line graph
-  const setData: SetPoint[] = session.exercises.flatMap(ex =>
-    ex.sets.filter(s => s.isCompleted).map(s => {
-      const reps   = s.actualRepsToFailure ?? s.actualReps;
-      const weight = s.actualWeight ?? 0;
-      return {
-        reps,
-        weight,
-        unit:   ex.weightUnit,
-        exName: ex.exerciseName,
-        vol:    Math.max(reps * (weight || 1), 1),
-      };
-    }),
-  );
+const num = (n: number) => Math.round(n).toLocaleString();
 
-  const peakIdx = setData.reduce(
-    (mi, d, i) => (d.vol > (setData[mi]?.vol ?? 0) ? i : mi), 0,
-  );
-  const peak    = setData[peakIdx];
+// Page 1 — the payoff: what you did, how it compares, and any new records.
+export function SummaryPage({ session, width, active, bottomInset }: Props) {
+  const history = useSessionStore(st => st.sessions);
+  const unit = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
+  const sum = useMemo(() => summarizeSession(session, history, unit), [session, history, unit]);
 
-  // Heaviest single set by weight — separate from the volume-based peak so the
-  // line graph keeps highlighting the best-volume set while we also surface the
-  // top weight lifted (more legible at-a-glance than volume).
-  const heaviestIdx = setData.reduce(
-    (mi, d, i) => (d.weight > (setData[mi]?.weight ?? 0) ? i : mi), 0,
-  );
-  const heaviest = setData[heaviestIdx];
-
-  const totalReps  = setData.reduce((a, s) => a + s.reps, 0);
-  const totalSets  = setData.length;
-  const volDisplay = fmtVol(Math.round(session.totalVolume));
+  const load = useCountUp(sum.load, { enabled: active });
+  const sets = useCountUp(sum.sets, { enabled: active, delay: COUNT_STAGGER });
+  const reps = useCountUp(sum.reps, { enabled: active, delay: COUNT_STAGGER * 2 });
 
   const finishedDate = session.finishedAt
     ? new Date(session.finishedAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     : 'Today';
-
   const graphWidth = Math.min(width - 32, 360);
+  const hasLoad = sum.load > 0;
+
+  const comparison = (() => {
+    if (!sum.previous || sum.previous.load <= 0 || !hasLoad) {
+      return sum.previous
+        ? null
+        : { icon: 'flag-outline' as const, text: `First ${session.dayLabel} day logged. This is your baseline.`, tone: 'muted' as const };
+    }
+    const delta = sum.load - sum.previous.load;
+    const pct = Math.round((delta / sum.previous.load) * 100);
+    if (Math.abs(pct) < 1) return { icon: 'remove-outline' as const, text: `Same volume as your last ${session.dayLabel} day`, tone: 'muted' as const };
+    return delta > 0
+      ? { icon: 'trending-up' as const, text: `${num(delta)} ${unit} more than your last ${session.dayLabel} day (+${pct}%)`, tone: 'up' as const }
+      : { icon: 'trending-down' as const, text: `${num(-delta)} ${unit} less than your last ${session.dayLabel} day`, tone: 'muted' as const };
+  })();
+
+  const best = sum.points[sum.bestIdx];
 
   return (
-    <View style={{ width, flex: 1 }}>
-      <View style={[s.page, { width }]}>
+    <ScrollView
+      style={{ width }}
+      contentContainerStyle={[s.page, { paddingBottom: bottomInset }]}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled
+    >
+      {/* ── Identity ─────────────────────────────────────── */}
+      <Animated.View entering={enterFade} style={s.top}>
+        <GlassView radius={99} style={s.chip}>
+          <TrophyIcon size={12} color={COLORS.accent} />
+          <Text style={s.chipText}>Workout complete</Text>
+          <Text style={s.chipDot}>·</Text>
+          <Text style={s.chipDate}>{finishedDate}</Text>
+        </GlassView>
+        <Text style={s.name}>{session.dayLabel}</Text>
+        <Text style={s.nameSub}>Day {session.dayPosition} · {session.duration} min</Text>
+      </Animated.View>
 
-        {/* ── Workout identity — centered ─────────────────── */}
-        <View style={s.top}>
-          <GlassView radius={99} style={s.chip}>
-            <TrophyIcon size={12} color={COLORS.accent} />
-            <Text style={s.chipText}>Workout Complete</Text>
-            <Text style={s.chipDot}>·</Text>
-            <Text style={s.chipDate}>{finishedDate}</Text>
-          </GlassView>
-          <Text style={s.name}>{session.dayLabel}</Text>
-          <Text style={s.nameSub}>Day {session.dayPosition} · {session.duration} min</Text>
+      {/* ── Headline numbers ─────────────────────────────── */}
+      <Animated.View entering={enterRise(1)} style={s.stats}>
+        {hasLoad && (
+          <View style={s.heroStat} accessible accessibilityLabel={`${num(sum.load)} ${unit} lifted`}>
+            <Text style={s.heroVal}>{num(load)}</Text>
+            <Text style={s.heroUnit}>{unit} lifted</Text>
+          </View>
+        )}
+        <View style={s.smallStats}>
+          <View style={s.smallStat} accessible accessibilityLabel={`${sum.sets} sets`}>
+            <Text style={s.smallVal}>{num(sets)}</Text>
+            <Text style={s.smallLbl}>Sets</Text>
+          </View>
+          <View style={s.smallDivider} />
+          <View style={s.smallStat} accessible accessibilityLabel={`${sum.reps} reps`}>
+            <Text style={s.smallVal}>{num(reps)}</Text>
+            <Text style={s.smallLbl}>Reps</Text>
+          </View>
+          <View style={s.smallDivider} />
+          <View style={s.smallStat} accessible accessibilityLabel={`${sum.minutes} minutes`}>
+            <Text style={s.smallVal}>{sum.minutes}</Text>
+            <Text style={s.smallLbl}>Minutes</Text>
+          </View>
         </View>
+        {comparison && (
+          <View style={s.compare}>
+            <Ionicons name={comparison.icon} size={15} color={comparison.tone === 'up' ? COLORS.accent : COLORS.textMuted} />
+            <Text style={[s.compareTxt, comparison.tone === 'up' && { color: COLORS.accent }]}>{comparison.text}</Text>
+          </View>
+        )}
+      </Animated.View>
 
-        {/* ── Line graph hero (transparent bg) ────────────── */}
-        <View style={s.hero}>
+      {/* ── New records ──────────────────────────────────── */}
+      {sum.records.length > 0 && (
+        <Animated.View entering={enterRise(2)} style={s.prCard}>
+          <View style={s.prHead}>
+            <TrophyIcon size={16} color={COLORS.accent} />
+            <Text style={s.prTitle}>
+              {sum.records.length === 1 ? 'New personal record' : `${sum.records.length} new personal records`}
+            </Text>
+          </View>
+          {sum.records.map((r, i) => {
+            const gain = r.value - r.previous;
+            return (
+              <Animated.View
+                key={`${r.exerciseId}-${r.metric}`}
+                entering={enterRise(3 + i)}
+                style={[s.prRow, i > 0 && s.prRowBorder]}
+                accessible
+                accessibilityLabel={`${r.exerciseName}, ${prMetricLabel(r)}: ${fmtRecord(r.value, r.unit)}, up from ${fmtRecord(r.previous, r.unit)}`}
+              >
+                <View style={s.prInfo}>
+                  <Text style={s.prExercise} numberOfLines={1}>{r.exerciseName}</Text>
+                  <Text style={s.prMetric}>{prMetricLabel(r)}</Text>
+                </View>
+                <View style={s.prValues}>
+                  <Text style={s.prValue}>{fmtRecord(r.value, r.unit)}</Text>
+                  <Text style={s.prWas}>
+                    was {fmtRecord(r.previous, r.unit)} · +{fmtRecord(gain, r.unit)}
+                  </Text>
+                </View>
+              </Animated.View>
+            );
+          })}
+        </Animated.View>
+      )}
+      {sum.records.length === 0 && sum.baselines.length > 0 && (
+        <Animated.View entering={enterRise(2)} style={s.baseline}>
+          <Ionicons name="flag-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={s.baselineTxt}>
+            First time logging {sum.baselines.length === 1 ? sum.baselines[0].exerciseName : `${sum.baselines.length} exercises`}.
+            {' '}These numbers are the ones to beat next time.
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* ── Every set ────────────────────────────────────── */}
+      {sum.points.length > 0 && (
+        <Animated.View entering={enterRise(3)} style={s.graphBlock}>
           <View style={s.graphLabelRow}>
-            <Text style={s.graphTitle}>Set Volume</Text>
-            <Text style={s.graphAxis}>peak highlighted</Text>
+            <Text style={s.graphTitle}>Every set</Text>
+            <Text style={s.graphAxis}>volume, in the order you lifted</Text>
           </View>
-          <VolumeLineGraph data={setData} peakIdx={peakIdx} width={graphWidth} />
-
+          <VolumeLineGraph data={sum.points} peakIdx={sum.bestIdx} width={graphWidth} animate={active} />
           <View style={s.pillRow}>
-            {peak && (
-              <View style={s.peakPill}>
-                <TrophyIcon size={11} color={COLORS.accent} />
-                <Text style={s.peakLbl}>Highest set</Text>
-                <Text style={s.peakVal}>
-                  {peak.reps} × {peak.weight}{peak.unit} = {Math.round(peak.vol)}
+            {best && (
+              <View style={s.pill}>
+                <Text style={s.pillLbl}>Best set</Text>
+                <Text style={s.pillVal} numberOfLines={1}>
+                  {best.weight > 0 ? `${best.weight} ${best.unit} × ${best.reps}` : `${best.reps} reps`} · {best.exName}
                 </Text>
               </View>
             )}
-            {heaviest && heaviest.weight > 0 && (
-              <View style={s.peakPill}>
-                <TrophyIcon size={11} color={COLORS.accent} />
-                <Text style={s.peakLbl}>Heaviest</Text>
-                <Text style={s.peakVal}>
-                  {heaviest.weight}{heaviest.unit}
-                </Text>
+            {sum.heaviest && (
+              <View style={s.pill}>
+                <Text style={s.pillLbl}>Heaviest</Text>
+                <Text style={s.pillVal} numberOfLines={1}>{sum.heaviest.weight} {sum.heaviest.unit} · {sum.heaviest.exName}</Text>
               </View>
             )}
           </View>
-        </View>
-
-        {/* ── Stats: Reps × Sets = Volume — the payoff number of the whole
-             page, so it gets a bare typographic moment instead of being boxed
-             at the same visual weight as every other stat in the app. ───── */}
-        <View style={s.statsStrip}>
-          <View style={s.statsDivider} />
-          <View style={s.statsRow}>
-            <View style={s.statCell}>
-              <Text style={s.statVal}>{totalReps}</Text>
-              <Text style={s.statLabel}>Reps</Text>
-            </View>
-            <Text style={s.statOpTxt}>×</Text>
-            <View style={s.statCell}>
-              <Text style={s.statVal}>{totalSets}</Text>
-              <Text style={s.statLabel}>Sets</Text>
-            </View>
-            <Text style={s.statOpTxt}>=</Text>
-            <View style={s.statCell}>
-              <Text style={[s.statVal, s.statValHero]}>{volDisplay}</Text>
-              <Text style={s.statLabel}>Volume</Text>
-            </View>
-          </View>
-        </View>
-
-      </View>
-    </View>
+        </Animated.View>
+      )}
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  page:          { flex: 1, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, justifyContent: 'space-between', alignItems: 'center' },
+  page:        { paddingHorizontal: 16, paddingTop: 4, gap: 22 },
 
-  // Top identity block
-  top:           { alignItems: 'center', gap: 4 },
-  chip:          { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
-  chipText:      { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
-  chipDot:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
-  chipDate:      { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  name:          { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
-  nameSub:       { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
+  top:         { alignItems: 'center', gap: 4 },
+  chip:        { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
+  chipText:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  chipDot:     { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.textMuted },
+  chipDate:    { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  name:        { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
+  nameSub:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
-  // Hero
-  hero:          { alignItems: 'center', alignSelf: 'stretch', gap: 10 },
-  graphLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 },
-  graphTitle:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
-  graphAxis:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
+  stats:       { alignItems: 'center', gap: 14 },
+  heroStat:    { alignItems: 'center' },
+  heroVal:     { fontSize: 56, fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -2.5, fontVariant: ['tabular-nums'], lineHeight: 62 },
+  heroUnit:    { fontSize: 13, fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
+  smallStats:  { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  smallStat:   { flex: 1, alignItems: 'center', gap: 2 },
+  smallVal:    { fontSize: 22, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  smallLbl:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.8 },
+  smallDivider:{ width: StyleSheet.hairlineWidth, height: 28, backgroundColor: 'rgba(255,240,220,0.14)' },
+  compare:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.05)' },
+  compareTxt:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary, flexShrink: 1 },
 
-  // Peak set pills — wrap row holds both highest-volume + heaviest-weight callouts
-  pillRow:  { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
-  peakPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,140,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.30)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 },
-  peakLbl:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
-  peakVal:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  prCard:      {
+    borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)',
+    backgroundColor: 'rgba(255,140,0,0.07)', paddingHorizontal: 16, paddingVertical: 14,
+  },
+  prHead:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  prTitle:     { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: -0.2 },
+  prRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  prRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,140,0,0.25)' },
+  prInfo:      { flex: 1, minWidth: 0, gap: 2 },
+  prExercise:  { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.3 },
+  prMetric:    { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  prValues:    { alignItems: 'flex-end', gap: 2 },
+  prValue:     { fontSize: 17, fontFamily: FONTS.dataBold, color: COLORS.accent },
+  prWas:       { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textMuted },
 
-  // Stats strip — bare, no glass card. A hairline divider separates it from
-  // the graph above instead of a full bordered box.
-  statsStrip:   { alignSelf: 'stretch', paddingTop: 18 },
-  statsDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,240,220,0.14)', marginBottom: 18 },
-  statsRow:     { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
-  statCell:     { flex: 1, alignItems: 'center' },
-  statOpTxt:    { fontSize: 18, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted, paddingHorizontal: 2 },
-  statVal:      { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.0 },
-  statValHero:  { color: COLORS.accent, fontSize: 34 },
-  statLabel:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 3 },
+  baseline:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,240,220,0.05)' },
+  baselineTxt: { flex: 1, fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 19 },
+
+  graphBlock:  { alignItems: 'center', gap: 10 },
+  graphLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 },
+  graphTitle:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
+  graphAxis:   { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
+  pillRow:     { alignSelf: 'stretch', gap: 8 },
+  pill:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,140,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.22)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
+  pillLbl:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase', width: 72 },
+  pillVal:     { flex: 1, fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.text },
 });

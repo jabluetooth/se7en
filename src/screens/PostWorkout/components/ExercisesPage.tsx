@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import { TrophyIcon } from '../../../components/common/TrophyIcon';
+import { EASE_OUT, TIMING } from '../../../motion/tokens';
+import { enterFade, layoutSoft } from '../../../motion/presets';
 import { GlassView } from '../../../components/common/GlassView';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
@@ -18,19 +22,46 @@ function rpeColor(n: number): string {
 }
 
 interface Props {
-  session: WorkoutSession;
-  width:   number;
+  session:     WorkoutSession;
+  width:       number;
+  /** The volume bar grows in the first time this page is shown. */
+  active:      boolean;
+  bottomInset: number;
+}
+
+// Reps count as "volume" only for reps-only exercises; a weighted set with no
+// weight logged contributes nothing rather than a misleading reps × 1.
+const setVol = (reps: number, weight: number | null, unit: string) =>
+  unit === 'bodyweight' || unit === 'plates' ? reps : reps * (weight ?? 0);
+
+function Chevron({ open }: { open: boolean }) {
+  const turn = useSharedValue(open ? 1 : 0);
+  useEffect(() => { turn.value = withTiming(open ? 1 : 0, TIMING.standard); }, [open]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
+  return (
+    <Animated.View style={style}>
+      <Ionicons name="chevron-down" size={18} color={COLORS.textMuted} />
+    </Animated.View>
+  );
 }
 
 // Page 2 — stacked volume bar + per-exercise expandable cards.
-export function ExercisesPage({ session, width }: Props) {
+export function ExercisesPage({ session, width, active, bottomInset }: Props) {
+  const recordIds = new Set((session.prDetails ?? []).filter(d => !d.isFirst).map(d => d.exerciseId));
+
+  // Grow the stacked bar in from the left once, the first time the page shows.
+  const grow = useSharedValue(0);
+  useEffect(() => {
+    if (active && grow.value === 0) grow.value = withTiming(1, { duration: 700, easing: EASE_OUT, reduceMotion: TIMING.standard.reduceMotion });
+  }, [active]);
+  const growStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: grow.value }] }));
   const [openId,   setOpenId]   = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<'volume' | 'order'>('volume');
 
   const exStats = session.exercises.map((ex, originalIdx) => {
     const completed = ex.sets.filter(s => s.isCompleted);
     const volume    = completed.reduce(
-      (a, s) => a + (s.actualRepsToFailure ?? s.actualReps) * (s.actualWeight ?? 1),
+      (a, s) => a + setVol(s.actualRepsToFailure ?? s.actualReps, s.actualWeight, ex.weightUnit),
       0,
     );
     const totalReps = completed.reduce(
@@ -55,7 +86,7 @@ export function ExercisesPage({ session, width }: Props) {
   return (
     <ScrollView
       style={{ width }}
-      contentContainerStyle={[s.page, { paddingBottom: 48 }]}
+      contentContainerStyle={[s.page, { paddingBottom: bottomInset }]}
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
     >
@@ -82,7 +113,7 @@ export function ExercisesPage({ session, width }: Props) {
 
       {/* ── Stacked volume bar ─────────────────────────── */}
       {totalVolume > 0 && (
-        <View style={s.bar}>
+        <Animated.View style={[s.bar, { transformOrigin: 'left' }, growStyle]}>
           {list.map((x, i) => {
             const pct = x.volume / totalVolume;
             if (pct <= 0) return null;
@@ -104,7 +135,7 @@ export function ExercisesPage({ session, width }: Props) {
               </View>
             );
           })}
-        </View>
+        </Animated.View>
       )}
 
       {/* ── Exercise rows ─────────────────────────────── */}
@@ -121,8 +152,8 @@ export function ExercisesPage({ session, width }: Props) {
         const volLabel   = `${fmtVol(x.volume)}${showWeight ? ' ' + x.ex.weightUnit : ' reps'}`;
 
         return (
+          <Animated.View key={x.ex.id} layout={layoutSoft}>
           <GlassView
-            key={x.ex.id}
             radius={0}
             style={[
               s.card,
@@ -140,7 +171,15 @@ export function ExercisesPage({ session, width }: Props) {
               <View style={[s.marker, { backgroundColor: x.color }]} />
 
               <View style={s.info}>
-                <Text style={s.name} numberOfLines={1}>{x.ex.exerciseName}</Text>
+                <View style={s.nameRow}>
+                  <Text style={s.name} numberOfLines={1}>{x.ex.exerciseName}</Text>
+                  {recordIds.has(x.ex.exerciseId) && (
+                    <View style={s.prTag} accessibilityLabel="New personal record">
+                      <TrophyIcon size={11} color="#000" />
+                      <Text style={s.prTagTxt}>PR</Text>
+                    </View>
+                  )}
+                </View>
 
                 <View style={s.chipsRow}>
                   <View style={s.chip}>
@@ -167,17 +206,11 @@ export function ExercisesPage({ session, width }: Props) {
                 </View>
               </View>
 
-              <Svg
-                width={14} height={14} viewBox="0 0 24 24" fill="none"
-                style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] } as any}
-              >
-                <Path d="M6 9l6 6 6-6" stroke={COLORS.textMuted} strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
+              <Chevron open={open} />
             </Pressable>
 
             {open && (
-              <View style={s.table}>
+              <Animated.View entering={enterFade} style={s.table}>
                 <View style={s.tableHead}>
                   {['Set', 'Weight', 'Reps', 'Vol'].map((h, hi) => (
                     <Text key={hi} style={[s.th, hi > 0 && s.thRight]}>{h}</Text>
@@ -185,7 +218,7 @@ export function ExercisesPage({ session, width }: Props) {
                 </View>
                 {x.completed.map((set, si) => {
                   const reps = set.actualRepsToFailure ?? set.actualReps;
-                  const vol  = Math.round(reps * (set.actualWeight ?? 1));
+                  const vol  = Math.round(setVol(reps, set.actualWeight, x.ex.weightUnit));
                   return (
                     <View key={si} style={s.tableRow}>
                       <Text style={s.td}>S{set.setNumber}</Text>
@@ -203,9 +236,10 @@ export function ExercisesPage({ session, width }: Props) {
                     <Text style={s.noteTxt}>{x.ex.exerciseNote}</Text>
                   </View>
                 ) : null}
-              </View>
+              </Animated.View>
             )}
           </GlassView>
+          </Animated.View>
         );
       })}
     </ScrollView>
@@ -236,7 +270,10 @@ const s = StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
   marker:   { width: 5, alignSelf: 'stretch', borderRadius: 3 },
   info:     { flex: 1, minWidth: 0, gap: 7 },
-  name:     { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name:     { flexShrink: 1, fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  prTag:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: COLORS.accent },
+  prTagTxt: { fontSize: 11, fontFamily: FONTS.display, color: '#000', letterSpacing: 0.3 },
 
   chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   chip:     { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },

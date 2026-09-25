@@ -1,40 +1,28 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, Modal, Image, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, InteractionManager,
+  View, Text, Pressable, StyleSheet, Modal, Image, useWindowDimensions, InteractionManager,
 } from 'react-native';
-import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { useFeedback } from '../../components/feedback/Feedback';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useAnimatedRef, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, scrollTo, runOnUI,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Path } from 'react-native-svg';
-import { ViewShot, captureRef, isViewShotAvailable, type ViewShotRef } from '../../compat/viewShot';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
+import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
+import { useFeedback, FeedbackHost } from '../../components/feedback/Feedback';
+import { ViewShot, captureRef, isViewShotAvailable, type ViewShotRef } from '../../compat/viewShot';
 import { COLORS, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutDay } from '../../types';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { SummaryPage } from './components/SummaryPage';
 import { ExercisesPage } from './components/ExercisesPage';
 import { NextUpPage } from './components/NextUpPage';
-import { FeedbackHost } from '../../components/feedback/Feedback';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const PAGE_NAMES = ['Summary', 'Exercises', 'Next Up'];
-
-// ─── Shared icons ─────────────────────────────────────────────────────────────
-
-function ChevronLeft() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M15 18l-6-6 6-6" stroke={COLORS.textSecondary} strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-// ─── Root component — header, horizontal pager, options modal ─────────────────
+const PAGE_NAMES = ['Summary', 'Exercises', 'Next up'] as const;
+const MAX_TAB_W = 96;
+const FOOTER_H = 54;
 
 interface Props {
   session: WorkoutSession;
@@ -47,15 +35,28 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
   const insets = useSafeAreaInsets();
   const { toast } = useFeedback();
   const [page, setPage] = useState(0);
-  const [bgImage,   setBgImage]   = useState<string | null>(null);
-  const [menuOpen,  setMenuOpen]  = useState(false);
-  const [busy,      setBusy]      = useState(false);
-  const scrollRef  = useRef<ScrollView>(null);
-  const shotRef    = useRef<ViewShotRef>(null);
+  const [bgImage,  setBgImage]  = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy,     setBusy]     = useState(false);
+  const shotRef = useRef<ViewShotRef>(null);
+  // Three tabs between two 40pt side slots, inside 12pt margins: shrink the
+  // tabs on narrow phones (375pt iPhone SE / mini) instead of overflowing.
+  const tabW = Math.min(MAX_TAB_W, Math.floor((width - 24 - 80 - 12) / 3));
 
-  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const newPage = Math.round(e.nativeEvent.contentOffset.x / width);
-    setPage(newPage);
+  // The tab highlight follows the pager's scroll position frame by frame, so
+  // it glides with your finger rather than jumping when a swipe settles.
+  const pagerRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollX = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({ onScroll: e => { scrollX.value = e.contentOffset.x; } });
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: (scrollX.value / Math.max(width, 1)) * tabW }],
+  }));
+
+  const goTo = (i: number) => {
+    if (i === page) return;
+    fireHaptic('selection');
+    setPage(i);
+    runOnUI(() => { scrollTo(pagerRef, i * width, 0, true); })();
   };
 
   // Close the options menu, then wait for the dismiss animation + any
@@ -92,8 +93,8 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
     }
   };
 
-  // Capture the Summary page as a PNG and save it to the device's photo library.
-  // Shows a friendly message in Expo Go where the native capture module is absent.
+  // Capture the summary (everything but the Done button) as a PNG and save it
+  // to the photo library. Explains itself where the capture module is absent.
   const saveAsImage = () => afterMenuClose(async () => {
     if (busy) return;
     if (!isViewShotAvailable) {
@@ -117,57 +118,57 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
     }
   });
 
+  const footerSpace = FOOTER_H + insets.bottom + 28;
+
   return (
-    <ViewShot ref={shotRef} style={{ flex: 1 }}>
-      {/* Background — bgImage takes over the WHOLE screen (including status bar
-          + home-indicator area) when set, so it reads as an edge-to-edge poster.
-          The same image is also rendered inside SummaryPage's ViewShot so the
-          captured PNG keeps the background. */}
-      {bgImage ? (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Image source={{ uri: bgImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          <LinearGradient
-            colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.30)', 'rgba(0,0,0,0.60)']}
-            locations={[0, 0.55, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-      ) : (
-        <AppBackground />
-      )}
-      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+    <View style={{ flex: 1 }}>
+      <ViewShot ref={shotRef} style={{ flex: 1 }}>
+        {/* Background — a picked image takes over the whole screen so the
+            saved PNG reads as an edge-to-edge poster. */}
+        {bgImage ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Image source={{ uri: bgImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.30)', 'rgba(0,0,0,0.60)']}
+              locations={[0, 0.55, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        ) : (
+          <AppBackground />
+        )}
 
-        {/* ── Persistent header ─────────────────────────── */}
-        {/* Explicit inset + buffer instead of SafeAreaView's own top edge —
-            inside a fullScreen Modal on iOS, SafeAreaView's computed top inset
-            has been landing too small, leaving the back/options buttons in the
-            top corners sitting inside the strip where iOS's own Control Center
-            (top-right) / Notification Center (top-left) swipe gestures take
-            priority over app touches. The extra buffer is deliberate headroom,
-            not a precise measurement — the point is clearing that zone with
-            margin rather than getting the exact inset value right. */}
+        {/* ── Header: page tabs + options ─────────────────────
+            Explicit inset + buffer instead of SafeAreaView's top edge: inside
+            a fullScreen Modal on iOS that inset has landed too small, leaving
+            corner buttons inside the zone where Control Center / Notification
+            Center swipes win over app touches. */}
         <View style={[hd.bar, { paddingTop: insets.top + 12 }]}>
-          <AnimatedPressable
-            onPress={onDone}
-            style={hd.backBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel="Done"
-          >
-            <ChevronLeft />
-          </AnimatedPressable>
-
-          <Text style={hd.title} accessibilityRole="header">{PAGE_NAMES[page]}</Text>
-
-          {/* Top-right options — background / save (Page 1 only) */}
-          <View style={hd.rightSlot}>
+          <View style={hd.side} />
+          <View style={hd.tabs} accessibilityRole="tablist">
+            <Animated.View style={[hd.pill, { width: tabW }, pillStyle]} pointerEvents="none" />
+            {PAGE_NAMES.map((name, i) => (
+              <Pressable
+                key={name}
+                onPress={() => goTo(i)}
+                style={[hd.tab, { width: tabW }]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: page === i }}
+                accessibilityLabel={name}
+              >
+                <Text style={[hd.tabTxt, page === i && hd.tabTxtActive]}>{name}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={hd.side}>
             {page === 0 && (
               <AnimatedPressable
+                scale="strong"
                 onPress={() => setMenuOpen(true)}
                 style={hd.iconBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="More options"
+                accessibilityLabel="Background and save options"
               >
                 <Ionicons name="ellipsis-horizontal" size={22} color={COLORS.accent} />
               </AnimatedPressable>
@@ -175,45 +176,51 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
           </View>
         </View>
 
-        {/* ── Horizontal pager ──────────────────────────── */}
-        <ScrollView
-          ref={scrollRef}
+        {/* ── Pages ───────────────────────────────────────── */}
+        <Animated.ScrollView
+          ref={pagerRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onMomentumEnd}
+          onScroll={onScroll}
           scrollEventThrottle={16}
+          onMomentumScrollEnd={e => setPage(Math.round(e.nativeEvent.contentOffset.x / width))}
           style={{ flex: 1 }}
           decelerationRate="fast"
         >
-          <SummaryPage   session={session}  width={width} />
-          <ExercisesPage session={session}  width={width} />
-          <NextUpPage    nextDay={nextDay}  width={width} visible={page === 2} />
-        </ScrollView>
+          <SummaryPage   session={session} width={width} active={page === 0} bottomInset={footerSpace} />
+          <ExercisesPage session={session} width={width} active={page === 1} bottomInset={footerSpace} />
+          <NextUpPage    nextDay={nextDay} width={width} visible={page === 2} bottomInset={footerSpace} />
+        </Animated.ScrollView>
+      </ViewShot>
 
-        {/* ── Bottom page indicator ─────────────────────── */}
-        <View style={hd.bottomDots}>
-          {PAGE_NAMES.map((_, i) => (
-            <View key={i} style={[hd.dot, i === page && hd.dotActive]} />
-          ))}
-        </View>
+      {/* ── Done: outside the ViewShot so it never appears in saved images ── */}
+      <View style={[ft.bar, { paddingBottom: insets.bottom + 12 }]} pointerEvents="box-none">
+        <AnimatedPressable
+          haptic="light"
+          style={ft.done}
+          onPress={onDone}
+          accessibilityRole="button"
+          accessibilityLabel="Done, back to Home"
+        >
+          <Text style={ft.doneTxt}>Done</Text>
+        </AnimatedPressable>
+      </View>
 
-      </SafeAreaView>
-
-      {/* ── Options menu modal ─────────────────────────── */}
+      {/* ── Options menu ─────────────────────────────────── */}
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <View style={mn.backdrop}>
           {/* Tap-anywhere-to-dismiss layer sits BEHIND the sheet, so it can
               never swallow taps destined for menu items above it. */}
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
 
-          <View style={mn.sheet}>
+          <View style={[mn.sheet, { marginTop: insets.top + 56 }]}>
             <Pressable
               onPress={pickBackground}
               style={({ pressed }) => [mn.item, pressed && { opacity: 0.65 }]}
             >
               <Ionicons name="image-outline" size={20} color={COLORS.accent} />
-              <Text style={mn.itemTxt}>{bgImage ? 'Replace Background' : 'Pick Background Image'}</Text>
+              <Text style={mn.itemTxt}>{bgImage ? 'Replace background' : 'Pick a background image'}</Text>
             </Pressable>
 
             {bgImage && (
@@ -222,7 +229,7 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
                 style={({ pressed }) => [mn.item, pressed && { opacity: 0.65 }]}
               >
                 <Ionicons name="close-circle-outline" size={20} color={COLORS.textSecondary} />
-                <Text style={[mn.itemTxt, { color: COLORS.textSecondary }]}>Remove Background</Text>
+                <Text style={[mn.itemTxt, { color: COLORS.textSecondary }]}>Remove background</Text>
               </Pressable>
             )}
 
@@ -234,36 +241,39 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
               style={({ pressed }) => [mn.item, busy && { opacity: 0.5 }, pressed && { opacity: 0.65 }]}
             >
               <Ionicons name="download-outline" size={20} color={COLORS.accent} />
-              <Text style={mn.itemTxt}>{busy ? 'Saving…' : 'Save as Image'}</Text>
+              <Text style={mn.itemTxt}>{busy ? 'Saving…' : 'Save as image'}</Text>
             </Pressable>
           </View>
           <FeedbackHost />
         </View>
       </Modal>
-    </ViewShot>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-// Header
 const hd = StyleSheet.create({
-  bar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 10, minHeight: 44, zIndex: 10 },
-  backBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:      { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.45, flex: 1, textAlign: 'center' },
-  rightSlot:  { width: 36, height: 36, alignItems: 'flex-end', justifyContent: 'center' },
-  iconBtn:    { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
-  // Bottom-anchored page indicator (visible across all pages)
-  bottomDots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 12 },
-  dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.22)' },
-  dotActive:  { backgroundColor: COLORS.accent, width: 18, borderRadius: 3 },
+  bar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 },
+  side:    { width: 40, alignItems: 'flex-end' },
+  tabs:    { flexDirection: 'row', borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.06)', padding: 3 },
+  pill:    { position: 'absolute', top: 3, left: 3, bottom: 3, borderRadius: 99, backgroundColor: 'rgba(255,140,0,0.18)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)' },
+  tab:     { height: 34, alignItems: 'center', justifyContent: 'center' },
+  tabTxt:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  tabTxtActive: { color: COLORS.text },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
 });
 
-// Options menu (Page 1 settings)
+const ft = StyleSheet.create({
+  bar:     { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12 },
+  done:    { height: FOOTER_H, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
+  doneTxt: { fontSize: 16, fontFamily: FONTS.display, color: '#000', letterSpacing: -0.3 },
+});
+
 const mn = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 56, paddingRight: 12 },
-  sheet:    { minWidth: 220, borderRadius: 14, backgroundColor: 'rgba(28,28,32,0.97)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', paddingVertical: 6 },
-  item:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
-  itemTxt:  { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'flex-end', paddingRight: 12 },
+  sheet:    { minWidth: 230, borderRadius: 14, backgroundColor: 'rgba(28,28,32,0.97)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', paddingVertical: 6 },
+  item:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 13 },
+  itemTxt:  { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text },
   divider:  { height: 1, backgroundColor: 'rgba(255,240,220,0.08)', marginVertical: 2 },
 });
