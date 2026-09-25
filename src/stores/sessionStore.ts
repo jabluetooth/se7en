@@ -37,6 +37,8 @@ interface SessionStore {
 
   startSession:           (planId: string, day: WorkoutDay) => void;
   completeSet:            (exerciseId: string, setId: string, data: Partial<SetLog>) => void;
+  /** Undo a logged set: it goes back to editable, keeping the values that were entered. */
+  uncompleteSet:          (exerciseId: string, setId: string) => void;
   addSetNote:             (exerciseId: string, setId: string, note: string) => void;
   setExerciseRPE:         (exerciseId: string, rpe: number, note: string) => void;
   finishSession:          (sessionNote?: string) => Promise<WorkoutSession | null>;
@@ -230,6 +232,26 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     });
   },
 
+  uncompleteSet: (exerciseId, setId) => {
+    set(s => {
+      if (!s.activeSession) return s;
+      const exercises = s.activeSession.exercises.map(ex => {
+        if (ex.id !== exerciseId) return ex;
+        const sets = ex.sets.map(st =>
+          st.id === setId ? { ...st, isCompleted: false, completedAt: null } : st
+        );
+        return { ...ex, sets, isCompleted: false };
+      });
+      const updated = { ...s.activeSession, exercises };
+      AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(updated));
+      getUid().then(uid => { if (uid) fsActiveSession.set(uid, updated).catch(e => __DEV__ && console.warn('[se7en/session]', e)); });
+      Promise.all([getWidgetService(), getActivePlan()]).then(([ws, plan]) => {
+        ws.updateSession(updated, s.sessionTimer, plan);
+      }).catch(() => {});
+      return { activeSession: updated };
+    });
+  },
+
   addSet: (exerciseId) => {
     set(s => {
       if (!s.activeSession) return s;
@@ -379,13 +401,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       AsyncStorage.removeItem(ACTIVE_KEY),
       AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(sessions)),
     ]);
-    const uid = await getUid();
-    if (uid) {
-      await Promise.all([
-        fsActiveSession.clear(uid).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
-        fsSessions.set(uid, finished).catch(e => __DEV__ && console.warn('[se7en/session]', e)),
-      ]);
-    }
+    // Firestore in the background: the finished session is already safe in
+    // local storage above, and the Firestore SDK resolves a write only once
+    // the server acknowledges it — on patchy gym Wi-Fi that held the Finish
+    // button spinning for seconds, or indefinitely offline. The SDK queues
+    // and retries the write itself; the realtime listener reconciles later.
+    getUid().then(uid => {
+      if (!uid) return;
+      fsActiveSession.clear(uid).catch(e => __DEV__ && console.warn('[se7en/session]', e));
+      fsSessions.set(uid, finished).catch(e => __DEV__ && console.warn('[se7en/session]', e));
+    }).catch(() => {});
 
     // ── Cycle-complete detection ───────────────────────────────────────────────
     Promise.all([getActivePlan(), getSettings()]).then(async ([plan, settings]) => {

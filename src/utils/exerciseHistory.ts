@@ -75,3 +75,40 @@ export function aggregateExercises(sessions: WorkoutSession[]): ExerciseHistory[
   }
   return [...byId.values()];
 }
+
+/** What the user did on each set the last time they trained an exercise. */
+export interface LastSet {
+  weight: number | null;
+  reps:   number;
+}
+
+/**
+ * Sets from the most recent completed session that included this exercise,
+ * in set order. Matches by exerciseId first (stable across renames), then by
+ * case-insensitive name. Returns [] when the exercise has no history yet.
+ */
+export function lastPerformance(
+  sessions: WorkoutSession[],
+  exerciseId: string,
+  exerciseName: string,
+): LastSet[] {
+  const lower = exerciseName.toLowerCase();
+  let best: { at: number; sets: LastSet[] } | null = null;
+  for (const s of sessions) {
+    if (s.status !== 'completed' || !s.finishedAt) continue;
+    const at = new Date(s.finishedAt).getTime();
+    if (best && at <= best.at) continue;
+    const ex = s.exercises.find(e => e.exerciseId === exerciseId || e.exerciseName.toLowerCase() === lower);
+    if (!ex) continue;
+    const done = ex.sets.filter(st => st.isCompleted).sort((a, b) => a.setNumber - b.setNumber);
+    if (done.length === 0) continue;
+    best = {
+      at,
+      sets: done.map(st => ({
+        weight: st.actualWeight,
+        reps: st.actualRepsToFailure ?? st.actualReps,
+      })),
+    };
+  }
+  return best?.sets ?? [];
+}

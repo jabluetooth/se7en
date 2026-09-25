@@ -1,6 +1,10 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { FadeIn, LinearTransition, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { SPRING } from '../../motion/tokens';
+import { lastPerformance } from '../../utils/exerciseHistory';
 import { GlassView } from '../common/GlassView';
 import { ProgressRing } from '../common/ProgressRing';
 import { SetTypeBadge } from '../common/SetTypeBadge';
@@ -24,10 +28,21 @@ interface Props {
   defaultExpanded?: boolean;
   isActive?:        boolean;
   onSetComplete?:   (exerciseName: string, setNumber: number, actualReps: number, actualWeight: number | null, weightUnit: string) => void;
+  /** Called once the exercise is wrapped up (effort rated or skipped), so the
+   *  screen can bring the next exercise into view. */
+  onAdvance?:       () => void;
 }
 
-export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplete }: Props) {
-  const { completeSet, setExerciseRPE, addSet, removeLastSet } = useSessionStore();
+export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplete, onAdvance }: Props) {
+  const { completeSet, uncompleteSet, setExerciseRPE, addSet, removeLastSet } = useSessionStore();
+  const history = useSessionStore(st => st.sessions);
+  const lastSets = useMemo(
+    () => lastPerformance(history, exercise.exerciseId, exercise.exerciseName),
+    [history, exercise.exerciseId, exercise.exerciseName],
+  );
+  // Only the most recently logged set can be undone, so undo never punches a
+  // hole in the middle of an exercise.
+  const lastDoneIdx = exercise.sets.reduce((acc, st, i) => (st.isCompleted ? i : acc), -1);
   const { activePlan }  = usePlanStore();
   const [expanded, setExpanded] = useState(
     defaultExpanded !== undefined ? defaultExpanded : !exercise.isCompleted,
@@ -55,12 +70,24 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
     prevAllDone.current = allDone;
   }, [allDone]);
 
+  const chevron = useSharedValue(expanded ? 1 : 0);
+  useEffect(() => { chevron.value = withSpring(expanded ? 1 : 0, SPRING.snappy); }, [expanded]);
+  const chevronStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chevron.value * 180}deg` }] }));
+
+  // Wrapping up: rating (or skipping) effort collapses the card and hands off
+  // to the next exercise.
+  const finishExercise = () => {
+    setExpanded(false);
+    onAdvance?.();
+  };
+
   // Library tags take precedence (specific); fall back to plan exercise tags for custom exercises
   const libEx      = findExercise(exercise.exerciseId);
   const planEx     = activePlan?.days.flatMap(d => d.exercises).find(e => e.id === exercise.exerciseId);
   const muscleTags = (libEx?.muscleTags ?? planEx?.muscleTags ?? []).slice(0, 2);
 
   return (
+    <Animated.View layout={LinearTransition.springify().damping(SPRING.gentle.damping).stiffness(SPRING.gentle.stiffness)}>
     <GlassView
       radius={16}
       style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
@@ -113,20 +140,22 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
             )}
           </View>
         </View>
-        <View style={[s.chevron, expanded && s.chevronUp]}>
-          <Text style={s.chevronText}>{'>'}</Text>
-        </View>
+        <Animated.View style={chevronStyle}>
+          <Ionicons name="chevron-down" size={20} color={COLORS.textMuted} />
+        </Animated.View>
       </AnimatedPressable>
 
       {expanded && (
-        <View style={s.sets}>
+        <Animated.View entering={FadeIn.duration(220)} style={s.sets}>
           {exercise.sets.map((set, idx) => (
             <SetLogger
               key={set.id}
               set={set}
-              setIndex={idx}
               exercise={exercise}
+              lastSet={lastSets[idx]}
+              canUndo={idx === lastDoneIdx}
               onComplete={(data) => completeSet(exercise.id, set.id, data)}
+              onUndo={() => uncompleteSet(exercise.id, set.id)}
               onSetComplete={onSetComplete}
             />
           ))}
@@ -183,16 +212,19 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
                 initialRpe={editingRpe ? exercise.rpe : undefined}
                 initialNote={editingRpe ? (exercise.exerciseNote ?? '') : ''}
                 onSave={(rpe, note) => {
+                  const firstTime = !editingRpe;
                   setExerciseRPE(exercise.id, rpe, note);
                   setEditingRpe(false);
+                  if (firstTime) finishExercise();
                 }}
-                onSkip={editingRpe ? undefined : () => setRpeSkipped(true)}
+                onSkip={editingRpe ? undefined : () => { setRpeSkipped(true); finishExercise(); }}
               />
             );
           })()}
-        </View>
+        </Animated.View>
       )}
     </GlassView>
+    </Animated.View>
   );
 }
 
@@ -211,9 +243,6 @@ const s = StyleSheet.create({
   musclePillText:{ fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   rpePill:       { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
   rpePillText:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display },
-  chevron:       { transform: [{ rotate: '90deg' }] },
-  chevronUp:     { transform: [{ rotate: '270deg' }] },
-  chevronText:   { fontSize: 14, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline },
   sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
   setControls:   { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingTop: SPACING.sm, marginTop: 2 },
   addSetBtn:     { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: COLORS.accent + '55', backgroundColor: COLORS.accent + '18' },

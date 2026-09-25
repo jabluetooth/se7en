@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Modal } from 'react-native';
-import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { useFeedback } from '../../components/feedback/Feedback';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { GlassView } from '../../components/common/GlassView';
+import { Ionicons } from '@expo/vector-icons';
+import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
+import { SPRING, TIMING } from '../../motion/tokens';
+import { useFeedback } from '../../components/feedback/Feedback';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { ExerciseCard } from '../../components/ExerciseCard/ExerciseCard';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -13,8 +14,7 @@ import { usePlanStore } from '../../stores/planStore';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { WorkoutSession } from '../../types';
 import { sessionTotalVolume } from '../../utils/volume';
-import { RestTimerScreen } from '../RestTimer/RestTimerScreen';
-import { FeedbackHost } from '../../components/feedback/Feedback';
+import { RestTimerBar, type RestContext } from './RestTimerBar';
 
 interface Props {
   onFinish: (session: WorkoutSession) => void;
@@ -22,40 +22,48 @@ interface Props {
   onClear?: () => void;
 }
 
+const FOOTER_H = 76;
+
 export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   const { activeSession, sessionTimer, finishSession, skipDay, clearActiveSession } = useSessionStore();
   const { activePlan } = usePlanStore();
   const { confirm } = useFeedback();
   const insets = useSafeAreaInsets();
   const [isFinishing, setIsFinishing] = useState(false);
-  const [restCtx, setRestCtx] = useState<{
-    exerciseName:     string;
-    setNumber:        number;
-    actualReps:       number;
-    actualWeight:     number | null;
-    weightUnit:       string;
-    nextExerciseName: string | null;
-    initialSecs:      number;
-  } | null>(null);
+  const [rest, setRest] = useState<RestContext | null>(null);
+  const restSeq = useRef(0);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const cardY = useRef(new Map<string, number>());
+
+  const totalSets = activeSession?.exercises.reduce((a, e) => a + e.sets.length, 0) ?? 0;
+  const doneSets  = activeSession?.exercises.reduce((a, e) => a + e.sets.filter(st => st.isCompleted).length, 0) ?? 0;
+  const pct       = totalSets > 0 ? doneSets / totalSets : 0;
+  const allDone   = totalSets > 0 && doneSets === totalSets;
+
+  // Footer progress bar fills smoothly; Finish gives one soft pulse the
+  // moment the last set is logged, so the next step is obvious.
+  const fill = useSharedValue(pct);
+  const pulse = useSharedValue(1);
+  useEffect(() => { fill.value = withTiming(pct, TIMING.emphasis); }, [pct]);
+  useEffect(() => {
+    if (!allDone) return;
+    pulse.value = withSequence(withSpring(1.04, SPRING.snappy), withSpring(1, SPRING.gentle));
+    fireHaptic('success');
+  }, [allDone]);
+  const fillStyle  = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   if (!activeSession) return null;
 
-  const mins      = Math.floor(sessionTimer / 60);
-  const secs      = sessionTimer % 60;
-  // Past 60 min, switch to `h:mm hr` (e.g. 80 min → 1:20hr). Under an hour
-  // keeps the second-precision `m:ss` so short sessions still tick visibly.
-  const timeStr   = mins >= 60
-    ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}hr`
+  const mins    = Math.floor(sessionTimer / 60);
+  const secs    = sessionTimer % 60;
+  const timeStr = mins >= 60
+    ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}h`
     : `${mins}:${String(secs).padStart(2, '0')}`;
-  const totalSets = activeSession.exercises.reduce((a, e) => a + e.sets.length, 0);
-  const doneSets  = activeSession.exercises.reduce((a, e) => a + e.sets.filter(s => s.isCompleted).length, 0);
-  const pct       = totalSets > 0 ? doneSets / totalSets : 0;
+
   const volume      = Math.round(sessionTotalVolume(activeSession.exercises));
   const activeExIdx = activeSession.exercises.findIndex(ex => !ex.isCompleted);
-
-  // Volume unit derived from the session's exercises. `bodyweight` contributes
-  // reps (per utils/volume.ts), so display it as "reps". Mixed units fall back
-  // to "mixed" so the figure isn't mislabelled.
   const volumeUnit = (() => {
     const units = [...new Set(activeSession.exercises.map(e => e.weightUnit))];
     if (units.length === 0) return 'kg';
@@ -63,30 +71,62 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
     return units[0] === 'bodyweight' ? 'reps' : units[0];
   })();
 
+  const handleSetComplete = (name: string, num: number) => {
+    const exercises = activeSession.exercises;
+    const curIdx = exercises.findIndex(e => e.exerciseName === name);
+    const curEx  = exercises[curIdx];
+    if (!curEx) return;
+    const moreSets = num < curEx.sets.length;
+    const nextEx   = exercises.slice(curIdx + 1).find(e => !e.isCompleted);
+    const nextLabel = moreSets
+      ? `Up next: set ${num + 1} · ${curEx.exerciseName}`
+      : nextEx
+      ? `Up next: ${nextEx.exerciseName}`
+      : 'Last set done. Finish when you are ready.';
+    // Resolve the per-exercise rest length from the plan (90 s app default).
+    const planEx = activePlan?.days.flatMap(d => d.exercises).find(e => e.id === curEx.exerciseId);
+    setRest({
+      id: ++restSeq.current,
+      exerciseName: moreSets ? curEx.exerciseName : nextEx?.exerciseName ?? curEx.exerciseName,
+      nextSetNumber: moreSets ? num + 1 : 1,
+      nextLabel,
+      seconds: planEx?.restTimerSecs ?? 90,
+    });
+  };
+
+  // After an exercise is wrapped up, bring the next unfinished one into view.
+  const advanceFrom = (exerciseId: string) => {
+    const exercises = activeSession.exercises;
+    const from = exercises.findIndex(e => e.id === exerciseId);
+    const next = exercises.slice(from + 1).find(e => !e.isCompleted) ?? exercises.find(e => !e.isCompleted);
+    if (!next) return;
+    const y = cardY.current.get(next.id);
+    if (y != null) setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }), 260);
+  };
+
   const handleFinish = async () => {
-    // Guard against a second tap re-entering finishSession while the first
-    // call's Firestore round-trip is still in flight — that could append a
-    // duplicate finished session and re-fire PR notifications.
+    // Guard against a second tap re-entering finishSession while the first is
+    // in flight: that could append a duplicate session and re-fire PR alerts.
     if (isFinishing) return;
+    if (!allDone) {
+      const left = totalSets - doneSets;
+      const ok = await confirm({
+        title: 'Finish early?',
+        message: `${left} set${left === 1 ? ' is' : 's are'} not logged yet. They won't count toward this workout.`,
+        confirmLabel: 'Finish workout',
+        cancelLabel: 'Keep going',
+      });
+      if (!ok) return;
+    }
     setIsFinishing(true);
+    setRest(null);
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      fireHaptic('success');
       const session = await finishSession();
       if (session) onFinish(session);
     } finally {
       setIsFinishing(false);
     }
-  };
-
-  const doSkip = async () => {
-    await skipDay(
-      activeSession.planId,
-      activeSession.dayPosition,
-      activeSession.dayLabel,
-      'Other',
-    );
-    onClear?.();       // close the modal before clearing so there is no blank flash
-    clearActiveSession();
   };
 
   const handleSkip = async () => {
@@ -99,179 +139,123 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
       cancelLabel: 'Keep training',
       destructive: true,
     });
-    if (ok) await doSkip();
+    if (!ok) return;
+    await skipDay(activeSession.planId, activeSession.dayPosition, activeSession.dayLabel, 'Other');
+    onClear?.();       // close the modal before clearing so there is no blank flash
+    clearActiveSession();
   };
+
+  const footerBottom = insets.bottom + 10;
 
   return (
     <View style={s.root}>
       <AppBackground />
 
-      <Modal
-        visible={!!restCtx}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setRestCtx(null)}
-      >
-        {restCtx && (
-          <RestTimerScreen
-            exerciseName={restCtx.exerciseName}
-            setNumber={restCtx.setNumber}
-            actualReps={restCtx.actualReps}
-            actualWeight={restCtx.actualWeight}
-            weightUnit={restCtx.weightUnit}
-            nextExerciseName={restCtx.nextExerciseName}
-            initialSecs={restCtx.initialSecs}
-            onClose={() => setRestCtx(null)}
-          />
-        )}
-        <FeedbackHost />
-      </Modal>
-
       <View style={[s.safe, { paddingTop: insets.top }]}>
         {/* ── Header ─────────────────────────────────────── */}
         <View style={s.header}>
-          {onBack && (
+          <View style={s.headerTop}>
+            {onBack ? (
+              <AnimatedPressable
+                scale="strong"
+                style={s.headerBtn}
+                onPress={onBack}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Back to Home. Your workout keeps running."
+              >
+                <Ionicons name="chevron-down" size={22} color={COLORS.textSecondary} />
+              </AnimatedPressable>
+            ) : <View style={s.headerBtn} />}
             <AnimatedPressable
-              style={s.backBtn}
-              onPress={onBack}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              scale="strong"
+              style={s.skipBtn}
+              onPress={handleSkip}
               accessibilityRole="button"
-              accessibilityLabel="Back to Home"
+              accessibilityLabel="Skip this workout day"
             >
-              <Text style={s.backIcon}>‹</Text>
-              <Text style={s.backTxt}>Home</Text>
+              <Text style={s.skipTxt}>Skip day</Text>
             </AnimatedPressable>
-          )}
-          <Text style={s.headerSup}>
-            Day {activeSession.dayPosition} · {activePlan?.name ?? ''}
-          </Text>
+          </View>
+          <Text style={s.headerSup}>Day {activeSession.dayPosition} · {activePlan?.name ?? ''}</Text>
           <Text style={s.headerTitle}>{activeSession.dayLabel}</Text>
         </View>
 
-        {/* ── Stats row — bare typographic numbers, no glass/border. The
-             exercise cards below are this screen's one elevated surface;
-             boxing every stat too flattens that hierarchy instead of
-             creating it. ─────────────────────────────────────────────── */}
+        {/* ── Stats row ──────────────────────────────────── */}
         <View style={s.statsRow}>
           <View style={s.statBlock}>
             <Text style={s.statValue}>{doneSets}/{totalSets}</Text>
-            <Text style={s.statLabel}>Sets Done</Text>
+            <Text style={s.statLabel}>Sets</Text>
           </View>
-
           <View style={s.statDivider} />
-
           <View style={s.statBlock}>
             <View style={s.timerInner}>
-              <View style={s.glowDot} />
+              <View style={s.liveDot} />
               <Text style={s.statValueAccent}>{timeStr}</Text>
             </View>
-            <Text style={s.statLabel}>in progress</Text>
+            <Text style={s.statLabel}>Time</Text>
           </View>
-
           <View style={s.statDivider} />
-
           <View style={s.statBlock}>
-            <Text style={s.statValue}>{volume}</Text>
+            <Text style={s.statValue}>{volume.toLocaleString()}</Text>
             <Text style={s.statLabel}>Volume ({volumeUnit})</Text>
           </View>
         </View>
 
-        {/* ── Session progress card ───────────────────────── */}
-        <GlassView radius={16} style={s.progressCard}>
-          <View style={s.progressHeader}>
-            <Text style={s.progressSetsLabel}>{doneSets} / {totalSets} sets</Text>
-            <Text style={s.progressPct}>{Math.round(pct * 100)}%</Text>
-          </View>
-          <View style={s.progressTrack}>
-            <LinearGradient
-              colors={GRAD.progress}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[s.progressFill, { width: `${Math.round(pct * 100)}%` as any }]}
-            />
-          </View>
-
-          <View style={s.divider} />
-
-          {activeSession.exercises.map(ex => {
-            const exDone = ex.sets.filter(st => st.isCompleted).length;
-            return (
-              <View key={ex.id} style={s.exRow}>
-                <Text style={s.exName} numberOfLines={1}>{ex.exerciseName}</Text>
-                <View style={s.dotRow}>
-                  {ex.sets.map(st => (
-                    <View key={st.id} style={[s.dot, st.isCompleted && s.dotDone]} />
-                  ))}
-                </View>
-                <Text style={[s.exCount, exDone === ex.sets.length && s.exCountDone]}>
-                  {exDone}/{ex.sets.length}
-                </Text>
-              </View>
-            );
-          })}
-        </GlassView>
-
-        {/* ── Exercise list ──────────────────────────────── */}
+        {/* ── Exercises ──────────────────────────────────── */}
         <ScrollView
+          ref={scrollRef}
           style={s.scroll}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={[s.scrollContent, { paddingBottom: FOOTER_H + footerBottom + (rest ? 110 : 20) }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {activeSession.exercises.map((ex, idx) => (
-            <ExerciseCard
-              key={ex.id}
-              exercise={ex}
-              defaultExpanded={idx === activeExIdx}
-              isActive={idx === activeExIdx}
-              onSetComplete={(name, num, reps, weight, unit) => {
-                const curIdx  = activeSession.exercises.findIndex(e => e.exerciseName === name);
-                const curEx   = activeSession.exercises[curIdx];
-                const isLast  = curEx ? num >= curEx.sets.length : false;
-                const nextEx  = isLast ? activeSession.exercises[curIdx + 1] : null;
-                // Resolve per-exercise rest timer from plan (falls back to 90s app default)
-                const planEx  = activePlan?.days.flatMap(d => d.exercises).find(e => e.id === curEx?.exerciseId);
-                const initSecs = planEx?.restTimerSecs ?? 90;
-                setRestCtx({
-                  exerciseName:     name,
-                  setNumber:        num,
-                  actualReps:       reps,
-                  actualWeight:     weight,
-                  weightUnit:       unit,
-                  nextExerciseName: nextEx?.exerciseName ?? null,
-                  initialSecs:      initSecs,
-                });
-              }}
-            />
+            <View key={ex.id} onLayout={e => cardY.current.set(ex.id, e.nativeEvent.layout.y)}>
+              <ExerciseCard
+                exercise={ex}
+                defaultExpanded={idx === activeExIdx}
+                isActive={idx === activeExIdx}
+                onSetComplete={handleSetComplete}
+                onAdvance={() => advanceFrom(ex.id)}
+              />
+            </View>
           ))}
-
-          {/* ── Finish / Skip at end of list ───────────── */}
-          <View style={s.finishSection}>
-            <AnimatedPressable
-              style={[s.finishBtn, isFinishing && { opacity: 0.6 }]}
-              onPress={handleFinish}
-              disabled={isFinishing}
-              accessibilityRole="button"
-              accessibilityLabel="Finish Workout"
-              accessibilityState={{ disabled: isFinishing, busy: isFinishing }}
-            >
-              <Text style={s.finishTxt}>{isFinishing ? 'Finishing…' : 'Finish Workout'}</Text>
-            </AnimatedPressable>
-
-            <AnimatedPressable
-              style={s.skipBtn}
-              onPress={handleSkip}
-              accessibilityRole="button"
-              accessibilityLabel="Skip Day"
-            >
-              <GlassView radius={16} style={s.skipInner}>
-                <Text style={s.skipTxt}>Skip Day</Text>
-              </GlassView>
-            </AnimatedPressable>
-          </View>
-
-          <View style={{ height: 40 }} />
         </ScrollView>
+      </View>
+
+      {rest && (
+        <RestTimerBar
+          key="rest"
+          ctx={rest}
+          bottom={footerBottom + FOOTER_H + 8}
+          onDismiss={() => setRest(null)}
+        />
+      )}
+
+      {/* ── Sticky footer ────────────────────────────────── */}
+      <View style={[s.footer, { paddingBottom: footerBottom }]}>
+        <View style={s.track}>
+          <Animated.View style={[s.trackFill, fillStyle]}>
+            <LinearGradient colors={GRAD.progress} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+        </View>
+        <Animated.View style={pulseStyle}>
+          <AnimatedPressable
+            scale="subtle"
+            style={[s.finishBtn, !allDone && s.finishBtnQuiet, isFinishing && { opacity: 0.6 }]}
+            onPress={handleFinish}
+            disabled={isFinishing}
+            accessibilityRole="button"
+            accessibilityLabel="Finish workout"
+            accessibilityState={{ disabled: isFinishing, busy: isFinishing }}
+          >
+            <Text style={[s.finishTxt, !allDone && s.finishTxtQuiet]}>
+              {isFinishing ? 'Finishing…' : allDone ? 'Finish workout' : `Finish workout · ${doneSets}/${totalSets} sets`}
+            </Text>
+          </AnimatedPressable>
+        </Animated.View>
       </View>
     </View>
   );
@@ -280,45 +264,32 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
 const s = StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
-
-  header:        { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16, zIndex: 10 },
-  backBtn:       { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 10, alignSelf: 'flex-start' },
-  backIcon:      { fontSize: 22, color: COLORS.textMuted, lineHeight: 24 },
-  backTxt:       { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  headerSup:     { fontSize: 12, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
-  headerTitle:   { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20, lineHeight: 33 },
-
-  statsRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 18 },
+  header:        { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 },
+  headerTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  headerBtn:     { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
+  skipBtn:       { height: 36, paddingHorizontal: 14, borderRadius: 99, justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)' },
+  skipTxt:       { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  headerSup:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
+  headerTitle:   { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.2, lineHeight: 34 },
+  statsRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
   statBlock:     { flex: 1, alignItems: 'center', gap: 3 },
   statDivider:   { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: 'rgba(255,240,220,0.14)' },
-  statValue:     { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  statValueAccent: { fontSize: 21, fontWeight: '800', fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  statLabel:     { fontSize: 11, fontWeight: '600', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80 },
-  timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  glowDot:       { width: 7, height: 7, borderRadius: 99, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 4 },
-
-  progressCard:      { marginHorizontal: 20, marginBottom: 12, padding: 14 },
-  progressHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  progressSetsLabel: { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  progressPct:       { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, fontVariant: ['tabular-nums'] },
-  progressTrack:     { height: 3, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.08)', overflow: 'hidden' },
-  progressFill:      { height: '100%', borderRadius: 99 },
-  divider:           { height: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginTop: 12, marginBottom: 8 },
-  exRow:             { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, gap: 8 },
-  exName:            { flex: 1, fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  dotRow:            { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-  dot:               { width: 7, height: 7, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.15)' },
-  dotDone:           { backgroundColor: COLORS.accent },
-  exCount:           { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textLabel, fontVariant: ['tabular-nums'], minWidth: 28, textAlign: 'right' },
-  exCountDone:       { color: COLORS.accent },
-
+  statValue:     { fontSize: 21, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  statValueAccent: { fontSize: 21, fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  statLabel:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.8 },
+  timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  liveDot:       { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent },
   scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 4 },
-
-  finishSection: { marginTop: 24, gap: 10 },
-  finishBtn:     { borderRadius: 16, height: 56, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  finishTxt:     { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#000', letterSpacing: -0.64 },
-  skipBtn:       { borderRadius: 16 },
-  skipInner:     { height: 50, alignItems: 'center', justifyContent: 'center' },
-  skipTxt:       { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 2 },
+  footer:        {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    paddingHorizontal: 16, paddingTop: 10, gap: 10,
+    backgroundColor: 'rgba(12,10,8,0.94)', borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)',
+  },
+  track:         { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.08)', overflow: 'hidden' },
+  trackFill:     { height: '100%', borderRadius: 2, overflow: 'hidden' },
+  finishBtn:     { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
+  finishBtnQuiet:{ backgroundColor: 'rgba(255,140,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)' },
+  finishTxt:     { fontSize: 16, fontFamily: FONTS.display, color: '#000', letterSpacing: -0.4 },
+  finishTxtQuiet:{ color: COLORS.accent },
 });
