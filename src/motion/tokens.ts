@@ -4,9 +4,14 @@
 // moves like one product.
 //
 //   SPRING.press   — the squish when a finger lands on something tappable
-//   SPRING.snappy  — UI that should settle fast with no wobble (toggles, pills)
-//   SPRING.gentle  — larger surfaces arriving (sheets, cards, toasts)
+//   SPRING.snappy  — UI that should settle fast (toggles, pills, press release)
+//   SPRING.gentle  — larger surfaces arriving (sheets, cards, toasts, lists)
 //   SPRING.bouncy  — celebratory moments only (PR badge, set complete tick)
+//
+// Damping ratio ζ = damping / (2·√(stiffness·mass)). press, snappy and gentle
+// sit at ζ ≈ 1 (critically damped): they settle as fast as possible without
+// overshooting, so nothing wobbles. Only `bouncy` is underdamped (ζ ≈ 0.7),
+// giving one small overshoot, and it is reserved for celebrations.
 //
 // Every config carries `reduceMotion: ReduceMotion.System`, so when the OS
 // "Reduce Motion" setting is on Reanimated jumps straight to the end state.
@@ -18,10 +23,10 @@ import { Easing, ReduceMotion, type WithSpringConfig, type WithTimingConfig } fr
 const system = ReduceMotion.System;
 
 export const SPRING = {
-  press:  { damping: 18, stiffness: 420, mass: 0.6, reduceMotion: system },
-  snappy: { damping: 22, stiffness: 320, mass: 0.8, reduceMotion: system },
-  gentle: { damping: 20, stiffness: 180, mass: 1,   reduceMotion: system },
-  bouncy: { damping: 10, stiffness: 240, mass: 0.8, reduceMotion: system },
+  press:  { damping: 35, stiffness: 500, mass: 0.6, reduceMotion: system }, // ζ ≈ 1.0
+  snappy: { damping: 32, stiffness: 320, mass: 0.8, reduceMotion: system }, // ζ ≈ 1.0
+  gentle: { damping: 27, stiffness: 180, mass: 1,   reduceMotion: system }, // ζ ≈ 1.0
+  bouncy: { damping: 19, stiffness: 240, mass: 0.8, reduceMotion: system }, // ζ ≈ 0.7
 } as const satisfies Record<string, WithSpringConfig>;
 
 export const TIMING = {
