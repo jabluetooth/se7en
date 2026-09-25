@@ -188,7 +188,26 @@ export interface WorkoutSession {
   sessionNote: string | null;
   totalVolume: number;
   prsBreached: string[];
+  /** What each record was and became. Absent on sessions saved before this
+   *  field existed; always an array when present (Firestore rejects undefined). */
+  prDetails?: PRDetail[];
   exercises: SessionExercise[];
+}
+
+export type PRMetric = 'weight' | 'reps' | 'volume';
+
+/** One personal record set (or first baseline logged) in a session. */
+export interface PRDetail {
+  exerciseId:   string;
+  exerciseName: string;
+  metric:       PRMetric;
+  /** Unit of `value` / `previous`: the exercise's weight unit, or 'reps'. */
+  unit:         string;
+  value:        number;
+  /** The record before this session; 0 when `isFirst`. */
+  previous:     number;
+  /** First time this exercise was ever logged: a baseline, not a record. */
+  isFirst:      boolean;
 }
 
 // ─── Personal Records ─────────────────────────────────────────────────────────

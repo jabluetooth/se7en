@@ -370,13 +370,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     // the PR flags on reload.
     try {
       const prStore = await getPRStore();
-      const { updatedPRs, prsBreached } = detectPRs(finished, prStore.records);
+      const { updatedPRs, prsBreached, details } = detectPRs(finished, prStore.records);
+      finished.prsBreached = prsBreached;
+      finished.prDetails   = details;
+      // Baselines (first time an exercise is logged) are stored silently;
+      // only genuinely beaten records get a notification.
+      updatedPRs.forEach(pr => { prStore.upsertPR(pr).catch(e => __DEV__ && console.warn('[se7en/pr]', e)); });
       if (prsBreached.length > 0) {
-        finished.prsBreached = prsBreached;
         const { notifyNewPR } = await import('../services/notificationService');
         await Promise.all(
-          updatedPRs.map(async pr => {
-            prStore.upsertPR(pr);
+          updatedPRs.filter(pr => prsBreached.includes(pr.exerciseName)).map(async pr => {
             await notifyNewPR(
               pr.exerciseName,
               pr.heaviestWeight,
