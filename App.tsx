@@ -29,6 +29,8 @@ export default function App() {
     Inter_500Medium:   require('@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf'),
     Inter_600SemiBold: require('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
     Inter_700Bold:     require('@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf'),
+    Archivo_700Bold:      require('@expo-google-fonts/archivo/700Bold/Archivo_700Bold.ttf'),
+    Archivo_800ExtraBold: require('@expo-google-fonts/archivo/800ExtraBold/Archivo_800ExtraBold.ttf'),
   });
 
   // Saved Dark/Light choice is applied before anything themed renders.

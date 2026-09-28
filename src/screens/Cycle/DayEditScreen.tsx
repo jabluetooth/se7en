@@ -316,7 +316,7 @@ const s = themed(() => StyleSheet.create({
   scroll:     { paddingHorizontal: 16, paddingTop: 4 },
 
   nameCard:   { padding: 14, marginBottom: 10, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  fieldLbl:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  fieldLbl:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   nameInput:  { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.54, paddingVertical: 2 },
 
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },

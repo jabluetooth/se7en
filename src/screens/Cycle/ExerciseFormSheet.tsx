@@ -141,7 +141,7 @@ function Suggestions({
 
 const sg = themed(() => StyleSheet.create({
   wrap:     { marginTop: 10, marginBottom: 6 },
-  label:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  label:    { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: ink(0.08), backgroundColor: ink(0.04), marginBottom: 6 },
   left:     { flex: 1 },
   name:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 2 },
@@ -559,7 +559,7 @@ const f = themed(() => StyleSheet.create({
   save:        { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:     { paddingHorizontal: 20, paddingTop: 4 },
-  fieldLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10 },
+  fieldLabel: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10 },
 
   // Vertically stacked sections (sets, min reps, max reps)
   stackSection: { marginTop: 24 },

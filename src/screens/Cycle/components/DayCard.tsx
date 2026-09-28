@@ -476,11 +476,11 @@ export const dc = themed(() => StyleSheet.create({
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  labelHint:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 7 },
+  labelHint:    { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 7 },
   labelField:   { paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
   labelInput:   { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.51, padding: 0 },
   recSection:   { marginBottom: 12 },
-  recLabel:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  recLabel:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
   recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: accentA(0.35), backgroundColor: accentA(0.1) },
   recChipTxt:   { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, maxWidth: 120 },

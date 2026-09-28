@@ -347,7 +347,7 @@ const c = themed(() => StyleSheet.create({
   title:       { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.51 },
   subtitle:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
 
-  sectionLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
+  sectionLabel: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
 
   scroll:      { paddingHorizontal: 16 },
 
@@ -364,7 +364,7 @@ const c = themed(() => StyleSheet.create({
   // Preset-specific
   presetNameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   presetBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: accentA(0.2), borderWidth: 1, borderColor: accentA(0.4) },
-  presetBadgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
+  presetBadgeTxt: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   presetActions:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteBtn:      { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: dangerA(0.12), borderWidth: 1, borderColor: dangerA(0.3) },
   presetSaved:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },

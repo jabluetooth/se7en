@@ -534,14 +534,14 @@ const q = themed(() => StyleSheet.create({
 
   best:         { padding: 18, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.accent, backgroundColor: accentA(0.07) },
   bestBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: COLORS.accent, marginBottom: 10 },
-  bestBadgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
+  bestBadgeTxt: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
   bestName:     { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.6 },
   bestDesc:     { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 20, marginTop: 6, marginBottom: 8 },
   meta:         { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
   bestCta:      { marginTop: 14, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
   bestCtaTxt:   { fontSize: 15, fontFamily: FONTS.display, color: COLORS.onAccent },
 
-  section:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 24, marginBottom: 10 },
+  section:      { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 24, marginBottom: 10 },
   row:          { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04), marginBottom: 8 },
   rowName:      { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, marginBottom: 3 },
   more:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 16 },

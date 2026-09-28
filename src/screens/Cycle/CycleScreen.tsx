@@ -430,14 +430,14 @@ const s = themed(() => StyleSheet.create({
 
   // Header
   header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 },
-  planLabel:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, marginBottom: 2 },
-  title:          { fontSize: 28, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.12 },
+  planLabel:      { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, marginBottom: 2 },
+  title:          { fontSize: 32, lineHeight: 36, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1 },
   editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: ink(0.07), borderWidth: 1, borderColor: ink(0.1) },
   editBtnActive:  { borderColor: accentA(0.5), backgroundColor: accentA(0.12) },
 
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
-  cabinetLabel:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  cabinetLabel:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   nameField:      { paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.borderFaint },
   nameInput:      { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text, padding: 0 },
   splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: ink(0.12), backgroundColor: ink(0.07) },
@@ -453,7 +453,7 @@ const s = themed(() => StyleSheet.create({
   // Completion card
   rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },
   rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  rateLabel:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 4 },
+  rateLabel:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 4 },
   rateNumRow: { flexDirection: 'row', alignItems: 'baseline' },
   rateVal:    { fontSize: 30, fontFamily: FONTS.data, color: COLORS.success, letterSpacing: -1.20 },
   rateSub:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },

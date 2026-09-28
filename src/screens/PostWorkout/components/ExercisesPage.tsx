@@ -285,13 +285,13 @@ const s = themed(() => StyleSheet.create({
   // Expanded set table
   table:     { borderTopWidth: 1, borderTopColor: ink(0.07), backgroundColor: ink(0.03) },
   tableHead: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9 },
-  th:        { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, flex: 1 },
+  th:        { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, flex: 1 },
   thRight:   { textAlign: 'right' },
   tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: ink(0.06) },
   td:        { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, flex: 1 },
   tdRight:   { textAlign: 'right' },
   // Exercise note
   noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: ink(0.06) },
-  noteLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 2, width: 34 },
+  noteLabel: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 2, width: 34 },
   noteTxt:   { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
 }));

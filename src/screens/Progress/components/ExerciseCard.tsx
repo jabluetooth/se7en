@@ -204,7 +204,7 @@ const s = themed(() => StyleSheet.create({
   meta:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   prBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: COLORS.accent },
-  prTxt:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
+  prTxt:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
 
   // Circular +/- trend indicator near the sparkline
   trendDot:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
@@ -214,7 +214,7 @@ const s = themed(() => StyleSheet.create({
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip:     { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04), flexDirection: 'column', gap: 1 },
-  chipLbl:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
+  chipLbl:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
   chipVal:  { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.text },
 
   // Regression banner — appears only when a sustained decline exists
@@ -225,7 +225,7 @@ const s = themed(() => StyleSheet.create({
   expanded: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: ink(0.07) },
 
   logHead:  { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: ink(0.07) },
-  logCol:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
+  logCol:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
   logRight: { textAlign: 'right' },
   logRow:   { flexDirection: 'row', paddingVertical: 6 },
   logCell:  { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.text },

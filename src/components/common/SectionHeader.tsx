@@ -26,6 +26,6 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
 
 const s = themed(() => StyleSheet.create({
   row:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  title: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
+  title: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
   action:{ fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.accent },
 }));

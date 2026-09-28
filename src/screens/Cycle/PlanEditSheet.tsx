@@ -418,7 +418,7 @@ const f = themed(() => StyleSheet.create({
   save:         { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:       { paddingHorizontal: 20, paddingTop: 4 },
-  sectionLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 10, marginTop: 20 },
+  sectionLabel: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 10, marginTop: 20 },
   subLabel:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
 
   inputCard:    { paddingHorizontal: 14, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },

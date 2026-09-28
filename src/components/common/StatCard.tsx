@@ -22,7 +22,7 @@ export function StatCard({ label, value, unit, delta, accent, style }: Props) {
 }
 
 const s = themed(() => StyleSheet.create({
-  label:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 5 },
+  label:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 5 },
   row:    { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
   value:  { fontSize: 26, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -1.04, lineHeight: 30 },
   accent: { color: COLORS.accent },

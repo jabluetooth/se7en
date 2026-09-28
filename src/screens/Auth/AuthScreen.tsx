@@ -306,7 +306,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
 
 const fi = themed(() => StyleSheet.create({
   wrap:  { marginBottom: 14 },
-  label: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 6 },
+  label: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 6 },
   row:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   icon:  {},
   input: { flex: 1, fontSize: 15, fontFamily: FONTS.medium, color: COLORS.text, padding: 0 },

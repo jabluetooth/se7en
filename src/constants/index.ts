@@ -145,14 +145,16 @@ export const MAX_BACKUPS             = 7;
 // (700 display and big numbers, 600 headings and labels, 500/400 text).
 // The data* aliases are kept so existing call sites read naturally; pair
 // them with fontVariant: ['tabular-nums'] so digits don't jiggle.
+// Archivo (tight, athletic) for titles and numbers; Inter for everything you read.
 export const FONTS = {
-  display:  'Inter_700Bold',
+  hero:     'Archivo_800ExtraBold',
+  display:  'Archivo_700Bold',
   headline: 'Inter_600SemiBold',
   label:    'Inter_600SemiBold',
   semibold: 'Inter_600SemiBold',
   medium:   'Inter_500Medium',
   body:     'Inter_400Regular',
-  data:     'Inter_700Bold',
+  data:     'Archivo_700Bold',
   dataBold: 'Inter_600SemiBold',
   dataSub:  'Inter_400Regular',
 } as const;

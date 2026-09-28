@@ -88,7 +88,7 @@ export function DayPreviewSheet({ slot, canStart, onStart, onEdit, onClose }: Pr
           {day.isRestDay ? (
             <Text style={sh.restTxt}>Nothing planned. Recovery is part of the program.</Text>
           ) : day.exercises.length === 0 ? (
-            <Text style={sh.restTxt}>No exercises yet. Add some in Cycle.</Text>
+            <Text style={sh.restTxt}>No exercises yet. Add some in Plan.</Text>
           ) : (
             <ScrollView style={sh.list} contentContainerStyle={{ gap: 8 }} showsVerticalScrollIndicator={false}>
               {day.exercises.map((ex, i) => (
@@ -119,10 +119,10 @@ export function DayPreviewSheet({ slot, canStart, onStart, onEdit, onClose }: Pr
               style={canStart ? sh.secondary : sh.secondaryAlone}
               onPress={() => close(onEdit)}
               accessibilityRole="button"
-              accessibilityLabel={`Edit ${day.label} in Cycle`}
+              accessibilityLabel={`Edit ${day.label} in Plan`}
             >
               <Ionicons name="create-outline" size={16} color={COLORS.textSecondary} />
-              <Text style={sh.secondaryTxt}>Edit in Cycle</Text>
+              <Text style={sh.secondaryTxt}>Edit in Plan</Text>
             </AnimatedPressable>
           </View>
         </Animated.View>
@@ -140,7 +140,7 @@ const sh = themed(() => StyleSheet.create({
     backgroundColor: COLORS.surface, borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.border,
   },
   grabber:  { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginBottom: 16 },
-  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
+  eyebrow:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   title:    { fontSize: 28, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1, marginTop: 4 },
   date:     { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
   chip:     { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 14, marginBottom: 16, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },

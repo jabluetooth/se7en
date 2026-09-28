@@ -75,7 +75,7 @@ const s = themed(() => StyleSheet.create({
   emptySub: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 6 },
 
   head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 26 },
-  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
+  eyebrow:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   dayName:  { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
   daySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 

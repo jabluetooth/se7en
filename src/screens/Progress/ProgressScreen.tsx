@@ -10,12 +10,13 @@ import { FadeInItem } from '../../components/common/FadeInItem';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { sessionLoad } from '../../utils/volume';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { fmtVol } from '../../utils/format';
+import { fmtDate, fmtVol } from '../../utils/format';
 import { aggregateExercises } from '../../utils/exerciseHistory';
 import { ContributionHeatmap } from './components/ContributionHeatmap';
+import { GainCard } from './components/GainCard';
+import { summarize, deltaLabel, PERIOD_LABEL, type Period } from '../../utils/progressInsights';
 import { ExerciseCard } from './components/ExerciseCard';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import Animated from 'react-native-reanimated';
@@ -23,7 +24,9 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { enterRise } from '../../motion/presets';
 import { accentA, ink, themed } from '../../theme/runtime';
 
-// Progress signal text colour — applied to font only.
+// Progress leads with what changed (the biggest gain in the chosen window,
+// totals against the window before, the latest records), then consistency,
+// then every lift with its own chart.
 
 type SortMode = 'recent' | 'volume' | 'name';
 
@@ -44,25 +47,17 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll,     setShowAll]     = useState(false);
+  const [period,      setPeriod]      = useState<Period>('4w');
 
   // Initial card limit — keeps the Progress screen scannable for users with
   // dozens of tracked exercises. Search bypasses the cap (the user is already
   // narrowing the list themselves).
   const INITIAL_LIMIT = 5;
 
-  // Memoised together so unrelated state updates (sort / search) don't redo
-  // these passes over the full sessions list every render.
-  const { totalWorkouts, recentVolume } = useMemo(() => {
-    const completed = sessions.filter(s => s.status === 'completed');
-    const recent14  = completed.slice(-14);
-    return {
-      totalWorkouts: completed.length,
-      recentVolume:  recent14.reduce((a, s) => a + sessionLoad(s.exercises, unit), 0),
-    };
-  }, [sessions, unit]);
+  const totalWorkouts = useMemo(() => sessions.filter(s => s.status === 'completed').length, [sessions]);
+  const summary = useMemo(() => summarize(sessions, period, unit), [sessions, period, unit]);
 
   const histories = useMemo(() => aggregateExercises(sessions), [sessions]);
-  const exerciseCount = histories.length;
 
   const sortedHistories = useMemo(() => {
     const arr = [...histories];
@@ -118,44 +113,60 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
           <FirstRun bottom={dockClearance} onStart={onStartWorkout} />
         ) : (
         <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
-          {/* Summary stats — bare typographic numbers, no glass. The Activity
-              heatmap below is this screen's genuinely distinct visual surface;
-              three more glass boxes just to show three numbers ahead of it
-              was diminishing that instead of leading into it. */}
-          <View style={s.statsRow}>
-            <View style={s.statCard}>
-              <View style={s.statHeader}>
-                <Ionicons name="barbell-outline" size={13} color={COLORS.accent} />
-                <Text style={s.statLabel}>Workouts</Text>
-              </View>
-              <Text style={s.statValue}>{totalWorkouts}</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statCard}>
-              <View style={s.statHeader}>
-                <Ionicons name="trending-up-outline" size={13} color={COLORS.accent} />
-                <Text style={s.statLabel}>Volume</Text>
-              </View>
-              <Text style={[s.statValue, s.statAccent]}>
-                {fmtVol(recentVolume)}
-                <Text style={s.statUnit}>{unit}</Text>
-              </Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statCard}>
-              <View style={s.statHeader}>
-                <Ionicons name="list-outline" size={13} color={COLORS.accent} />
-                <Text style={s.statLabel}>Exercises</Text>
-              </View>
-              <Text style={s.statValue}>{exerciseCount}</Text>
-            </View>
+          {/* Window */}
+          <View style={s.periods} accessibilityRole="tablist">
+            {(['4w', '3m', 'all'] as const).map(p => {
+              const active = p === period;
+              return (
+                <Pressable
+                  key={p}
+                  onPress={() => setPeriod(p)}
+                  style={[s.periodPill, active && s.periodPillOn]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[s.periodTxt, active && s.periodTxtOn]}>{PERIOD_LABEL[p]}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          {/* Activity heatmap */}
-          <GlassView radius={14} style={s.activityCard}>
-            <Text style={s.cardTitle}>Activity</Text>
+          {/* What changed */}
+          <Animated.View entering={enterRise(0)}>
+            <GainCard gain={summary.gain} periodLabel={PERIOD_LABEL[period]} width={windowWidth - 32} />
+          </Animated.View>
+
+          <Animated.View entering={enterRise(1)} style={s.statsRow}>
+            <Stat value={String(summary.workouts)} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
+            <Stat
+              value={fmtVol(summary.volume)}
+              unit={unit}
+              label="Volume"
+              delta={deltaLabel(Math.round(summary.volume), summary.prevVolume == null ? null : Math.round(summary.prevVolume), true)}
+            />
+            <Stat value={String(summary.records)} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
+          </Animated.View>
+
+          {summary.recentPRs.length > 0 && (
+            <View style={s.block}>
+              <Text style={s.blockTitle}>Latest records</Text>
+              {summary.recentPRs.slice(0, 4).map((pr, i) => (
+                <View key={`${pr.exerciseId}-${pr.finishedAt}-${i}`} style={s.prRow}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.prName} numberOfLines={1}>{pr.exerciseName}</Text>
+                    <Text style={s.prSub}>{fmtDate(pr.finishedAt)} · was {pr.previous} {pr.unit}</Text>
+                  </View>
+                  <Text style={s.prVal}>{pr.value} <Text style={s.prUnit}>{pr.unit}</Text></Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Consistency */}
+          <View style={s.block}>
+            <Text style={s.blockTitle}>Consistency</Text>
             <ContributionHeatmap sessions={sessions} />
-          </GlassView>
+          </View>
 
           {/* Exercise progress — section header swaps to a search bar on demand */}
           {searchOpen ? (
@@ -184,7 +195,7 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
           ) : (
             <View style={s.progressHeader}>
               <View style={s.titleRow}>
-                <Text style={s.sectionTitle}>Exercise Progress</Text>
+                <Text style={s.blockTitle}>Lifts</Text>
                 <Pressable
                   onPress={() => setSearchOpen(true)}
                   hitSlop={8}
@@ -285,6 +296,19 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
   );
 }
 
+function Stat({ value, unit, label, delta, accent }: { value: string; unit?: string; label: string; delta?: string | null; accent?: boolean }) {
+  const down = delta?.startsWith('−');
+  return (
+    <View style={s.stat}>
+      <Text style={[s.statValue, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}{unit ? <Text style={s.statUnit}> {unit}</Text> : null}
+      </Text>
+      <Text style={s.statLabel}>{label}</Text>
+      {delta ? <Text style={[s.statDelta, down && { color: COLORS.textMuted }]}>{delta}</Text> : null}
+    </View>
+  );
+}
+
 /**
  * Before the first workout, Progress has nothing to chart. Rather than a
  * screen of zeros, say what will appear here and point to where to start.
@@ -336,29 +360,39 @@ const fr = themed(() => StyleSheet.create({
 }));
 
 const s = themed(() => StyleSheet.create({
-  header:           { paddingHorizontal: 20, paddingBottom: 14, zIndex: 10 },
-  title:            { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.20 },
-  sub:              { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
-  scroll:           { paddingHorizontal: 16 },
+  header:           { paddingHorizontal: 20, paddingBottom: 12 },
+  title:            { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2 },
+  sub:              { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
+  scroll:           { paddingHorizontal: 16, gap: 16 },
 
-  // Stats row — bare, no card background
-  statsRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 18, paddingHorizontal: 4 },
-  statCard:         { flex: 1, alignItems: 'center' },
-  statDivider:      { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: ink(0.14) },
-  statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  statLabel:        { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
-  statValue:        { fontSize: 22, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.88 },
-  statAccent:       { color: COLORS.success },
-  statUnit:         { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  periods:          { flexDirection: 'row', padding: 3, borderRadius: 12, backgroundColor: ink(0.05) },
+  periodPill:       { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
+  periodPillOn:     { backgroundColor: COLORS.surfaceElevated },
+  periodTxt:        { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  periodTxtOn:      { color: COLORS.text },
 
-  // Activity card
-  activityCard:     { padding: 14, marginBottom: 14 },
-  cardTitle:        { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 12 },
+  statsRow:         { flexDirection: 'row', gap: 12, paddingHorizontal: 4 },
+  stat:             { flex: 1, gap: 2 },
+  statValue:        { fontSize: 26, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  statUnit:         { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0 },
+  statLabel:        { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  statDelta:        { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.success, marginTop: 2 },
+
+  block:            { gap: 10 },
+  blockTitle:       { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, paddingHorizontal: 4 },
+  prRow:            {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
+  },
+  prName:           { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
+  prSub:            { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
+  prVal:            { fontSize: 20, fontFamily: FONTS.hero, color: COLORS.accent, fontVariant: ['tabular-nums'] },
+  prUnit:           { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textMuted },
 
   // Section header + sort toggle
-  progressHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2, marginBottom: 10, paddingHorizontal: 2 },
+  progressHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   titleRow:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
+  sectionTitle:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
   searchIcon:       { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
   toggle:           { flexDirection: 'row', backgroundColor: ink(0.05), borderRadius: 8, padding: 2, borderWidth: 1, borderColor: ink(0.08) },
   togglePill:       { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },

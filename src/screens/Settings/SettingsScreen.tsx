@@ -319,7 +319,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
 
 const s = themed(() => StyleSheet.create({
   header:         { paddingHorizontal: 20, paddingBottom: 16 },
-  title:          { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.20 },
+  title:          { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2 },
   scroll:         { paddingHorizontal: 16 },
 
   planCard:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, marginBottom: 24 },
@@ -329,7 +329,7 @@ const s = themed(() => StyleSheet.create({
   planSub:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
 
   section:        { marginBottom: 24 },
-  sectionTitle:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 8, paddingLeft: 4 },
+  sectionTitle:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 8, paddingLeft: 4 },
   sectionCard:    { overflow: 'hidden', borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
 
   row:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },

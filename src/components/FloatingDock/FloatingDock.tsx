@@ -1,131 +1,81 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
-import { TIMING } from '../../motion/tokens';
-import { GRAD, COLORS } from '../../constants';
-import { currentTheme, themed } from '../../theme/runtime';
+import { COLORS, FONTS } from '../../constants';
+import { themed } from '../../theme/runtime';
 
 export type TabName = 'Home' | 'Cycle' | 'Progress' | 'Settings';
 
-interface Tab { name: TabName; icon: keyof typeof Ionicons.glyphMap; iconFocused: keyof typeof Ionicons.glyphMap; }
+interface Tab {
+  name:   TabName;
+  label:  string;
+  icon:   keyof typeof Ionicons.glyphMap;
+  iconOn: keyof typeof Ionicons.glyphMap;
+}
+
+// Internal names stay as they were (screens and stores refer to them); the
+// labels are what people see.
 const TABS: Tab[] = [
-  { name: 'Home',     icon: 'home-outline',     iconFocused: 'home'     },
-  { name: 'Cycle',    icon: 'calendar-outline', iconFocused: 'calendar' },
-  { name: 'Progress', icon: 'pulse-outline',    iconFocused: 'pulse'    },
-  { name: 'Settings', icon: 'settings-outline', iconFocused: 'settings' },
+  { name: 'Home',     label: 'Today',    icon: 'today-outline',          iconOn: 'today'          },
+  { name: 'Cycle',    label: 'Plan',     icon: 'calendar-clear-outline', iconOn: 'calendar-clear' },
+  { name: 'Progress', label: 'Progress', icon: 'stats-chart-outline',    iconOn: 'stats-chart'    },
+  { name: 'Settings', label: 'Settings', icon: 'settings-outline',       iconOn: 'settings'       },
 ];
 
-const ICON_SIZE   = 48;
-const GAP         = 10;
-const PAD         = 12;
-const DOCK_HEIGHT = ICON_SIZE + PAD * 2;
-const DOCK_RADIUS = 40;
+/** Height of the bar above the home indicator. useDockClearance adds the inset. */
+export const TAB_BAR_HEIGHT = 56;
 
 interface Props { activeTab: TabName; onTabPress: (tab: TabName) => void; }
 
+/**
+ * A plain, full-width tab bar with labels. It replaced the floating dock of
+ * icon circles: labels make each tab obvious at a glance, and a flat bar
+ * doesn't compete with the screen above it.
+ */
 export function FloatingDock({ activeTab, onTabPress }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[s.wrapper, { paddingBottom: insets.bottom + 8 }]} pointerEvents="box-none">
-      <View style={s.shadowWrap}>
-        {/* Flat surface in the active theme (was frosted blur). */}
-        <View style={[s.dock, { backgroundColor: COLORS.surfaceElevated, borderColor: COLORS.border }]}>
-          <DockContent activeTab={activeTab} onTabPress={onTabPress} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function DockContent({ activeTab, onTabPress }: Props) {
-  const index = Math.max(0, TABS.findIndex(t => t.name === activeTab));
-
-  // One accent circle that glides to the active icon, rather than each icon
-  // swapping its own background on and off.
-  const x = useSharedValue(index * (ICON_SIZE + GAP));
-  useEffect(() => { x.value = withTiming(index * (ICON_SIZE + GAP), TIMING.standard); }, [index]);
-  const indicator = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
-
-  const handlePress = (tab: TabName) => {
-    if (tab !== activeTab) fireHaptic('selection');
-    onTabPress(tab);
-  };
-
-  return (
-    <>
-      <Animated.View style={[s.indicator, indicator]} pointerEvents="none">
-        <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+    <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, 8) }]} accessibilityRole="tablist">
       {TABS.map(tab => {
-        const active = activeTab === tab.name;
+        const active = tab.name === activeTab;
         return (
           <AnimatedPressable
             key={tab.name}
             scale="strong"
-            style={s.iconCircle}
-            onPress={() => handlePress(tab.name)}
+            style={s.tab}
+            onPress={() => {
+              if (!active) fireHaptic('selection');
+              onTabPress(tab.name);
+            }}
             accessibilityRole="tab"
-            accessibilityLabel={tab.name}
+            accessibilityLabel={tab.label}
             accessibilityState={{ selected: active }}
           >
             <Ionicons
-              name={active ? tab.iconFocused : tab.icon}
-              size={active ? 24 : 22}
-              color={active ? COLORS.onAccent : COLORS.textMuted}
+              name={active ? tab.iconOn : tab.icon}
+              size={23}
+              color={active ? COLORS.accent : COLORS.textLabel}
             />
+            <Text style={[s.label, active && s.labelOn]}>{tab.label}</Text>
           </AnimatedPressable>
         );
       })}
-    </>
+    </View>
   );
 }
 
 const s = themed(() => StyleSheet.create({
-  wrapper: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    alignItems: 'center',
-  },
-  shadowWrap: {
-    borderRadius: DOCK_RADIUS,
-    ...Platform.select({
-      ios: {
-        shadowColor:   '#000',
-        shadowOffset:  { width: 0, height: 8 },
-        // Strong enough to lift the dock off a dark page, soft on a light one.
-        shadowOpacity: currentTheme() === 'dark' ? 0.45 : 0.10,
-        shadowRadius:  24,
-      },
-      android: { elevation: currentTheme() === 'dark' ? 12 : 6 },
-    }),
-  },
-  dock: {
+  bar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
-    height: DOCK_HEIGHT,
-    borderWidth: 1,
-    borderRadius: DOCK_RADIUS,
-    paddingHorizontal: PAD,
-    paddingVertical: PAD,
-    gap: GAP,
-    overflow: 'hidden',
+    paddingTop: 6,
+    backgroundColor: COLORS.background,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
   },
-  indicator: {
-    position: 'absolute',
-    left: PAD, top: PAD,
-    width: ICON_SIZE, height: ICON_SIZE,
-    borderRadius: ICON_SIZE / 2,
-    overflow: 'hidden',
-  },
-  iconCircle: {
-    width: ICON_SIZE,
-    height: ICON_SIZE,
-    borderRadius: ICON_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  tab:     { flex: 1, height: TAB_BAR_HEIGHT - 6, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  label:   { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textLabel },
+  labelOn: { color: COLORS.accent },
 }));

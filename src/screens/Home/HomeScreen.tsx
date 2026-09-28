@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { enterRise } from '../../motion/presets';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
@@ -13,21 +13,24 @@ import { usePRStore } from '../../stores/prStore';
 import { useAuthStore } from '../../stores/authStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { CycleCard } from './CycleCard';
+import { CoachTip } from '../../components/CoachWidget/CoachTip';
 import { DayPreviewSheet } from './DayPreviewSheet';
-import { MissionCard } from './MissionCard';
-import { ContributionHeatmap } from './ContributionHeatmap';
-import { HighlightSlideshow } from './HighlightSlideshow';
-import { CoachWidget } from '../../components/CoachWidget/CoachWidget';
+import { WeekStrip } from './WeekStrip';
+import { TodayCard } from './TodayCard';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { computeDayPosition, localDateStr, localDateOf } from '../../utils/cycleUtils';
-import { buildCycleView, type CycleSlot } from '../../utils/cycleView';
+import { buildCycleView, relativeDay, type CycleSlot } from '../../utils/cycleView';
+import { sessionLoad } from '../../utils/volume';
+import { fmtVol } from '../../utils/format';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import { scheduleWorkoutReminder, cancelWorkoutReminders } from '../../services/notificationService';
 import { themed } from '../../theme/runtime';
 
-// HomeScreen is idle-only — active sessions are handled by ActiveSessionScreen
-// (shown as a modal in AppNavigator whenever activeSession !== null).
+// Home answers one question: what am I training today? The workout gets the
+// headline and the big button; the week sits on one line above it, a few
+// numbers for this cycle and one coaching tip sit below. History and charts
+// live in Progress. Active sessions are handled by ActiveSessionScreen (a
+// modal in AppNavigator shown whenever activeSession !== null).
 
 interface Props {
   onNavigate:       (tab: TabName) => void;
@@ -43,6 +46,7 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
   const dockClearance              = useDockClearance();
   const uid                        = useAuthStore(u => u.user?.uid);
   const displayName                = useAuthStore(u => u.user?.displayName);
+  const unit                       = settings.defaultWeightUnit ?? 'kg';
   const [refreshing, setRefreshing] = useState(false);
   const [preview,    setPreview]    = useState<CycleSlot | null>(null);
 
@@ -94,42 +98,25 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     activePlan?.days.length ?? 7,
   );
 
-  // Effective cycle anchor — synthesizes one from today + currentDayPosition when
-  // cycleStartDate is null (older accounts / imported plans). Without this the
-  // ContributionHeatmap can't compute cycle indices and renders nothing cycle-
-  // related, even when an active plan is set.
-  const effectiveCycleStartDate = settings.cycleStartDate ?? (() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - (settings.currentDayPosition - 1));
-    return localDateStr(d);
-  })();
-
   // "Today" is always the slot at (currentDayPos - 1) in the user's visible
   // cycle order, never looked up by `dayPosition`: after a drag-reorder on
-  // the Cycle screen that would point at whatever USED to live in that slot.
-  // CycleCard and MissionCard (via `nextMission` below) both follow slots.
+  // the Plan screen that would point at whatever USED to live in that slot.
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
 
-  // "Today done" lookup — date-based (not slot-based) so it survives any
-  // drag-reorder on Cycle. If a completed session exists for today's calendar
-  // date, MissionCard flips to its done state and the start button targets
-  // the NEXT mission instead of re-offering today's work.
-  const todayStr        = localDateStr(new Date());
-  const todayDoneSess   = planSessions.find(s => s.status === 'completed' && localDateOf(s.finishedAt) === todayStr);
-  const completedToday  = todayDoneSess ? { dayLabel: todayDoneSess.dayLabel } : null;
+  // "Today done" lookup is date-based (not slot-based) so it survives any
+  // drag-reorder. If a completed session exists for today's calendar date,
+  // the card shows a recap and points at the NEXT workout instead of
+  // re-offering today's.
+  const todayStr      = localDateStr(new Date());
+  const todayDoneSess = planSessions.find(s => s.status === 'completed' && localDateOf(s.finishedAt) === todayStr);
 
-  // Next mission resolution — finds the next non-rest workout, walking forward
-  // from today's slot (or the slot AFTER today if today's session is done).
-  // This avoids two redundancies the user reported:
-  //   1. After completing today, MissionCard pointing back at the same workout
-  //      because the cycle hadn't shifted yet.
-  //   2. MissionCard showing "Recovery Day" when today's slot happens to be
-  //      rest — the user wants to see the next actual WORKOUT to plan ahead.
+  // The next non-rest workout, walking forward from today's slot (or the slot
+  // after today once today is done). On a rest day this is the next workout,
+  // so it can be started early.
   const { nextMission, nextMissionNum } = (() => {
     if (!activePlan) return { nextMission: undefined, nextMissionNum: currentDayPos };
     const days = activePlan.days;
-    const startOffset = completedToday ? 1 : 0;  // skip today if already done
+    const startOffset = todayDoneSess ? 1 : 0;
     for (let offset = startOffset; offset < days.length; offset++) {
       const slot = ((currentDayPos - 1) + offset) % days.length;
       const candidate = days[slot];
@@ -137,13 +124,11 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
         return { nextMission: candidate, nextMissionNum: slot + 1 };
       }
     }
-    // All rest days — fall back to whatever's at today's slot so MissionCard
-    // still has something to display (will render as Recovery Day).
     return { nextMission: days[currentDayPos - 1], nextMissionNum: currentDayPos };
   })();
 
   const handleStart = () => {
-    if (!activePlan || !nextMission) return;
+    if (!activePlan || !nextMission || nextMission.isRestDay) return;
     startSession(activePlan.id, nextMission);
     // AppNavigator detects activeSession !== null and opens ActiveSessionScreen
   };
@@ -152,6 +137,18 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     () => (activePlan ? buildCycleView(activePlan, planSessions, currentDayPos, settings.cycleStartDate) : null),
     [activePlan, planSessions, currentDayPos, settings.cycleStartDate],
   );
+
+  // This cycle's numbers, from the sessions matched to its slots.
+  const cycleStats = useMemo(() => {
+    if (!cycle) return { volume: 0, records: 0 };
+    let volume = 0, records = 0;
+    for (const sl of cycle.slots) {
+      if (!sl.session) continue;
+      volume += sessionLoad(sl.session.exercises, unit);
+      records += sl.session.prsBreached?.length ?? 0;
+    }
+    return { volume, records };
+  }, [cycle, unit]);
 
   // Pull to refresh re-reads everything the screen shows from Firestore.
   const refresh = async () => {
@@ -173,7 +170,7 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
   // Starting from the preview sheet is offered only for the workout Home's
   // own Start button would start, so the two can never disagree.
   const canStartPreview = !!preview && !!nextMission && preview.day.id === nextMission.id
-    && !preview.day.isRestDay && !completedToday && activeSession === null;
+    && !preview.day.isRestDay && !todayDoneSess && activeSession === null;
 
   if (!activePlan || !cycle) {
     return (
@@ -208,24 +205,39 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     );
   }
 
+  const len = activePlan.days.length;
+  const todaySlot = cycle.slots.find(sl => sl.isToday);
+  const restToday = !!todaySlot?.day.isRestDay && !todayDoneSess;
+  // Days from today to the next workout, counted forward so a workout that
+  // wraps into the next cycle reads "in 2 days", never "5 days ago".
+  const nextOffset = (((nextMissionNum - currentDayPos) % len) + len) % len || (todayDoneSess ? len : 0);
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + nextOffset);
+  const nextWhen = relativeDay(nextDate).toLowerCase();
+
+  const headline = activeSession
+    ? activeSession.dayLabel
+    : todayDoneSess
+    ? 'Done for today'
+    : restToday
+    ? 'Rest day'
+    : nextMission?.label ?? 'Workout';
+
+  const mode = activeSession
+    ? { kind: 'inProgress' as const }
+    : todayDoneSess
+    ? { kind: 'done' as const, session: todayDoneSess, next: nextMission?.isRestDay ? undefined : nextMission, nextWhen }
+    : !nextMission || nextMission.isRestDay
+    ? { kind: 'rest' as const }
+    : { kind: 'train' as const, day: nextMission, early: restToday ? nextWhen : undefined };
+
+  const dateLine = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
   return (
     <View style={s.root}>
       <AppBackground />
 
       <SafeAreaView style={s.safe} edges={['top']}>
-        {/* Header */}
-        <View style={s.header}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.greeting} numberOfLines={1}>
-              {greeting}{firstName ? `, ${firstName}` : ''}
-            </Text>
-            <Text style={s.dateText}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </Text>
-          </View>
-          <Image source={require('../../../assets/icon.png')} style={s.logoBadge} accessibilityIgnoresInvertColors />
-        </View>
-
         {(loadError || prLoadError) && (
           <InlineBanner
             message="Couldn't sync your latest data. Showing the last saved copy."
@@ -235,55 +247,59 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
 
         <ScrollView
           style={s.scroll}
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={[s.scrollContent, { paddingBottom: dockClearance }]}
           showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={COLORS.accent} colors={[COLORS.accent]} />
           }
         >
+          {/* ── Headline ── */}
+          <Animated.View entering={enterRise(0)} style={s.header}>
+            <Text style={s.greeting} numberOfLines={1}>
+              {greeting}{firstName ? `, ${firstName}` : ''}
+            </Text>
+            <Text style={s.headline} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} accessibilityRole="header">
+              {headline}
+            </Text>
+            <Text style={s.dateLine}>
+              {dateLine} · Day {currentDayPos} of {len} · Cycle {cycle.cycleNum}
+            </Text>
+          </Animated.View>
+
+          {/* ── This cycle, one line ── */}
+          <Animated.View entering={enterRise(1)} style={s.week}>
+            <WeekStrip slots={cycle.slots} onPressDay={setPreview} />
+          </Animated.View>
+
           {/* ── What to do now ── */}
-          <Animated.View entering={enterRise(0)}>
-            <MissionCard
-              currentDay={nextMission}
-              currentDayNum={nextMissionNum}
-              completedToday={completedToday}
-              isInProgress={activeSession !== null}
-              onStart={handleStart}
-              onResume={onResumeSession}
-            />
+          <Animated.View entering={enterRise(2)}>
+            <TodayCard mode={mode} unit={unit} onStart={handleStart} onResume={onResumeSession} />
           </Animated.View>
 
-          {/* ── This cycle: ring + tappable days ── */}
-          <Animated.View entering={enterRise(1)} style={s.section}>
-            <CycleCard view={cycle} planName={activePlan.name} onPressDay={setPreview} />
+          {/* ── Numbers for this cycle ── */}
+          <Animated.View entering={enterRise(3)} style={s.stats}>
+            <Text style={s.sectionTitle}>This cycle</Text>
+            <View style={s.statRow}>
+              <Stat value={`${cycle.doneCount}`} unit={`/ ${cycle.workoutCount}`} label="Workouts" />
+              <Stat value={cycleStats.volume > 0 ? fmtVol(cycleStats.volume) : '0'} unit={unit} label="Volume" />
+              <Stat value={String(cycleStats.records)} label={cycleStats.records === 1 ? 'New record' : 'New records'} accent={cycleStats.records > 0} />
+            </View>
           </Animated.View>
 
-          {/* ── AI Coach ── */}
-          <Animated.View entering={enterRise(2)} style={s.section}>
-            <CoachWidget onAskMore={onOpenCoach} />
-          </Animated.View>
-
-          {/* ── History ── */}
-          <Animated.View entering={enterRise(3)} style={s.section}>
-            <ContributionHeatmap
-              sessions={planSessions}
-              activePlan={activePlan}
-              cycleStartDate={effectiveCycleStartDate}
-            />
-          </Animated.View>
-
+          {/* ── One coaching tip ── */}
           <Animated.View entering={enterRise(4)}>
-            <HighlightSlideshow
-              sessions={planSessions}
-              currentDay={currentDayPos}
-              cycleStartDate={effectiveCycleStartDate}
-              planLength={activePlan.days.length}
-              onNavigate={onNavigate}
-            />
+            <CoachTip onOpen={onOpenCoach} />
           </Animated.View>
 
-          <View style={{ height: dockClearance }} />
+          <AnimatedPressable
+            style={s.historyLink}
+            onPress={() => onNavigate('Progress')}
+            accessibilityRole="button"
+            accessibilityLabel="See your history in Progress"
+          >
+            <Text style={s.historyTxt}>See your history</Text>
+            <Ionicons name="arrow-forward" size={15} color={COLORS.textSecondary} />
+          </AnimatedPressable>
         </ScrollView>
       </SafeAreaView>
 
@@ -298,21 +314,46 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
   );
 }
 
+function Stat({ value, unit, label, accent }: { value: string; unit?: string; label: string; accent?: boolean }) {
+  return (
+    <View style={s.stat}>
+      <Text style={[s.statVal, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}{unit ? <Text style={s.statUnit}> {unit}</Text> : null}
+      </Text>
+      <Text style={s.statLbl}>{label}</Text>
+    </View>
+  );
+}
+
 const s = themed(() => StyleSheet.create({
   root:       { flex: 1 },
   safe:       { flex: 1 },
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyTitle: { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, marginBottom: 8 },
-  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14, marginBottom: 20 },
+  emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20 },
   emptyCta:   { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.accent },
   emptyCtaTxt:{ fontSize: 14, fontFamily: FONTS.headline, color: COLORS.onAccent },
   emptyLink:  { marginTop: 10, paddingHorizontal: 16, paddingVertical: 10 },
   emptyLinkTxt: { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
-  greeting:   { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary, marginBottom: 2 },
-  dateText:   { fontSize: 24, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.9 },
-  logoBadge:  { width: 46, height: 46, borderRadius: 12 },
-  scroll:      { flex: 1 },
-  scrollContent: { paddingTop: 4, paddingBottom: 8 },
-  section:     { marginTop: 12 },
+
+  scroll:        { flex: 1 },
+  scrollContent: { paddingTop: 8, gap: 20 },
+
+  header:     { paddingHorizontal: 20, paddingTop: 4 },
+  greeting:   { fontSize: 15, fontFamily: FONTS.medium, color: COLORS.textSecondary },
+  headline:   { fontSize: 44, lineHeight: 48, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.4, marginTop: 2 },
+  dateLine:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 6, fontVariant: ['tabular-nums'] },
+
+  week:       { paddingHorizontal: 12, marginTop: -4 },
+
+  stats:        { paddingHorizontal: 20, gap: 10 },
+  sectionTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
+  statRow:      { flexDirection: 'row', gap: 12 },
+  stat:         { flex: 1, gap: 3 },
+  statVal:      { fontSize: 26, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  statUnit:     { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0 },
+  statLbl:      { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
+
+  historyLink:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, alignSelf: 'center', paddingHorizontal: 16 },
+  historyTxt:   { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 }));
