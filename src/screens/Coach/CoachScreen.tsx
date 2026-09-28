@@ -1,30 +1,35 @@
-import React, {
-  useCallback, useEffect, useRef, useState,
-} from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View, ScrollView,
+  FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
-import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import Animated, {
+  Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
+import { enterFade, enterRise, enterSettle, exitFade } from '../../motion/presets';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { GlassView } from '../../components/common/GlassView';
-import { COLORS, SPACING, FONTS } from '../../constants';
+import { InfoTip } from '../../components/common/InfoTip';
+import { COLORS, FONTS } from '../../constants';
 import { continueConversation, ConversationMessage } from '../../services/coachService';
 import { useAuthStore } from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { MOTION } from '../../constants/motion';
 import { generateId } from '../../utils/idGen';
 import { accentA, ink, themed } from '../../theme/runtime';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// The coach as a quiet conversation. Coach replies are plain, readable text
+// (with bold and lists), not bubbles; your messages are small neutral
+// bubbles on the right. New replies write themselves in word by word, and a
+// tap shows the rest at once.
 
 interface ChatMessage {
   id:    string;
   role:  'user' | 'coach';
   text:  string;
-  fresh: boolean; // true = just arrived, animate in
+  /** Just arrived: write it in word by word. */
+  fresh: boolean;
 }
 
 interface Props {
@@ -32,389 +37,324 @@ interface Props {
   initialMessage?: string;
 }
 
-// ─── Quick chips ──────────────────────────────────────────────────────────────
+type SendError = 'rate_limit' | 'offline' | 'unknown';
 
-const QUICK_CHIPS = [
+const IDLE_SUGGESTIONS = [
   'How am I doing overall?',
-  'Am I overtraining?',
   'Which muscles am I neglecting?',
   'Should I take a rest day?',
   'What should I focus on next week?',
-  'How can I improve my consistency?',
+];
+const LIVE_SUGGESTIONS = [
+  'What weight should I use for my next set?',
+  'How long should I rest?',
+  'This feels too heavy. What should I change?',
 ];
 
-// ─── SVG icons ────────────────────────────────────────────────────────────────
+// ─── Coach reply text: **bold** and simple lists ──────────────────────────────
 
-function BoltSvg({ size = 16, color = COLORS.accent }: { size?: number; color?: string }) {
+function Inline({ text, style }: { text: string; style: any }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill={color} />
-    </Svg>
-  );
-}
-function BackSvg() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path d="M15 18l-6-6 6-6" stroke={COLORS.textSecondary}
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
+    <Text style={style}>
+      {parts.map((p, i) =>
+        p.startsWith('**') && p.endsWith('**')
+          ? <Text key={i} style={m.bold}>{p.slice(2, -2)}</Text>
+          : p,
+      )}
+    </Text>
   );
 }
 
-function SendSvg({ active }: { active: boolean }) {
+function RichText({ text }: { text: string }) {
+  const blocks = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
   return (
-    <Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
-      <Path d="M22 2L11 13" stroke={active ? COLORS.onAccent : COLORS.textMuted}
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M22 2L15 22l-4-9-9-4 20-7z" stroke={active ? COLORS.onAccent : COLORS.textMuted}
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-// ─── BoltAvatar ───────────────────────────────────────────────────────────────
-// Replaces the cartoon CoachAvatar. A glass circle with the bolt icon inside.
-
-function BoltAvatar({ size = 36, glow = false }: { size?: number; glow?: boolean }) {
-  const boltSize = size * 0.45;
-  return (
-    <View style={[
-      av.wrap,
-      { width: size, height: size, borderRadius: size / 2 },
-      glow && av.glow,
-    ]}>
-      <BoltSvg size={boltSize} />
+    <View style={m.body}>
+      {blocks.map((line, i) => {
+        const bullet = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+        if (bullet) {
+          const num = line.match(/^(\d+)[.)]/)?.[1];
+          return (
+            <View key={i} style={m.li}>
+              <Text style={m.marker}>{num ? `${num}.` : '•'}</Text>
+              <Inline text={bullet[1]} style={[m.p, { flex: 1 }]} />
+            </View>
+          );
+        }
+        return <Inline key={i} text={line} style={m.p} />;
+      })}
     </View>
   );
 }
 
-const av = themed(() => StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.1), borderWidth: 1.5, borderColor: accentA(0.3) },
-  glow: { shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 8 },
+const m = themed(() => StyleSheet.create({
+  body:   { gap: 10 },
+  p:      { fontSize: 16, lineHeight: 24, fontFamily: FONTS.body, color: COLORS.text },
+  bold:   { fontFamily: FONTS.semibold, color: COLORS.text },
+  li:     { flexDirection: 'row', gap: 10 },
+  marker: { width: 18, fontSize: 16, lineHeight: 24, fontFamily: FONTS.semibold, color: COLORS.textMuted, textAlign: 'right' },
 }));
 
-// ─── Context strip (active session only) ─────────────────────────────────────
+// ─── Messages ─────────────────────────────────────────────────────────────────
 
-function ContextStrip({ activeSession }: { activeSession: any | null }) {
-  if (!activeSession) return null;
-  const currentEx = activeSession.exercises.find((e: any) => !e.isCompleted);
-  if (!currentEx) return null;
-  const doneSets = currentEx.sets.filter((s: any) => s.isCompleted).length;
-  const totalSets = currentEx.sets.length;
-  return (
-    <View style={cx.strip}>
-      <View style={cx.dot} />
-      <Text style={cx.exercise} numberOfLines={1}>{currentEx.exerciseName}</Text>
-      <Text style={cx.sep}>·</Text>
-      <Text style={cx.meta}>Set {doneSets + 1}/{totalSets}</Text>
-      <Text style={cx.sep}>·</Text>
-      <Text style={cx.meta}>{activeSession.dayLabel}</Text>
-    </View>
-  );
-}
-
-const cx = themed(() => StyleSheet.create({
-  strip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: ink(0.06), backgroundColor: accentA(0.04) },
-  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
-  exercise: { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.accent, flex: 1 },
-  sep:      { fontSize: 11, fontFamily: FONTS.body, color: ink(0.25) },
-  meta:     { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel },
-}));
-
-// ─── Typing indicator ─────────────────────────────────────────────────────────
-
-function TypingIndicator() {
-  const dot0 = useRef(new Animated.Value(0.25)).current;
-  const dot1 = useRef(new Animated.Value(0.25)).current;
-  const dot2 = useRef(new Animated.Value(0.25)).current;
-  const reducedMotion = useReducedMotion();
+/** Reveals `text` a few words at a time; returns the visible part. */
+function useWordReveal(text: string, active: boolean, onTick?: () => void) {
+  const reduced = useReducedMotion();
+  const words = useRef(text.split(/(\s+)/)).current;
+  const [count, setCount] = useState(active && !reduced ? 0 : words.length);
 
   useEffect(() => {
-    const dots = [dot0, dot1, dot2];
-    if (reducedMotion) {
-      dots.forEach(d => d.setValue(1));
-      return;
-    }
-    const anims = dots.map((dot, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 160),
-          Animated.timing(dot, { toValue: 1,    duration: 300, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.25, duration: 300, useNativeDriver: true }),
-          Animated.delay((2 - i) * 160 + 200),
-        ]),
-      ),
-    );
-    anims.forEach(a => a.start());
-    return () => anims.forEach(a => a.stop());
-  }, [dot0, dot1, dot2, reducedMotion]);
+    if (!active || reduced) { setCount(words.length); return; }
+    const t = setInterval(() => {
+      setCount(c => {
+        const next = Math.min(words.length, c + 3);
+        if (next >= words.length) clearInterval(t);
+        return next;
+      });
+      onTick?.();
+    }, 45);
+    return () => clearInterval(t);
+  }, [active, reduced]);
 
-  return (
-    <View style={b.coachRow}>
-      <BoltAvatar size={26} />
-      <GlassView radius={14} style={b.coachBubble}>
-        <View style={b.dotRow}>
-          {([dot0, dot1, dot2] as Animated.Value[]).map((op, i) => (
-            <Animated.View key={i} style={[b.dot, { opacity: op }]} />
-          ))}
-        </View>
-      </GlassView>
-    </View>
-  );
+  return { shown: words.slice(0, count).join(''), done: count >= words.length, finish: () => setCount(words.length) };
 }
 
-// ─── Message bubble ───────────────────────────────────────────────────────────
-
-const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMessage }) {
-  const fadeAnim = useRef(new Animated.Value(msg.fresh ? 0 : 1)).current;
-  const slideAnim = useRef(new Animated.Value(msg.fresh ? 10 : 0)).current;
-
-  useEffect(() => {
-    if (!msg.fresh) return;
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: MOTION.standard.duration, easing: MOTION.standard.easing, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: MOTION.standard.duration, easing: MOTION.standard.easing, useNativeDriver: true }),
-    ]).start();
-  }, []);
-
-  if (msg.role === 'user') {
-    return (
-      <Animated.View style={[b.userRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <View style={[b.userBubble, { backgroundColor: COLORS.accent }]}>
-          <Text style={b.userText}>{msg.text}</Text>
-        </View>
-      </Animated.View>
-    );
-  }
-
+const CoachMessage = React.memo(function CoachMessage({ msg, onGrow }: { msg: ChatMessage; onGrow: () => void }) {
+  const { shown, done, finish } = useWordReveal(msg.text, msg.fresh, onGrow);
   return (
-    <Animated.View style={[b.coachRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <BoltAvatar size={26} />
-      <GlassView radius={14} style={b.coachBubble}>
-        <Text style={b.coachText}>{msg.text}</Text>
-      </GlassView>
+    <Animated.View entering={msg.fresh ? enterFade : undefined} style={st.coachRow}>
+      <View style={st.coachHead}>
+        <View style={st.mark}><Ionicons name="sparkles" size={11} color={COLORS.accent} /></View>
+        <Text style={st.coachName}>Coach</Text>
+      </View>
+      <Pressable onPress={done ? undefined : finish} accessibilityLabel={msg.text} accessibilityHint={done ? undefined : 'Shows the full reply'}>
+        <RichText text={shown} />
+      </Pressable>
     </Animated.View>
   );
 });
 
-const b = themed(() => StyleSheet.create({
-  userRow:    { alignItems: 'flex-end', marginBottom: 10 },
-  userBubble: { borderRadius: 16, borderTopRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '82%' },
-  userText:   { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.onAccent, lineHeight: 20 },
-
-  coachRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
-  coachBubble:{ borderRadius: 16, borderTopLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '78%' },
-  coachText:  { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 21 },
-
-  dotRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4, paddingVertical: 2 },
-  dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent, opacity: 0.5 },
-}));
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyState() {
+const UserMessage = React.memo(function UserMessage({ msg }: { msg: ChatMessage }) {
   return (
-    <View style={em.wrap}>
-      <View style={em.iconWrap}>
-        <BoltAvatar size={64} glow />
+    <Animated.View entering={msg.fresh ? enterRise(0) : undefined} style={st.userRow}>
+      <View style={st.userBubble}>
+        <Text style={st.userText}>{msg.text}</Text>
       </View>
-      <Text style={em.title}>Se7en Coach</Text>
-      <Text style={em.body}>
-        Ask me anything about your training — I have access to your full workout history,
-        RPE logs, and exercise notes.
-      </Text>
-    </View>
+    </Animated.View>
+  );
+});
+
+function Thinking() {
+  const reduced = useReducedMotion();
+  const phase = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) return;
+    phase.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(phase);
+  }, [reduced]);
+  return (
+    <Animated.View entering={enterFade} exiting={exitFade} style={st.coachRow} accessibilityLabel="Coach is thinking">
+      <View style={st.coachHead}>
+        <View style={st.mark}><Ionicons name="sparkles" size={11} color={COLORS.accent} /></View>
+        <Text style={st.coachName}>Coach</Text>
+      </View>
+      <View style={st.dots}>
+        {[0, 1, 2].map(i => <Dot key={i} index={i} phase={phase} still={reduced} />)}
+      </View>
+    </Animated.View>
   );
 }
 
-const em = themed(() => StyleSheet.create({
-  wrap:    { alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 28, gap: 12 },
-  iconWrap:{ marginBottom: 4 },
-  title:   { fontSize: 20, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.80 },
-  body:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
-}));
+function Dot({ index, phase, still }: { index: number; phase: SharedValue<number>; still: boolean }) {
+  const style = useAnimatedStyle(() => {
+    if (still) return { opacity: 0.6 };
+    const d = Math.abs(((phase.value - index * 0.2) % 1 + 1) % 1 - 0.3);
+    return { opacity: 0.25 + 0.75 * Math.max(0, 1 - d * 3.5) };
+  });
+  return <Animated.View style={[st.dot, style]} />;
+}
 
-// ─── CoachScreen ──────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export function CoachScreen({ onClose, initialMessage }: Props) {
-  const { user }          = useAuthStore();
-  const activeSession     = useSessionStore(state => state.activeSession);
+  const { user }      = useAuthStore();
+  const activeSession = useSessionStore(state => state.activeSession);
+  const workouts      = useSessionStore(state => state.sessions.filter(x => x.status === 'completed').length);
 
-  const [messages,     setMessages    ] = useState<ChatMessage[]>(() =>
-    initialMessage
-      ? [{ id: generateId(), role: 'coach', text: initialMessage, fresh: false }]
-      : [],
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    initialMessage ? [{ id: generateId(), role: 'coach', text: initialMessage, fresh: false }] : [],
   );
-  const [input,        setInput       ] = useState('');
-  const [loading,      setLoading     ] = useState(false);
-  const [sendError,    setSendError   ] = useState<string | null>(null);
-  const [inputFocused, setInputFocused] = useState(false);
-  const listRef  = useRef<FlatList>(null);
-  const inputRef = useRef<TextInput>(null);
+  const [input,   setInput]   = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState<{ kind: SendError; text: string } | null>(null);
+  const listRef = useRef<FlatList>(null);
 
-  const hasMessages = messages.length > 0;
-  // Chips visible until user has sent 2+ messages
-  const showChips   = messages.filter(m => m.role === 'user').length < 2;
+  const scrollEnd = useCallback(() => listRef.current?.scrollToEnd({ animated: true }), []);
+  // While a reply writes itself in, keep its last line in view without
+  // stacking dozens of scroll animations.
+  const followReply = useCallback(() => listRef.current?.scrollToEnd({ animated: false }), []);
 
-  // ── Send ───────────────────────────────────────────────────────────────────
-  const send = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || loading || !user?.uid) return;
-
-    const userMsg: ChatMessage = { id: generateId(), role: 'user',  text: trimmed, fresh: true };
-    setMessages(prev => [...prev, userMsg]);
+  const send = useCallback(async (raw: string, retry = false) => {
+    const text = raw.trim();
+    if (!text || loading || !user?.uid) return;
+    fireHaptic('light');
+    if (!retry) setMessages(prev => [...prev, { id: generateId(), role: 'user', text, fresh: true }]);
     setInput('');
     setLoading(true);
-    setSendError(null);
+    setError(null);
 
-    const history: ConversationMessage[] = messages.map(m => ({ role: m.role, text: m.text }));
-
+    // On a retry the question is already the last message; don't send it twice.
+    const before = retry && messages[messages.length - 1]?.role === 'user' ? messages.slice(0, -1) : messages;
+    const history: ConversationMessage[] = before.map(x => ({ role: x.role, text: x.text }));
     try {
-      const res = await continueConversation(user.uid, history, trimmed);
-      const coachMsg: ChatMessage = { id: generateId(), role: 'coach', text: res.text, fresh: true };
-      setMessages(prev => [...prev, coachMsg]);
-      if (res.error === 'rate_limit') setSendError('rate_limit');
+      const res = await continueConversation(user.uid, history, text);
+      setMessages(prev => [...prev, { id: generateId(), role: 'coach', text: res.text, fresh: true }]);
+      if (res.error === 'rate_limit') setError({ kind: 'rate_limit', text });
     } catch (e: any) {
-      const errMsg: string = e?.message ?? '';
-      setSendError(errMsg.includes('Network request failed') ? 'offline' : 'unknown');
+      const msg: string = e?.message ?? '';
+      setError({ kind: msg.includes('Network request failed') ? 'offline' : 'unknown', text });
     } finally {
       setLoading(false);
     }
   }, [messages, loading, user?.uid]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-    }
+    if (messages.length > 0) setTimeout(scrollEnd, 80);
   }, [messages.length, loading]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const hasUserMessages = messages.some(x => x.role === 'user');
+  const suggestions = activeSession ? LIVE_SUGGESTIONS : IDLE_SUGGESTIONS;
+  const canSend = !!input.trim() && !loading;
+
+  const currentEx = activeSession?.exercises.find(e => !e.isCompleted);
+  const status = loading
+    ? 'Thinking…'
+    : currentEx
+    ? `During ${activeSession!.dayLabel} · ${currentEx.exerciseName}`
+    : `Knows your ${workouts} workout${workouts === 1 ? '' : 's'}`;
+
   return (
     <View style={s.root}>
       <AppBackground />
-
-      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-
+      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
         {/* ── Header ── */}
         <View style={s.header}>
           <AnimatedPressable
+            scale="strong"
             onPress={onClose}
-            style={s.backBtn}
-            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            style={s.iconBtn}
+            hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel="Close coach chat"
+            accessibilityLabel="Close coach"
           >
-            <BackSvg />
+            <Ionicons name="chevron-down" size={22} color={COLORS.text} />
           </AnimatedPressable>
-
           <View style={s.headerCenter}>
-            <BoltAvatar size={30} glow={loading} />
-            <View>
-              <Text style={s.titleText}>Se7en Coach</Text>
-              <Text style={s.subtitleText}>
-                {loading ? 'thinking…' : 'AI · powered by Groq'}
-              </Text>
+            <View style={s.titleRow}>
+              <Text style={s.title}>Coach</Text>
+              <InfoTip
+                title="Your coach"
+                text="Answers use your workout history, sets, effort ratings and notes. It's an AI, so treat advice as a starting point and listen to your body."
+                size={15}
+              />
             </View>
+            <Animated.Text key={status} entering={enterFade} style={s.status} numberOfLines={1}>{status}</Animated.Text>
           </View>
-
-          {/* Right spacer — same width as backBtn so the title stays centred */}
-          <View style={s.backBtn} />
+          <View style={s.iconBtn} />
         </View>
 
-        {/* ── Context strip (active session only) ── */}
-        <ContextStrip activeSession={activeSession} />
-
         <KeyboardAvoidingView
-          style={s.flex}
+          style={s.root}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
-          {/* ── Messages ── */}
           <FlatList
             ref={listRef}
             data={messages}
-            keyExtractor={m => m.id}
-            renderItem={({ item }) => <MessageBubble msg={item} />}
-            ListHeaderComponent={!hasMessages ? <EmptyState /> : null}
-            ListFooterComponent={loading ? <TypingIndicator /> : null}
-            contentContainerStyle={s.listContent}
+            keyExtractor={x => x.id}
+            renderItem={({ item }) =>
+              item.role === 'coach'
+                ? <CoachMessage msg={item} onGrow={followReply} />
+                : <UserMessage msg={item} />}
+            ListHeaderComponent={!hasUserMessages ? (
+              <Animated.View entering={enterRise(0)} style={s.intro}>
+                <Text style={s.introTitle}>{messages.length ? 'Ask a follow-up' : 'What would you like to know?'}</Text>
+              </Animated.View>
+            ) : null}
+            ListFooterComponent={
+              <>
+                {loading && <Thinking />}
+                {error && !loading && (
+                  <Animated.View entering={enterFade} style={s.error}>
+                    <Ionicons name={error.kind === 'offline' ? 'cloud-offline-outline' : 'alert-circle-outline'} size={17} color={COLORS.textMuted} />
+                    <Text style={s.errorTxt}>
+                      {error.kind === 'rate_limit'
+                        ? 'The coach needs a moment. Try again shortly.'
+                        : error.kind === 'offline'
+                        ? "You're offline. Check your connection."
+                        : "The coach couldn't answer."}
+                    </Text>
+                    {error.kind !== 'rate_limit' && (
+                      <AnimatedPressable scale="strong" onPress={() => send(error.text, true)} style={s.retry} accessibilityRole="button" accessibilityLabel="Try again">
+                        <Text style={s.retryTxt}>Try again</Text>
+                      </AnimatedPressable>
+                    )}
+                  </Animated.View>
+                )}
+                {!hasUserMessages && !loading && (
+                  <View style={s.suggestions}>
+                    {suggestions.map((q, i) => (
+                      <Animated.View key={q} entering={enterRise(i + 1)}>
+                        <AnimatedPressable
+                          scale="subtle"
+                          dimOnPress
+                          onPress={() => send(q)}
+                          style={s.suggestion}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Ask: ${q}`}
+                        >
+                          <Text style={s.suggestionTxt}>{q}</Text>
+                          <Ionicons name="arrow-up" size={16} color={COLORS.textLabel} style={{ transform: [{ rotate: '45deg' }] }} />
+                        </AnimatedPressable>
+                      </Animated.View>
+                    ))}
+                  </View>
+                )}
+              </>
+            }
+            contentContainerStyle={s.list}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           />
 
-          {/* ── Quick chips ── */}
-          {showChips && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.chipsContent}
-              style={s.chips}
-              keyboardShouldPersistTaps="handled"
-            >
-              {QUICK_CHIPS.map(chip => (
-                <AnimatedPressable
-                  key={chip}
-                  onPress={() => send(chip)}
-                  style={s.chip}
-                  disabled={loading}
-                >
-                  <Text style={[s.chipTxt, loading && s.chipTxtDisabled]}>{chip}</Text>
-                </AnimatedPressable>
-              ))}
-            </ScrollView>
-          )}
-
-          {/* ── Send error ── */}
-          {sendError && (
-            <View style={s.errorBanner}>
-              <Text style={s.errorTxt}>
-                {sendError === 'rate_limit'
-                  ? '⚠️  Rate limit reached — wait a moment before sending again.'
-                  : sendError === 'offline'
-                  ? '📡  No connection — check your network and try again.'
-                  : '⚠️  Something went wrong — try again.'}
-              </Text>
-            </View>
-          )}
-
-          {/* ── Input bar ── */}
-          <View style={s.inputBar}>
-            <TextInput
-              ref={inputRef}
-              style={[s.input, inputFocused && s.inputFocused]}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask your coach…"
-              placeholderTextColor={COLORS.textLabel}
-              multiline
-              maxLength={500}
-              returnKeyType="send"
-              blurOnSubmit
-              onSubmitEditing={() => send(input)}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              accessibilityLabel="Message to coach"
-            />
-            <AnimatedPressable
-              onPress={() => send(input)}
-              scale={input.trim() ? 'normal' : 1}
-              disabled={!input.trim() || loading}
-              style={s.sendWrap}
-              accessibilityRole="button"
-              accessibilityLabel="Send message"
-              accessibilityState={{ disabled: !input.trim() || loading }}
-            >
-              {input.trim() && !loading ? (
-                <View style={[s.sendBtn, { backgroundColor: COLORS.accent }]}>
-                  <SendSvg active />
-                </View>
-              ) : (
-                <View style={[s.sendBtn, s.sendInactive]}>
-                  <SendSvg active={false} />
-                </View>
+          {/* ── Composer ── */}
+          <View style={s.composerWrap}>
+            <View style={s.composer}>
+              <TextInput
+                style={s.input}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Message your coach"
+                placeholderTextColor={COLORS.textLabel}
+                multiline
+                maxLength={500}
+                accessibilityLabel="Message to coach"
+              />
+              {canSend && (
+                <Animated.View entering={enterSettle} exiting={exitFade}>
+                  <AnimatedPressable
+                    scale="strong"
+                    onPress={() => send(input)}
+                    style={s.send}
+                    accessibilityRole="button"
+                    accessibilityLabel="Send"
+                  >
+                    <Ionicons name="arrow-up" size={19} color={COLORS.onAccent} />
+                  </AnimatedPressable>
+                </Animated.View>
               )}
-            </AnimatedPressable>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -424,37 +364,55 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
+const st = themed(() => StyleSheet.create({
+  coachRow:   { marginBottom: 26, gap: 8 },
+  coachHead:  { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  mark:       { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.14) },
+  coachName:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+
+  userRow:    { alignItems: 'flex-end', marginBottom: 26 },
+  userBubble: { maxWidth: '84%', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: COLORS.surfaceElevated },
+  userText:   { fontSize: 16, lineHeight: 22, fontFamily: FONTS.body, color: COLORS.text },
+
+  dots:       { flexDirection: 'row', gap: 6, paddingVertical: 8 },
+  dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.textMuted },
+}));
+
 const s = themed(() => StyleSheet.create({
-  root: { flex: 1 },
-  safe: { flex: 1 },
-  flex: { flex: 1 },
+  root:         { flex: 1 },
 
-  // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: ink(0.06), zIndex: 10 },
-  backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
-  titleText:    { fontSize: 16, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.64 },
-  subtitleText: { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0.3 },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6 },
+  iconBtn:      { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  titleRow:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title:        { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text },
+  status:       { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 1 },
 
-  // Message list
-  listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },
+  list:         { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexGrow: 1 },
+  intro:        { paddingTop: 24, paddingBottom: 18 },
+  introTitle:   { fontSize: 28, lineHeight: 33, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.8 },
 
-  // Quick chips
-  chips:        { maxHeight: 44, flexGrow: 0, flexShrink: 0 },
-  chipsContent: { paddingHorizontal: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
-  chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: accentA(0.25), backgroundColor: accentA(0.07) },
-  chipTxt:      { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent },
-  chipTxtDisabled: { color: accentA(0.35) },
+  suggestions:  { marginTop: 4 },
+  suggestion:   {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 15,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
+  },
+  suggestionTxt:{ flex: 1, fontSize: 16, fontFamily: FONTS.medium, color: COLORS.text },
 
-  // Error banner
-  errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: accentA(0.07), borderWidth: 1, borderColor: accentA(0.2) },
-  errorTxt:     { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, lineHeight: 17 },
+  error:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
+  errorTxt:     { flex: 1, fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  retry:        { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: ink(0.06) },
+  retryTxt:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text },
 
-  // Input bar
-  inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: ink(0.07) },
-  input:       { flex: 1, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.1), borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, fontFamily: FONTS.body, color: COLORS.text, maxHeight: 100, lineHeight: 20 },
-  inputFocused:{ borderColor: accentA(0.4), backgroundColor: accentA(0.04) },
-  sendWrap:    { borderRadius: 18, overflow: 'hidden' },
-  sendBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
-  sendInactive:{ backgroundColor: ink(0.06), borderWidth: 1, borderColor: ink(0.1) },
+  composerWrap: { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 8 },
+  composer:     {
+    flexDirection: 'row', alignItems: 'flex-end', gap: 8, minHeight: 50,
+    paddingLeft: 18, paddingRight: 6, paddingVertical: 5, borderRadius: 25,
+    backgroundColor: COLORS.surface, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: COLORS.border,
+  },
+  input:        {
+    flex: 1, maxHeight: 120, paddingTop: 10, paddingBottom: 10,
+    fontSize: 16, lineHeight: 21, fontFamily: FONTS.body, color: COLORS.text,
+  },
+  send:         { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
 }));

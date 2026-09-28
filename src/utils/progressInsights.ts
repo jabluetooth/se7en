@@ -97,6 +97,46 @@ export function biggestGain(sessions: WorkoutSession[], start: number, now: numb
   return best?.gain ?? null;
 }
 
+// ─── This month so far ────────────────────────────────────────────────────────
+
+export interface MonthFigures {
+  label:        string;   // "September"
+  workouts:     number;
+  volume:       number;
+  records:      number;
+  prevLabel:    string;   // "August"
+  prevWorkouts: number;
+  prevVolume:   number;
+}
+
+/**
+ * This calendar month so far, against the same number of days at the start
+ * of last month, so the 28th isn't compared with a whole month.
+ */
+export function monthSummary(sessions: WorkoutSession[], unit: 'kg' | 'lb', now = Date.now()): MonthFigures {
+  const done = sessions.filter(s => s.status === 'completed' && s.finishedAt);
+  const today = new Date(now);
+  const start = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
+  const prevStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const elapsedDays = today.getDate();
+  const prevEnd = new Date(prevStart);
+  prevEnd.setDate(prevEnd.getDate() + elapsedDays);   // exclusive
+  const at = (s: WorkoutSession) => new Date(s.finishedAt!).getTime();
+  const cur = done.filter(s => at(s) >= start && at(s) <= now);
+  const prev = done.filter(s => at(s) >= prevStart.getTime() && at(s) < Math.min(prevEnd.getTime(), start));
+  const vol = (list: WorkoutSession[]) => list.reduce((a, s) => a + sessionLoad(s.exercises, unit), 0);
+  const name = (d: Date) => d.toLocaleDateString('en-US', { month: 'long' });
+  return {
+    label: name(today),
+    workouts: cur.length,
+    volume: vol(cur),
+    records: cur.reduce((a, s) => a + (s.prsBreached?.length ?? 0), 0),
+    prevLabel: name(prevStart),
+    prevWorkouts: prev.length,
+    prevVolume: vol(prev),
+  };
+}
+
 // ─── Workouts per week ────────────────────────────────────────────────────────
 
 export interface WeekBar {
@@ -118,10 +158,10 @@ function mondayOf(t: number): Date {
  * 4 bars for 4 weeks, 13 for 3 months, and for all time every week since the
  * first workout (at least 4, at most 52).
  */
-export function weeklyCounts(sessions: WorkoutSession[], period: Period, now = Date.now()): WeekBar[] {
+export function weeklyCounts(sessions: WorkoutSession[], period: Period | number, now = Date.now()): WeekBar[] {
   const done = sessions.filter(s => s.status === 'completed' && s.finishedAt);
   const thisWeek = mondayOf(now);
-  let weeks = period === '4w' ? 4 : period === '3m' ? 13 : 4;
+  let weeks = typeof period === 'number' ? period : period === '4w' ? 4 : period === '3m' ? 13 : 4;
   if (period === 'all' && done.length) {
     const first = mondayOf(Math.min(...done.map(s => new Date(s.finishedAt!).getTime())));
     weeks = Math.min(52, Math.max(4, Math.round((thisWeek.getTime() - first.getTime()) / (7 * DAY)) + 1));

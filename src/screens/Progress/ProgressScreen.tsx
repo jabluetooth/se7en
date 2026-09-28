@@ -9,11 +9,10 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { InfoTip } from '../../components/common/InfoTip';
-import { Segmented } from '../../components/common/Segmented';
 import { fmtDate, fmtVol } from '../../utils/format';
 import { aggregateExercises } from '../../utils/exerciseHistory';
 import {
-  summarize, deltaLabel, weeklyCounts, liftTrend, PERIOD_LABEL, type Period,
+  summarize, monthSummary, deltaLabel, weeklyCounts, liftTrend,
 } from '../../utils/progressInsights';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
@@ -24,11 +23,14 @@ import { WeeklyBars } from './components/WeeklyBars';
 import { ExerciseCard } from './components/ExerciseCard';
 import { ink, themed } from '../../theme/runtime';
 
-// Progress, read top to bottom: three numbers against the period before, the
-// lift that improved most, how often you trained each week against your
-// plan, the latest records, then every lift on one line each. Only data is
-// on the screen; how each figure is worked out sits behind its ⓘ. One
-// accent colour, used only for "now" and "best".
+// Progress, read top to bottom: this month so far against last month, the
+// lift that improved most lately, how often you trained each week against
+// your plan, the latest records, then every lift on one line each.
+//
+// There's no period picker. Each section uses the time frame that suits it
+// and says so in its heading: a month for totals, three months for gains
+// and records, twelve weeks for consistency. Only data is on the screen; how
+// each figure is worked out sits behind its ⓘ.
 
 interface Props {
   /** Takes a brand-new user to Today to start their first workout. */
@@ -37,11 +39,8 @@ interface Props {
 
 const LIFTS_SHOWN = 6;
 
-const PERIODS = [
-  { value: '4w' as const, label: PERIOD_LABEL['4w'] },
-  { value: '3m' as const, label: PERIOD_LABEL['3m'] },
-  { value: 'all' as const, label: PERIOD_LABEL.all },
-];
+/** Consistency chart length. */
+const WEEKS = 12;
 
 export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const { sessions }   = useSessionStore();
@@ -50,15 +49,16 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const { width }      = useWindowDimensions();
   const dockClearance  = useDockClearance();
 
-  const [period,     setPeriod]     = useState<Period>('4w');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searching,  setSearching]  = useState(false);
   const [query,      setQuery]      = useState('');
   const [showAll,    setShowAll]    = useState(false);
 
   const totalWorkouts = useMemo(() => sessions.filter(s => s.status === 'completed').length, [sessions]);
-  const summary = useMemo(() => summarize(sessions, period, unit), [sessions, period, unit]);
-  const weeks = useMemo(() => weeklyCounts(sessions, period), [sessions, period]);
+  const month = useMemo(() => monthSummary(sessions, unit), [sessions, unit]);
+  // Gains and records look back three months: long enough to see real change.
+  const recent = useMemo(() => summarize(sessions, '3m', unit), [sessions, unit]);
+  const weeks = useMemo(() => weeklyCounts(sessions, WEEKS), [sessions]);
 
   const target = useMemo(() => {
     if (!activePlan || activePlan.days.length === 0) return null;
@@ -70,18 +70,17 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const lifts = useMemo(() => {
     const out: { h: ReturnType<typeof aggregateExercises>[number]; t: NonNullable<ReturnType<typeof liftTrend>> }[] = [];
     for (const h of aggregateExercises(sessions)) {
-      const t = liftTrend(h, period);
+      const t = liftTrend(h, '3m');
       if (t) out.push({ h, t });
     }
     return out.sort((a, b) => new Date(b.t.lastAt).getTime() - new Date(a.t.lastAt).getTime());
-  }, [sessions, period]);
+  }, [sessions]);
 
   const q = query.trim().toLowerCase();
   const matching = q ? lifts.filter(l => l.h.exerciseName.toLowerCase().includes(q)) : lifts;
   const shown = q || showAll ? matching : matching.slice(0, LIFTS_SHOWN);
 
   const contentW = width - 40;
-  const periodWords = period === 'all' ? 'all time' : `the last ${PERIOD_LABEL[period].toLowerCase()}`;
 
   return (
     <View style={{ flex: 1 }}>
@@ -100,42 +99,41 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
           >
             <Text style={s.title} accessibilityRole="header">Progress</Text>
 
-            <Segmented options={PERIODS} value={period} onChange={setPeriod} stretch a11yLabel="Time period" style={s.periods} />
-
-            {/* ── Three numbers ── */}
-            <Animated.View entering={enterRise(0)} style={s.figures}>
-              <Figure num={summary.workouts} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
-              <Figure
-                num={summary.volume}
-                format={fmtVol}
-                unit={unit}
-                label="Volume"
-                delta={deltaLabel(Math.round(summary.volume), summary.prevVolume == null ? null : Math.round(summary.prevVolume), true)}
-              />
-              <Figure num={summary.records} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
-            </Animated.View>
-            <View style={s.captionRow}>
-              <Text style={s.caption}>
-                {period === 'all' ? 'All time' : `Last ${PERIOD_LABEL[period].toLowerCase()} vs the ${PERIOD_LABEL[period].toLowerCase()} before`}
-              </Text>
+            {/* ── This month ── */}
+            <View style={s.monthHead}>
+              <Text style={s.monthTitle}>{month.label} so far</Text>
               <InfoTip
-                title="How these are counted"
-                text={`Workouts: completed sessions. Volume: weight × reps over every logged set, in ${unit}; bodyweight sets aren't included. Records: new bests on weight, reps or volume. The line under each compares with the period just before.`}
+                title="This month"
+                text={`Workouts: completed sessions. Volume: weight × reps over every logged set, in ${unit}; bodyweight sets aren't included. Records: new bests on weight, reps or volume. The line under each compares with the same days of ${month.prevLabel}.`}
                 size={15}
               />
             </View>
+            <Animated.View entering={enterRise(0)} style={s.figures}>
+              <Figure num={month.workouts} label="Workouts" delta={deltaLabel(month.workouts, month.prevWorkouts)} />
+              <Figure
+                num={month.volume}
+                format={fmtVol}
+                unit={unit}
+                label="Volume"
+                delta={deltaLabel(Math.round(month.volume), Math.round(month.prevVolume), true)}
+              />
+              <Figure num={month.records} label={month.records === 1 ? 'Record' : 'Records'} accent={month.records > 0} />
+            </Animated.View>
+            <Text style={s.caption}>Compared with the same days of {month.prevLabel}</Text>
 
             {/* ── Biggest gain ── */}
             <Section
               title="Biggest gain"
-              info={`The lift whose top set went up the most, as a share of where it started, over ${periodWords}. The line shows its top set each workout, from the one just before the period to now.`}
+              when="Last 3 months"
+              info="The lift whose top set went up the most over the last 3 months, as a share of where it started. The line shows its top set each workout, from the one just before to now."
             >
-              <GainCard gain={summary.gain} width={contentW} />
+              <GainCard gain={recent.gain} width={contentW} />
             </Section>
 
             {/* ── Consistency ── */}
             <Section
               title="Workouts per week"
+              when={`Last ${WEEKS} weeks`}
               info={target
                 ? `Each column is one week, Monday to Sunday. The dashed line is your plan's pace: ${target} workouts a week. This week is orange.`
                 : 'Each column is one week, Monday to Sunday. This week is orange.'}
@@ -144,10 +142,10 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
             </Section>
 
             {/* ── Latest records ── */}
-            {summary.recentPRs.length > 0 && (
-              <Section title="Latest records" info="New heaviest top sets in this period, newest first, with the best they replaced.">
+            {recent.recentPRs.length > 0 && (
+              <Section title="Latest records" when="Last 3 months" info="New heaviest top sets, newest first, with the best each one replaced.">
                 <View>
-                  {summary.recentPRs.slice(0, 3).map((pr, i) => (
+                  {recent.recentPRs.slice(0, 3).map((pr, i) => (
                     <View key={`${pr.exerciseId}-${pr.finishedAt}-${i}`} style={s.prRow}>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={s.prName} numberOfLines={1}>{pr.exerciseName}</Text>
@@ -166,7 +164,7 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
                 <Text style={s.sectionTitle}>Lifts</Text>
                 <InfoTip
                   title="Lifts"
-                  text="Each row: your latest top set, its trend over the period, and how much it changed from the first workout in the period. An orange dot means a new best. Tap a lift for its full history."
+                  text="Each row: your latest top set, its trend over the last 3 months, and how much it changed across them. An orange dot means a new best. Tap a lift for its full history."
                   size={15}
                 />
                 <AnimatedPressable
@@ -227,19 +225,20 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
 
 // ─── Pieces ──────────────────────────────────────────────────────────────────
 
-function Section({ title, info, children }: { title: string; info: string; children: React.ReactNode }) {
+function Section({ title, when, info, children }: { title: string; when?: string; info: string; children: React.ReactNode }) {
   return (
     <View style={s.section}>
       <View style={s.sectionHead}>
         <Text style={s.sectionTitle}>{title}</Text>
         <InfoTip title={title} text={info} size={15} />
+        {when ? <Text style={s.when}>{when}</Text> : null}
       </View>
       {children}
     </View>
   );
 }
 
-/** A figure that counts from its old value to its new one when the period changes. */
+/** A figure that counts up to its value, and from old to new when it changes. */
 function Figure({ num, format, unit, label, delta, accent }: {
   num: number; format?: (n: number) => string; unit?: string; label: string; delta?: string | null; accent?: boolean;
 }) {
@@ -307,20 +306,21 @@ const fr = themed(() => StyleSheet.create({
 const s = themed(() => StyleSheet.create({
   scroll:       { paddingHorizontal: 20 },
   title:        { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2, marginTop: 4 },
-  periods:      { marginTop: 16 },
+  monthHead:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
+  monthTitle:   { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text },
 
-  figures:      { flexDirection: 'row', gap: 12, marginTop: 24 },
+  figures:      { flexDirection: 'row', gap: 12, marginTop: 14 },
   figure:       { flex: 1, gap: 2 },
   figVal:       { fontSize: 30, lineHeight: 34, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   figUnit:      { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0 },
   figLbl:       { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
   figDelta:     { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
-  captionRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  caption:      { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textLabel },
+  caption:      { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 12 },
 
   section:      { marginTop: 36, gap: 14 },
   sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionTitle: { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text },
+  when:         { marginLeft: 'auto', fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
 
   prRow:        {
     flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
