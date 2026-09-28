@@ -43,7 +43,7 @@ export function DayCard({
   onEdit, onClear, onDone, dragHandlers, onMoveUp, onMoveDown, onScrollEnabledChange,
 }: Props) {
   const { addExercise, updateExercise, deleteExercise, updateDay } = usePlanStore();
-  const { confirm } = useFeedback();
+  const { confirm, actions } = useFeedback();
   const swipeRef   = useRef<Swipeable>(null);
   const isCurrent  = isToday;
   const isDone     = status === 'completed';
@@ -72,6 +72,23 @@ export function DayCard({
   const handleEdit  = () => { swipeRef.current?.close(); setShowList(false); setShowEditor(e => !e); };
   const handleClear = () => { swipeRef.current?.close(); onClear(); };
   const handleDone  = () => { swipeRef.current?.close(); onDone?.(); };
+
+  // The same actions as the swipe gestures, reachable without knowing them.
+  const openActions = () => {
+    swipeRef.current?.close();
+    actions({
+      title: day.label,
+      options: [
+        ...(!dayIsRest(day) && !isDone && onDone
+          ? [{ label: 'Mark as done', icon: 'checkmark-circle-outline' as const, onPress: handleDone }]
+          : []),
+        { label: showEditor ? 'Close editor' : 'Edit exercises', icon: 'create-outline' as const, onPress: handleEdit },
+        ...(!dayIsRest(day)
+          ? [{ label: 'Clear day', icon: 'trash-outline' as const, destructive: true, onPress: handleClear }]
+          : []),
+      ],
+    });
+  };
 
   const isRest        = dayIsRest(day);
   const existingNames = new Set(day.exercises.map(e => e.name.toLowerCase()));
@@ -258,12 +275,24 @@ export function DayCard({
               </View>
 
               <View style={dc.right}>
-                <Badge label={STATUS_BADGE[status].label} variant={STATUS_BADGE[status].variant} size="xs" />
+                <View style={dc.rightTop}>
+                  <Badge label={STATUS_BADGE[status].label} variant={STATUS_BADGE[status].variant} size="xs" />
+                  <AnimatedPressable
+                    scale="strong"
+                    style={dc.moreBtn}
+                    onPress={openActions}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Actions for ${day.label}`}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={18} color={COLORS.textSecondary} />
+                  </AnimatedPressable>
+                </View>
                 <Ionicons
                   name={(showList || showEditor) ? 'chevron-up' : 'chevron-down'}
                   size={14}
                   color={showEditor ? COLORS.accent : COLORS.textMuted}
-                  style={{ marginTop: 6 }}
+                  style={{ marginTop: 4 }}
                 />
               </View>
             </GlassView>
@@ -441,6 +470,8 @@ export const dc = StyleSheet.create({
   tag:          { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
   tagTxt:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
   right:        { alignItems: 'flex-end', justifyContent: 'center', gap: 0 },
+  rightTop:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  moreBtn:      { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: -6 },
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },

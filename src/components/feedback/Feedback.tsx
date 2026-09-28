@@ -3,6 +3,7 @@
 //   const { toast, confirm } = useFeedback();
 //   toast.success('Preset saved');
 //   if (await confirm({ title: 'Skip Push?', confirmLabel: 'Skip day', destructive: true })) { … }
+//   actions({ title: 'Push', options: [{ label: 'Mark done', icon: 'checkmark', onPress: markDone }] });
 //
 // Why hosts: every flow in this app lives in a React Native <Modal>, which is
 // a separate native window. Anything rendered at the app root is hidden
@@ -51,6 +52,20 @@ interface ConfirmItem extends ConfirmOptions {
   resolve: (ok: boolean) => void;
 }
 
+export interface ActionOption {
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Red, for actions that discard something. */
+  destructive?: boolean;
+  onPress: () => void;
+}
+
+export interface ActionsOptions {
+  title: string;
+  message?: string;
+  options: ActionOption[];
+}
+
 type ToastApi = {
   [K in ToastVariant]: (message: string, options?: ToastOptions) => void;
 };
@@ -58,13 +73,17 @@ type ToastApi = {
 interface FeedbackApi {
   toast: ToastApi;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
+  /** A bottom sheet of choices; picking one closes the sheet then runs it. */
+  actions: (options: ActionsOptions) => void;
 }
 
 interface FeedbackState {
   toasts: ToastItem[];
   pending: ConfirmItem | null;
+  menu: ActionsOptions | null;
   dismissToast: (id: number) => void;
   answer: (ok: boolean) => void;
+  closeMenu: () => void;
   hosts: string[];
   registerHost: (id: string) => () => void;
 }
@@ -86,6 +105,7 @@ const VARIANT: Record<ToastVariant, { icon: keyof typeof Ionicons.glyphMap; colo
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [pending, setPending] = useState<ConfirmItem | null>(null);
+  const [menu, setMenu] = useState<ActionsOptions | null>(null);
   const [hosts, setHosts] = useState<string[]>([]);
   const nextId = useRef(1);
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -121,6 +141,9 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const actions = useCallback((options: ActionsOptions) => setMenu(options), []);
+  const closeMenu = useCallback(() => setMenu(null), []);
+
   const registerHost = useCallback((id: string) => {
     setHosts(list => [...list, id]);
     return () => setHosts(list => list.filter(h => h !== id));
@@ -136,11 +159,12 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       error:   (m, o) => show('error', m, o),
     },
     confirm,
-  }), [show, confirm]);
+    actions,
+  }), [show, confirm, actions]);
 
   const state = useMemo<FeedbackState>(
-    () => ({ toasts, pending, dismissToast, answer, hosts, registerHost }),
-    [toasts, pending, dismissToast, answer, hosts, registerHost],
+    () => ({ toasts, pending, menu, dismissToast, answer, closeMenu, hosts, registerHost }),
+    [toasts, pending, menu, dismissToast, answer, closeMenu, hosts, registerHost],
   );
 
   return (
@@ -174,6 +198,7 @@ export function FeedbackHost() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <ToastStack toasts={state.toasts} onDismiss={state.dismissToast} />
+      {state.menu && <ActionSheet item={state.menu} onClose={state.closeMenu} />}
       {state.pending && <ConfirmSheet item={state.pending} onAnswer={state.answer} />}
     </View>
   );
@@ -229,6 +254,43 @@ function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id
 }
 
 // ─── Confirm sheet ────────────────────────────────────────────────────────────
+
+function ActionSheet({ item, onClose }: { item: ActionsOptions; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Animated.View entering={enterFade} exiting={exitFade} style={StyleSheet.absoluteFill}>
+        <Pressable style={cs.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
+      </Animated.View>
+      <Animated.View entering={enterSheet} exiting={exitSheet} style={[cs.sheet, { paddingBottom: insets.bottom + 12 }]} accessibilityViewIsModal>
+        <View style={cs.grabber} />
+        <Text style={cs.title} accessibilityRole="header">{item.title}</Text>
+        {item.message ? <Text style={cs.message}>{item.message}</Text> : <View style={{ height: 10 }} />}
+        {item.options.map((o, i) => (
+          <AnimatedPressable
+            key={o.label}
+            scale="subtle"
+            haptic={o.destructive ? 'warning' : 'selection'}
+            style={[as.row, i > 0 && as.rowBorder]}
+            onPress={() => { onClose(); o.onPress(); }}
+            accessibilityRole="button"
+            accessibilityLabel={o.label}
+          >
+            {o.icon && (
+              <View style={[as.icon, o.destructive && { backgroundColor: 'rgba(255,69,58,0.14)' }]}>
+                <Ionicons name={o.icon} size={18} color={o.destructive ? COLORS.danger : COLORS.accent} />
+              </View>
+            )}
+            <Text style={[as.label, o.destructive && { color: COLORS.danger }]}>{o.label}</Text>
+          </AnimatedPressable>
+        ))}
+        <AnimatedPressable style={cs.cancelBtn} onPress={onClose} accessibilityRole="button" accessibilityLabel="Cancel">
+          <Text style={cs.cancelTxt}>Cancel</Text>
+        </AnimatedPressable>
+      </Animated.View>
+    </View>
+  );
+}
 
 function ConfirmSheet({ item, onAnswer }: { item: ConfirmItem; onAnswer: (ok: boolean) => void }) {
   const insets = useSafeAreaInsets();
@@ -295,6 +357,13 @@ const ts = StyleSheet.create({
   message: { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 19 },
   action:  { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   actionTxt: { fontSize: 13, fontFamily: FONTS.headline, letterSpacing: 0.3 },
+});
+
+const as = StyleSheet.create({
+  row:       { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,240,220,0.10)' },
+  icon:      { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.12)' },
+  label:     { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text },
 });
 
 const cs = StyleSheet.create({

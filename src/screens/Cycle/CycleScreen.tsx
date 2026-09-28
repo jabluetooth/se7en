@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TextInput, UIManager, Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { enterRise, exitFade } from '../../motion/presets';
 import { useFeedback } from '../../components/feedback/Feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +33,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
+const TIP_KEY = '@se7en_cycle_tip_dismissed';
+
 export function CycleScreen() {
   const { activePlan, updateDay, updatePlan, loadError, load: loadPlans } = usePlanStore();
   const { toast, confirm } = useFeedback();
@@ -37,6 +42,16 @@ export function CycleScreen() {
   const { settings, shiftCycle }              = useSettingsStore();
   const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
   const uid = useAuthStore(u => u.user?.uid);
+
+  // First-run tip explaining the day actions; hidden for good once dismissed.
+  const [showTip, setShowTip] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem(TIP_KEY).then(v => setShowTip(v !== '1')).catch(() => {});
+  }, []);
+  const dismissTip = () => {
+    setShowTip(false);
+    AsyncStorage.setItem(TIP_KEY, '1').catch(() => {});
+  };
 
   const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition, activePlan?.days.length ?? 7);
   const dockClearance = useDockClearance();
@@ -353,7 +368,22 @@ export function CycleScreen() {
           </View>
         </GlassView>
 
-        <Text style={s.hint}>Swipe right → Done · Swipe left → Edit / Clear · Drag ≡ to reorder</Text>
+        {showTip && (
+          <Animated.View entering={enterRise(0)} exiting={exitFade} style={s.tip}>
+            <Ionicons name="bulb-outline" size={18} color={COLORS.accent} style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.tipTitle}>Managing your days</Text>
+              <Text style={s.tipTxt}>
+                Tap ⋯ on a day to mark it done, edit or clear it. Shortcuts: swipe right to mark done,
+                swipe left for edit or clear, and hold ≡ to drag a day to a new spot.
+              </Text>
+            </View>
+            <AnimatedPressable scale="strong" style={s.tipClose} onPress={dismissTip} hitSlop={8}
+              accessibilityRole="button" accessibilityLabel="Dismiss tip">
+              <Ionicons name="close" size={18} color={COLORS.textMuted} />
+            </AnimatedPressable>
+          </Animated.View>
+        )}
 
         {/* ── Day list ── */}
         <ScrollView
@@ -430,6 +460,12 @@ const s = StyleSheet.create({
   barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
   barFill:    { flex: 1, borderRadius: 3 },
 
-  hint:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', marginBottom: 8 },
+  tip:        {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginHorizontal: 16, marginBottom: 10,
+    padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.22)',
+  },
+  tipTitle:   { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.text, marginBottom: 3 },
+  tipTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 19 },
+  tipClose:   { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginTop: -4, marginRight: -4 },
   list:       { paddingHorizontal: 16 },
 });
