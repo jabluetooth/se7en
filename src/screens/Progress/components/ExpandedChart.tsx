@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
+import Animated, { useAnimatedProps, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
+import { EASE_OUT, TIMING } from '../../../motion/tokens';
 import { COLORS, FONTS } from '../../../constants';
 import { WeightUnit } from '../../../types';
 import { fmtDate } from '../../../utils/format';
@@ -12,6 +14,10 @@ interface Props {
   unit:         WeightUnit;
   width:        number;
 }
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
+const DRAW_MS = 800;
 
 // Shown when an exercise card is expanded. Plots top-weight (or top-reps for
 // bodyweight) over time. Falls back to a single centred label when every
@@ -26,28 +32,47 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
   const metric = (s: ExerciseSessionPoint) => isBodyweight ? s.topReps : s.topWeight;
   const data = sessions.map(metric);
 
-  if (data.length < 2) {
+  const geo = useMemo(() => {
+    if (data.length < 2) return null;
+    const max    = Math.max(...data);
+    const min    = Math.min(...data);
+    const isFlat = max === min;
+    const range  = isFlat ? 1 : max - min;
+    const pts = data.map((v, i) => ({
+      x: padL + (i / (data.length - 1)) * innerW,
+      // When every session shares the same value, plot the line on the centre
+      // line so flat data reads as flat (instead of slammed to the bottom).
+      y: isFlat ? padTop + innerH / 2 : padTop + (1 - (v - min) / range) * innerH,
+    }));
+    let length = 0;
+    for (let i = 1; i < pts.length; i++) length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    return { max, min, isFlat, pts, length: Math.max(length, 1) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.join(','), innerW, innerH]);
+  const lineLength = geo?.length ?? 1;
+
+  // The line traces itself in when the card opens; area and points follow.
+  const draw = useSharedValue(0);
+  const rest = useSharedValue(0);
+  useEffect(() => {
+    draw.value = withTiming(1, { duration: DRAW_MS, easing: EASE_OUT, reduceMotion: TIMING.standard.reduceMotion });
+    rest.value = withDelay(DRAW_MS * 0.5, withTiming(1, TIMING.emphasis));
+  }, []);
+  const lineProps = useAnimatedProps(() => ({ strokeDashoffset: lineLength * (1 - draw.value) }));
+  const restProps = useAnimatedProps(() => ({ opacity: rest.value }));
+
+  if (!geo) {
     return (
-      <View style={{ height: H, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted }}>Need 2+ sessions to chart</Text>
+      <View style={{ height: H, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
+        <Text style={{ fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, textAlign: 'center' }}>
+          Log this exercise once more to see your trend.
+        </Text>
       </View>
     );
   }
 
-  const max    = Math.max(...data);
-  const min    = Math.min(...data);
-  const isFlat = max === min;
-  const range  = isFlat ? 1 : max - min;
-  const mid    = (max + min) / 2;
-
-  const pts = data.map((v, i) => ({
-    x: padL + (i / (data.length - 1)) * innerW,
-    // When every session shares the same value, plot the line on the centre
-    // line so flat data reads as flat (instead of slammed to the bottom).
-    y: isFlat
-      ? padTop + innerH / 2
-      : padTop + (1 - (v - min) / range) * innerH,
-  }));
+  const { max, min, isFlat, pts } = geo;
+  const mid = (max + min) / 2;
 
   const linePath = pts.map((p, i) =>
     `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
@@ -88,23 +113,23 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
 
         {/* Y-axis labels — single centred label when flat, otherwise max / mid / min */}
         {isFlat ? (
-          <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="700"
+          <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={10} fontWeight="700"
             fill={COLORS.textMuted} textAnchor="end">
             {fmtAxis(max)}
           </SvgText>
         ) : (
           <>
-            <SvgText x={padL - 6} y={padTop + 3} fontSize={9} fontWeight="700"
+            <SvgText x={padL - 6} y={padTop + 3} fontSize={10} fontWeight="700"
               fill={COLORS.textMuted} textAnchor="end">
               {fmtAxis(max)}
             </SvgText>
             {showMid && (
-              <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={9} fontWeight="600"
+              <SvgText x={padL - 6} y={padTop + innerH / 2 + 3} fontSize={10} fontWeight="600"
                 fill={COLORS.textMuted} textAnchor="end">
                 {fmtAxis(mid)}
               </SvgText>
             )}
-            <SvgText x={padL - 6} y={baseY + 3} fontSize={9} fontWeight="600"
+            <SvgText x={padL - 6} y={baseY + 3} fontSize={10} fontWeight="600"
               fill={COLORS.textMuted} textAnchor="end">
               {fmtAxis(min)}
             </SvgText>
@@ -112,9 +137,15 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
         )}
 
         {/* Area fill + line */}
-        <Path d={areaPath} fill="rgba(255,140,0,0.12)" />
-        <Path d={linePath} stroke={COLORS.accent} strokeWidth={2} fill="none"
-          strokeLinecap="round" strokeLinejoin="round" />
+        <AnimatedG opacity={0} animatedProps={restProps}>
+          <Path d={areaPath} fill="rgba(255,140,0,0.12)" />
+        </AnimatedG>
+        <AnimatedPath d={linePath} stroke={COLORS.accent} strokeWidth={2} fill="none"
+          strokeLinecap="round" strokeLinejoin="round"
+          strokeDasharray={`${lineLength} ${lineLength}`}
+          animatedProps={lineProps} />
+
+        <AnimatedG opacity={0} animatedProps={restProps}>
 
         {/* Dashed vertical guide to the peak */}
         <Path d={`M${peak.x},${peak.y} L${peak.x},${baseY}`}
@@ -130,13 +161,14 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
         <Circle cx={peak.x} cy={peak.y} r={8}
           fill="none" stroke={COLORS.accent} strokeOpacity={0.25} strokeWidth={2} />
         <Circle cx={peak.x} cy={peak.y} r={4.5} fill={COLORS.accent} />
+        </AnimatedG>
 
         {/* X-axis: first + last date labels */}
-        <SvgText x={padL} y={H - 6} fontSize={9} fontWeight="600"
+        <SvgText x={padL} y={H - 6} fontSize={10} fontWeight="600"
           fill={COLORS.textMuted} textAnchor="start">
           {firstDate}
         </SvgText>
-        <SvgText x={W - padR} y={H - 6} fontSize={9} fontWeight="600"
+        <SvgText x={W - padR} y={H - 6} fontSize={10} fontWeight="600"
           fill={COLORS.textMuted} textAnchor="end">
           {lastDate}
         </SvgText>

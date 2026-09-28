@@ -18,13 +18,21 @@ import { aggregateExercises } from '../../utils/exerciseHistory';
 import { ContributionHeatmap } from './components/ContributionHeatmap';
 import { ExerciseCard } from './components/ExerciseCard';
 import { useDockClearance } from '../../hooks/useDockClearance';
+import Animated from 'react-native-reanimated';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { enterRise } from '../../motion/presets';
 
 // Progress signal text colour — applied to font only.
 const PROGRESS_GREEN_TXT = '#34D399';
 
 type SortMode = 'recent' | 'volume' | 'name';
 
-export function ProgressScreen() {
+interface Props {
+  /** Takes a brand-new user to Home to start their first workout. */
+  onStartWorkout?: () => void;
+}
+
+export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const { sessions }   = useSessionStore();
   const { activePlan } = usePlanStore();
   const unit           = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
@@ -106,6 +114,9 @@ export function ProgressScreen() {
           {activePlan && <Text style={s.sub}>{activePlan.name}</Text>}
         </View>
 
+        {totalWorkouts === 0 ? (
+          <FirstRun bottom={dockClearance} onStart={onStartWorkout} />
+        ) : (
         <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
           {/* Summary stats — bare typographic numbers, no glass. The Activity
               heatmap below is this screen's genuinely distinct visual surface;
@@ -268,10 +279,61 @@ export function ProgressScreen() {
               card and the dock's top edge (about half the dock's height). */}
           <View style={{ height: 24 }} />
         </ScrollView>
+        )}
       </SafeAreaView>
     </View>
   );
 }
+
+/**
+ * Before the first workout, Progress has nothing to chart. Rather than a
+ * screen of zeros, say what will appear here and point to where to start.
+ */
+function FirstRun({ bottom, onStart }: { bottom: number; onStart?: () => void }) {
+  const items: [React.ComponentProps<typeof Ionicons>['name'], string, string][] = [
+    ['calendar-outline', 'Your training calendar', 'Every day you train, filled in.'],
+    ['trending-up-outline', 'A trend for each lift', 'How your weights and reps move over time.'],
+    ['trophy-outline', 'Personal records', 'Flagged the moment you beat a previous best.'],
+  ];
+  return (
+    <ScrollView contentContainerStyle={[fr.wrap, { paddingBottom: bottom }]} showsVerticalScrollIndicator={false}>
+      <Animated.View entering={enterRise(0)} style={fr.hero}>
+        <View style={fr.icon}><Ionicons name="pulse" size={28} color={COLORS.accent} /></View>
+        <Text style={fr.title}>Your progress starts here</Text>
+        <Text style={fr.sub}>Finish your first workout and this screen fills in with:</Text>
+      </Animated.View>
+      {items.map(([icon, title, desc], i) => (
+        <Animated.View key={title} entering={enterRise(i + 1)} style={fr.item}>
+          <Ionicons name={icon} size={20} color={COLORS.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={fr.itemTitle}>{title}</Text>
+            <Text style={fr.itemDesc}>{desc}</Text>
+          </View>
+        </Animated.View>
+      ))}
+      {onStart && (
+        <Animated.View entering={enterRise(4)}>
+          <AnimatedPressable haptic="light" style={fr.cta} onPress={onStart} accessibilityRole="button" accessibilityLabel="Go to Home to start your first workout">
+            <Text style={fr.ctaTxt}>Start your first workout</Text>
+          </AnimatedPressable>
+        </Animated.View>
+      )}
+    </ScrollView>
+  );
+}
+
+const fr = StyleSheet.create({
+  wrap:      { paddingHorizontal: 20, paddingTop: 12, gap: 12 },
+  hero:      { alignItems: 'center', paddingVertical: 20 },
+  icon:      { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.12)', marginBottom: 16 },
+  title:     { fontSize: 24, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.8, textAlign: 'center' },
+  sub:       { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 21 },
+  item:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  itemTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
+  itemDesc:  { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2 },
+  cta:       { marginTop: 8, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
+  ctaTxt:    { fontSize: 16, fontFamily: FONTS.display, color: '#000' },
+});
 
 const s = StyleSheet.create({
   header:           { paddingHorizontal: 20, paddingBottom: 14, zIndex: 10 },

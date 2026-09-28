@@ -10,7 +10,6 @@ import { ProgressScreen }           from '../screens/Progress/ProgressScreen';
 import { SettingsScreen }           from '../screens/Settings/SettingsScreen';
 import { PostWorkoutSummary }       from '../screens/PostWorkout/PostWorkoutSummary';
 import { ActiveSessionScreen }      from '../screens/ActiveSession/ActiveSessionScreen';
-import { RestTimerScreen }          from '../screens/RestTimer/RestTimerScreen';
 import { ExerciseBuilderScreen }    from '../screens/ExerciseBuilder/ExerciseBuilderScreen';
 import { CoachScreen }              from '../screens/Coach/CoachScreen';
 import { useSessionStore }          from '../stores/sessionStore';
@@ -36,7 +35,6 @@ type WorkoutModal =
 export function AppNavigator() {
   const [activeTab,       setActiveTab      ] = useState<TabName>('Home');
   const [workoutModal,    setWorkoutModal    ] = useState<WorkoutModal>({ phase: 'hidden' });
-  const [showRestTimer,   setShowRestTimer   ] = useState(false);
   const [showBuilder,     setShowBuilder     ] = useState(false);
   const [showCoach,       setShowCoach       ] = useState(false);
   const [coachInitialMsg, setCoachInitialMsg ] = useState<string | undefined>();
@@ -120,7 +118,7 @@ export function AppNavigator() {
         />
       );
       case 'Cycle':    return <CycleScreen />;
-      case 'Progress': return <ProgressScreen />;
+      case 'Progress': return <ProgressScreen onStartWorkout={() => setActiveTab('Home')} />;
       case 'Settings': return (
         <SettingsScreen
           onOpenExerciseBuilder={() => setShowBuilder(true)}
@@ -146,8 +144,6 @@ export function AppNavigator() {
         finishedSession={finishedSession}
         nextDay={nextDay}
         onPostWorkoutDone={handlePostWorkoutDone}
-        showRestTimer={showRestTimer}
-        setShowRestTimer={setShowRestTimer}
         showBuilder={showBuilder}
         setShowBuilder={setShowBuilder}
         showCoach={showCoach}
@@ -171,8 +167,6 @@ interface ShellProps {
   finishedSession: WorkoutSession | null;
   nextDay: WorkoutDay | undefined;
   onPostWorkoutDone: () => void;
-  showRestTimer: boolean;
-  setShowRestTimer: (v: boolean) => void;
   showBuilder: boolean;
   setShowBuilder: (v: boolean) => void;
   showCoach: boolean;
@@ -184,7 +178,6 @@ function AppShell({
   activeTab, setActiveTab, renderTab, visited,
   workoutModal, onHideSession, onSessionFinish, onSessionCleared,
   finishedSession, nextDay, onPostWorkoutDone,
-  showRestTimer, setShowRestTimer,
   showBuilder, setShowBuilder,
   showCoach, coachInitialMsg, onCloseCoach,
 }: ShellProps) {
@@ -231,11 +224,6 @@ function AppShell({
           )}
           <FeedbackHost />
         </View>
-      </Modal>
-
-      <Modal visible={showRestTimer} animationType="slide" presentationStyle="fullScreen">
-        <RestTimerScreen onClose={() => setShowRestTimer(false)} />
-        <FeedbackHost />
       </Modal>
 
       <Modal visible={showBuilder} animationType="slide" presentationStyle="fullScreen">
