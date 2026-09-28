@@ -33,7 +33,7 @@ Track workouts, visualize progress, and get coaching insights - all offline-firs
 
 <img src="docs/qr-expo-go.png" alt="Scan to try Se7en" width="220"/>
 
-**[Open in Expo Go →](https://expo.dev/accounts/bonsky/projects/se7en/updates/57a146a9-956a-48f5-b853-3145cf0daadf)**
+**[Open in Expo Go →](https://expo.dev/accounts/bonsky/projects/se7en/updates/94dc4760-8b33-4a58-8a8a-6942c00bc282)**
 *(on desktop? open that link on your phone, or scan the QR above)*
 
 </div>
@@ -46,21 +46,22 @@ Se7en uses a **7-day rotating cycle** model - workouts rotate by slot, not by ca
 
 | Feature | Description |
 |---|---|
-| **Live Workout Tracking** | Log sets in real-time with auto PR detection and elapsed timer |
+| **Focus-Mode Workouts** | One exercise per screen, steppers prefilled from your last set, one-tap logging with live PR detection |
 | **AI Coach** | Contextual insights powered by Groq LLM + your own session history (RAG) |
-| **Progress Analytics** | Heatmaps, volume charts, sparklines, and a 14-day completion history |
-| **Post-Workout Card** | Shareable workout summary with custom background - exportable as PNG |
+| **Progress Analytics** | This month vs last month, biggest gain, workouts per week against your plan, a trend line for every lift |
+| **Post-Workout Summary** | Volume-by-exercise and per-set charts, new records, shareable as a PNG with a custom background |
 | **Plan Builder** | Drag-to-reorder days and exercises, plan templates (PPL, Upper/Lower, etc.) |
-| **Rest Timer** | Between-set countdown with per-exercise configurable durations |
+| **Rest Timer** | Built into the workout's bottom panel, per-exercise durations, notification when rest is over |
 | **Offline-First** | Instant load from local cache, background sync to Firestore |
+| **Light & Dark** | Theme toggle in Settings, applied live across every screen |
 
 ---
 
 ## Screens
 
-| Home | Active Session | Post-Workout | AI Coach |
-|---|---|---|---|
-| Mission card, heatmap, 14-day bars | Real-time set logging, RPE, notes | Volume breakdown, shareable card | Chat + proactive insights |
+| Today | Workout | Post-Workout | Progress | Coach |
+|---|---|---|---|---|
+| Today's workout, week strip, cycle stats | One exercise at a time, inline rest timer, effort rating | Volume and per-set charts, records | Month vs last month, weekly consistency, lift trends | Chat grounded in your history |
 
 ---
 
@@ -69,11 +70,12 @@ Se7en uses a **7-day rotating cycle** model - workouts rotate by slot, not by ca
 This project was built to demonstrate production-quality React Native architecture - not just a tutorial app.
 
 - **100+ TypeScript types** - full schema coverage, no `any`
-- **Custom component library** - glassmorphism UI system with SVG charts built from scratch (no chart library)
+- **Custom component library** - flat, theme-aware UI with SVG charts built from scratch (no chart library), directly labelled and data-first
+- **Live light/dark theming** - palette swap plus per-theme cached styles, no per-component rewrites
 - **State machines over booleans** - `BarState = 'done' | 'rest' | 'missed' | 'pending'` prevents logic bugs
 - **Two-phase data load** - AsyncStorage for instant UI, Firestore as authoritative source in background
 - **AI Coach with RAG** - HuggingFace embeddings stored in Neon pgvector, retrieved per query, fed to Groq Llama 3.3 70B
-- **Reanimated 4 animations** - fluid gesture interactions (drag-sort, swipe actions, spring transitions)
+- **Reanimated 4 animations** - soft ease-out motion (no springs) that respects Reduce Motion: drawn-in charts, count-ups, drag-sort, swipe actions
 
 ---
 
