@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Image, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { enterRise } from '../../motion/presets';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,14 +13,15 @@ import { usePRStore } from '../../stores/prStore';
 import { useAuthStore } from '../../stores/authStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
-import { CycleOrbitWidget } from './CycleOrbitWidget';
-import { DaySlider } from './DaySlider';
+import { CycleCard } from './CycleCard';
+import { DayPreviewSheet } from './DayPreviewSheet';
 import { MissionCard } from './MissionCard';
 import { ContributionHeatmap } from './ContributionHeatmap';
 import { HighlightSlideshow } from './HighlightSlideshow';
 import { CoachWidget } from '../../components/CoachWidget/CoachWidget';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { computeDayPosition, localDateStr, localDateOf } from '../../utils/cycleUtils';
+import { buildCycleView, type CycleSlot } from '../../utils/cycleView';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import { scheduleWorkoutReminder, cancelWorkoutReminders } from '../../services/notificationService';
 
@@ -32,12 +35,15 @@ interface Props {
 }
 
 export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) {
-  const { activePlan }                        = usePlanStore();
+  const { activePlan, load: loadPlans }       = usePlanStore();
   const { sessions, startSession, activeSession, loadError, load: loadSessions } = useSessionStore();
-  const { settings }               = useSettingsStore();
+  const { settings, save: saveSettings } = useSettingsStore();
   const { loadError: prLoadError, load: loadPRs } = usePRStore();
   const dockClearance              = useDockClearance();
   const uid                        = useAuthStore(u => u.user?.uid);
+  const displayName                = useAuthStore(u => u.user?.displayName);
+  const [refreshing, setRefreshing] = useState(false);
+  const [preview,    setPreview]    = useState<CycleSlot | null>(null);
 
   // Keep the home-screen widget in sync with the latest plan/session data.
   useEffect(() => {
@@ -98,13 +104,10 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     return localDateStr(d);
   })();
 
-  // Today's workout = the card at slot (currentDayPos - 1) in the user's
-  // visible cycle order. Looking it up by `dayPosition` would point at the
-  // exercise that USED to live at that slot before any drag-reorder on the
-  // Cycle screen, so the two screens would disagree on "today".
-  // Used by CycleOrbitWidget for the orbit label; MissionCard receives
-  // `nextMission` instead (computed below — skips today-if-done and rest days).
-  const currentDay   = activePlan?.days[currentDayPos - 1];
+  // "Today" is always the slot at (currentDayPos - 1) in the user's visible
+  // cycle order, never looked up by `dayPosition`: after a drag-reorder on
+  // the Cycle screen that would point at whatever USED to live in that slot.
+  // CycleCard and MissionCard (via `nextMission` below) both follow slots.
   const planSessions = activePlan ? sessions.filter(s => s.planId === activePlan.id) : sessions;
 
   // "Today done" lookup — date-based (not slot-based) so it survives any
@@ -144,20 +147,61 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
     // AppNavigator detects activeSession !== null and opens ActiveSessionScreen
   };
 
-  if (!activePlan) {
+  const cycle = useMemo(
+    () => (activePlan ? buildCycleView(activePlan, planSessions, currentDayPos, settings.cycleStartDate) : null),
+    [activePlan, planSessions, currentDayPos, settings.cycleStartDate],
+  );
+
+  // Pull to refresh re-reads everything the screen shows from Firestore.
+  const refresh = async () => {
+    if (!uid) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([loadSessions(uid), loadPRs(uid), loadPlans(uid)]);
+    } catch {
+      // Each store surfaces its own loadError, which drives the banner below.
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? 'Up late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = displayName?.trim().split(/\s+/)[0];
+
+  // Starting from the preview sheet is offered only for the workout Home's
+  // own Start button would start, so the two can never disagree.
+  const canStartPreview = !!preview && !!nextMission && preview.day.id === nextMission.id
+    && !preview.day.isRestDay && !completedToday && activeSession === null;
+
+  if (!activePlan || !cycle) {
     return (
       <View style={s.emptyWrap}>
         <AppBackground />
-        <Ionicons name="barbell-outline" size={32} color={COLORS.textLabel} style={{ marginBottom: 12 }} />
-        <Text style={s.emptyTitle}>No plan active</Text>
-        <Text style={s.emptySub}>Set up a workout plan to start tracking your training.</Text>
+        {/* Reached only when the saved active plan can't be found (plans
+            failed to sync, or it was removed on another device): with no
+            active plan at all, App shows onboarding instead. */}
+        <Ionicons name="cloud-offline-outline" size={32} color={COLORS.textLabel} style={{ marginBottom: 12 }} />
+        <Text style={s.emptyTitle}>Your plan didn't load</Text>
+        <Text style={s.emptySub}>
+          Check your connection and try again, or pick a new plan to keep training.
+        </Text>
         <AnimatedPressable
           style={s.emptyCta}
-          onPress={() => onNavigate('Settings')}
+          haptic="light"
+          onPress={() => { if (uid) loadPlans(uid).catch(() => {}); }}
           accessibilityRole="button"
-          accessibilityLabel="Go to Settings to set up a plan"
+          accessibilityLabel="Try loading your plan again"
         >
-          <Text style={s.emptyCtaTxt}>Go to Settings</Text>
+          <Text style={s.emptyCtaTxt}>Try again</Text>
+        </AnimatedPressable>
+        <AnimatedPressable
+          style={s.emptyLink}
+          onPress={() => { saveSettings({ activePlanId: null }).catch(() => {}); }}
+          accessibilityRole="button"
+          accessibilityLabel="Choose a new plan"
+        >
+          <Text style={s.emptyLinkTxt}>Choose a new plan</Text>
         </AnimatedPressable>
       </View>
     );
@@ -170,20 +214,20 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
       <SafeAreaView style={s.safe} edges={['top']}>
         {/* Header */}
         <View style={s.header}>
-          <View>
-            <Text style={s.planLabel}>{activePlan.name}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.greeting} numberOfLines={1}>
+              {greeting}{firstName ? `, ${firstName}` : ''}
+            </Text>
             <Text style={s.dateText}>
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'short', month: 'short', day: 'numeric',
-              })}
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </Text>
           </View>
-          <Image source={require('../../../assets/icon.png')} style={s.logoBadge} />
+          <Image source={require('../../../assets/icon.png')} style={s.logoBadge} accessibilityIgnoresInvertColors />
         </View>
 
         {(loadError || prLoadError) && (
           <InlineBanner
-            message="Couldn't sync your latest data — showing the last saved copy."
+            message="Couldn't sync your latest data. Showing the last saved copy."
             onRetry={uid ? () => { loadSessions(uid); loadPRs(uid); } : undefined}
           />
         )}
@@ -193,57 +237,62 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
           contentContainerStyle={s.scrollContent}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={COLORS.accent} colors={[COLORS.accent]} />
+          }
         >
-          {/* ── Orbit + slider ── */}
-          <CycleOrbitWidget
-            currentDay={currentDayPos}
-            sessions={planSessions}
-            dayLabel={currentDay?.label ?? 'Workout'}
-            activePlan={activePlan}
-            cycleStartDate={settings.cycleStartDate}
-          />
+          {/* ── What to do now ── */}
+          <Animated.View entering={enterRise(0)}>
+            <MissionCard
+              currentDay={nextMission}
+              currentDayNum={nextMissionNum}
+              completedToday={completedToday}
+              isInProgress={activeSession !== null}
+              onStart={handleStart}
+              onResume={onResumeSession}
+            />
+          </Animated.View>
 
-          <DaySlider
-            days={activePlan.days}
-            currentDay={currentDayPos}
-            sessions={planSessions}
-          />
+          {/* ── This cycle: ring + tappable days ── */}
+          <Animated.View entering={enterRise(1)} style={s.section}>
+            <CycleCard view={cycle} planName={activePlan.name} onPressDay={setPreview} />
+          </Animated.View>
 
-          {/* ── Mission card ── */}
-          <MissionCard
-            currentDay={nextMission}
-            currentDayNum={nextMissionNum}
-            completedToday={completedToday}
-            isInProgress={activeSession !== null}
-            onStart={handleStart}
-            onResume={onResumeSession}
-          />
+          {/* ── AI Coach ── */}
+          <Animated.View entering={enterRise(2)} style={s.section}>
+            <CoachWidget onAskMore={onOpenCoach} />
+          </Animated.View>
 
-          {/* ── AI Coach widget ── */}
-          <CoachWidget onAskMore={onOpenCoach} />
+          {/* ── History ── */}
+          <Animated.View entering={enterRise(3)} style={s.section}>
+            <ContributionHeatmap
+              sessions={planSessions}
+              activePlan={activePlan}
+              cycleStartDate={effectiveCycleStartDate}
+            />
+          </Animated.View>
 
-          {/* ── Divider ── */}
-          <View style={s.sectionGap} />
-
-          {/* ── Heatmap ── */}
-          <ContributionHeatmap
-            sessions={planSessions}
-            activePlan={activePlan}
-            cycleStartDate={effectiveCycleStartDate}
-          />
-
-          {/* ── Highlight slideshow ── */}
-          <HighlightSlideshow
-            sessions={planSessions}
-            currentDay={currentDayPos}
-            cycleStartDate={effectiveCycleStartDate}
-            planLength={activePlan.days.length}
-            onNavigate={onNavigate}
-          />
+          <Animated.View entering={enterRise(4)}>
+            <HighlightSlideshow
+              sessions={planSessions}
+              currentDay={currentDayPos}
+              cycleStartDate={effectiveCycleStartDate}
+              planLength={activePlan.days.length}
+              onNavigate={onNavigate}
+            />
+          </Animated.View>
 
           <View style={{ height: dockClearance }} />
         </ScrollView>
       </SafeAreaView>
+
+      <DayPreviewSheet
+        slot={preview}
+        canStart={canStartPreview}
+        onStart={handleStart}
+        onEdit={() => onNavigate('Cycle')}
+        onClose={() => setPreview(null)}
+      />
     </View>
   );
 }
@@ -256,12 +305,13 @@ const s = StyleSheet.create({
   emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', letterSpacing: -0.14, marginBottom: 20 },
   emptyCta:   { paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.accent },
   emptyCtaTxt:{ fontSize: 14, fontWeight: '800', fontFamily: FONTS.headline, color: '#000' },
+  emptyLink:  { marginTop: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  emptyLinkTxt: { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   header:     { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
-  planLabel:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
-  dateText:   { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88 },
+  greeting:   { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary, marginBottom: 2 },
+  dateText:   { fontSize: 24, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.9 },
   logoBadge:  { width: 46, height: 46, borderRadius: 12 },
   scroll:      { flex: 1 },
   scrollContent: { paddingTop: 4, paddingBottom: 8 },
-  sectionGap:  { height: 8 },
-  bottomPad:   { height: 24 },
+  section:     { marginTop: 12 },
 });

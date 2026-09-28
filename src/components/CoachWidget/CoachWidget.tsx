@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Animated, StyleSheet, Text, View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import Svg, { Path } from 'react-native-svg';
 import { GlassView } from '../common/GlassView';
 import { askCoachProactive, clearCoachCache } from '../../services/coachService';
 import { useAuthStore }    from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { COLORS, SPACING, FONTS } from '../../constants';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -52,10 +53,16 @@ function RefreshSvg({ size = 13 }: { size?: number }) {
 // ─── Typewriter ───────────────────────────────────────────────────────────────
 
 function useTypewriter(fullText: string, speed = 16) {
+  const reducedMotion = useReducedMotion();
   const [displayed, setDisplayed] = useState('');
   const [done, setDone]           = useState(false);
 
   useEffect(() => {
+    if (reducedMotion) {
+      setDisplayed(fullText);
+      setDone(true);
+      return;
+    }
     setDisplayed('');
     setDone(false);
     if (!fullText) return;
@@ -66,7 +73,7 @@ function useTypewriter(fullText: string, speed = 16) {
       if (i >= fullText.length) { clearInterval(tick); setDone(true); }
     }, speed);
     return () => clearInterval(tick);
-  }, [fullText]);
+  }, [fullText, reducedMotion]);
 
   return { displayed, done };
 }
@@ -75,39 +82,29 @@ function useTypewriter(fullText: string, speed = 16) {
 
 function TypingDots() {
   const reducedMotion = useReducedMotion();
-  const dots = [
-    useRef(new Animated.Value(0.35)).current,
-    useRef(new Animated.Value(0.35)).current,
-    useRef(new Animated.Value(0.35)).current,
-  ];
+  const phase = useSharedValue(0);
 
   useEffect(() => {
-    if (reducedMotion) {
-      // Static "active" state — same visual weight, no motion.
-      dots.forEach(d => d.setValue(1));
-      return;
-    }
-    const anims = dots.map((d, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 180),
-          Animated.timing(d, { toValue: 1,    duration: 280, useNativeDriver: true }),
-          Animated.timing(d, { toValue: 0.35, duration: 280, useNativeDriver: true }),
-          Animated.delay((2 - i) * 180 + 120),
-        ]),
-      ),
-    );
-    anims.forEach(a => a.start());
-    return () => anims.forEach(a => a.stop());
+    if (reducedMotion) return;
+    phase.value = withRepeat(withTiming(1, { duration: 1400, easing: Easing.linear }), -1, false);
+    return () => cancelAnimation(phase);
   }, [reducedMotion]);
 
   return (
-    <View style={td.row}>
-      {dots.map((op, i) => (
-        <Animated.View key={i} style={[td.dot, { opacity: op }]} />
-      ))}
+    <View style={td.row} accessibilityLabel="Coach is thinking">
+      {[0, 1, 2].map(i => <TypingDot key={i} index={i} phase={phase} still={reducedMotion} />)}
     </View>
   );
+}
+
+function TypingDot({ index, phase, still }: { index: number; phase: SharedValue<number>; still: boolean }) {
+  const style = useAnimatedStyle(() => {
+    if (still) return { opacity: 1 };
+    // Distance (0-1, wrapping) between the wave's position and this dot.
+    const d = Math.abs(((phase.value - index * 0.18) % 1 + 1) % 1 - 0.25);
+    return { opacity: 0.3 + 0.7 * Math.max(0, 1 - d * 4) };
+  });
+  return <Animated.View style={[td.dot, style]} />;
 }
 
 const td = StyleSheet.create({
@@ -138,29 +135,23 @@ const rl = StyleSheet.create({
 // ─── InsightHeader ────────────────────────────────────────────────────────────
 
 function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolean }) {
-  // Bolt pulses while the AI is fetching
-  const boltOp = useRef(new Animated.Value(1)).current;
+  // The bolt breathes slowly while the AI is fetching.
+  const boltOp = useSharedValue(1);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
+    cancelAnimation(boltOp);
     if (!loading || reducedMotion) {
-      boltOp.stopAnimation();
-      Animated.timing(boltOp, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+      boltOp.value = withTiming(1, { duration: 200 });
       return;
     }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(boltOp, { toValue: 0.25, duration: 550, useNativeDriver: true }),
-        Animated.timing(boltOp, { toValue: 1,    duration: 550, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
+    boltOp.value = withRepeat(withTiming(0.35, { duration: 900, easing: Easing.inOut(Easing.sin) }), -1, true);
   }, [loading, reducedMotion]);
+  const boltStyle = useAnimatedStyle(() => ({ opacity: boltOp.value }));
 
   return (
     <View style={ih.row}>
-      <Animated.View style={{ opacity: boltOp }}>
+      <Animated.View style={boltStyle}>
         <BoltSvg size={11} />
       </Animated.View>
       <Text style={ih.label}>Coach Insight</Text>

@@ -3,7 +3,8 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
-import { WorkoutDay, Exercise } from '../../../types';
+import { WorkoutDay } from '../../../types';
+import { planLabel } from '../../../utils/format';
 import { enterFade, enterRise } from '../../../motion/presets';
 
 interface Props {
@@ -63,20 +64,6 @@ export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
       )}
     </ScrollView>
   );
-}
-
-/** "4 sets × 8–10 · 60 kg", "3 sets to failure", "3 sets × 12". */
-function planLabel(ex: Exercise): string {
-  const sets = `${ex.targetSets} set${ex.targetSets === 1 ? '' : 's'}`;
-  const reps = ex.toFailure
-    ? ' to failure'
-    : ex.targetRepsMax && ex.targetRepsMax !== ex.targetRepsMin
-      ? ` × ${ex.targetRepsMin}–${ex.targetRepsMax}`
-      : ex.targetRepsMin ? ` × ${ex.targetRepsMin}` : '';
-  const weight = ex.targetWeight && ex.targetWeight > 0 && ex.weightUnit !== 'bodyweight'
-    ? ` · ${ex.targetWeight} ${ex.weightUnit}`
-    : '';
-  return sets + reps + weight;
 }
 
 const s = StyleSheet.create({

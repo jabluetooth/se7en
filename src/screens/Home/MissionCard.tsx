@@ -1,9 +1,11 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming,
+} from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { WorkoutDay } from '../../types';
 import { COLORS, FONTS } from '../../constants';
 
@@ -49,25 +51,22 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
     ? `Starting with ${primaryLift}`
     : `${currentDay?.exercises.length ?? 0} exercises planned`;
 
-  // Pulsing dot animation — disabled in the done state (no longer "ready").
-  const pulse = useRef(new Animated.Value(0)).current;
+  // A slow, soft ripple around the status dot while a workout is ready to go;
+  // still in the done state and when the OS asks for reduced motion.
+  const pulse = useSharedValue(0);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (isRest || (isDone && !isInProgress) || reducedMotion) { pulse.setValue(0); return; }
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1100, useNativeDriver: true }),
-        Animated.delay(600),
-        Animated.timing(pulse, { toValue: 0, duration: 0,    useNativeDriver: true }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [isRest, isDone, reducedMotion]);
+    cancelAnimation(pulse);
+    pulse.value = 0;
+    if (isRest || (isDone && !isInProgress) || reducedMotion) return;
+    pulse.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), -1, false);
+  }, [isRest, isDone, isInProgress, reducedMotion]);
 
-  const ringScale   = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.8] });
-  const ringOpacity = pulse.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.55, 0.25, 0] });
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.value * 1.6 }],
+    opacity: 0.4 * (1 - pulse.value),
+  }));
 
   // Badge label adapts to state: in-progress takes priority, then done/rest/mission.
   const badgeLabel = isInProgress
@@ -89,10 +88,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
         {/* Dot container — pulse ring behind, solid dot in front */}
         <View style={s.dotWrap}>
           {!isRest && !isDone && (
-            <Animated.View style={[
-              s.dotRing,
-              { transform: [{ scale: ringScale }], opacity: ringOpacity },
-            ]} />
+            <Animated.View style={[s.dotRing, ringStyle]} />
           )}
           <View style={[
             s.dot,
