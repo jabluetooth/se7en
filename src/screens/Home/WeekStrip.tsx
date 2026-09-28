@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { enterSettle } from '../../motion/presets';
 import { COLORS, FONTS } from '../../constants';
 import type { CycleSlot } from '../../utils/cycleView';
 import { accentA, themed } from '../../theme/runtime';
@@ -55,7 +57,7 @@ export function WeekStrip({ slots, onPressDay }: Props) {
               sl.isToday && !done && s.markToday,
             ]}>
               {done
-                ? <Ionicons name="checkmark" size={14} color={COLORS.background} />
+                ? <Animated.View entering={enterSettle}><Ionicons name="checkmark" size={14} color={COLORS.background} /></Animated.View>
                 : <Text style={[s.num, sl.isToday && s.numToday, missed && s.dim]}>{sl.slot}</Text>}
             </View>
           </AnimatedPressable>

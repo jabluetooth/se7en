@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { TIMING } from '../../motion/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
@@ -54,16 +56,26 @@ export function FloatingDock({ activeTab, onTabPress }: Props) {
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: active }}
           >
-            <Ionicons
-              name={active ? tab.iconOn : tab.icon}
-              size={23}
-              color={active ? COLORS.accent : COLORS.textLabel}
-            />
+            <TabIcon active={active} name={active ? tab.iconOn : tab.icon} />
             <Text style={[s.label, active && s.labelOn]}>{tab.label}</Text>
           </AnimatedPressable>
         );
       })}
     </View>
+  );
+}
+
+/** The selected icon rises a point or two and grows a touch; nothing more. */
+function TabIcon({ active, name }: { active: boolean; name: keyof typeof Ionicons.glyphMap }) {
+  const on = useSharedValue(active ? 1 : 0);
+  useEffect(() => { on.value = withTiming(active ? 1 : 0, TIMING.standard); }, [active]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: -1.5 * on.value }, { scale: 1 + 0.06 * on.value }],
+  }));
+  return (
+    <Animated.View style={style}>
+      <Ionicons name={name} size={23} color={active ? COLORS.accent : COLORS.textLabel} />
+    </Animated.View>
   );
 }
 

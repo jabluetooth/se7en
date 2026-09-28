@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { AnimatedPressable } from '../../../motion/AnimatedPressable';
-import { enterFade } from '../../../motion/presets';
+import { enterFade, layoutSoft } from '../../../motion/presets';
 import { COLORS, FONTS } from '../../../constants';
 import { fmtDate } from '../../../utils/format';
 import type { ExerciseHistory } from '../../../utils/exerciseHistory';
@@ -43,7 +43,7 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, trend, e
     : `${change > 0 ? '+' : '−'}${fmt(Math.abs(change))}${isBodyweight ? '' : weightUnit === 'kg' || weightUnit === 'lb' ? '' : ` ${weightUnit}`}`;
 
   return (
-    <View style={s.wrap}>
+    <Animated.View layout={layoutSoft} style={s.wrap}>
       <AnimatedPressable
         scale="subtle"
         dimOnPress
@@ -74,7 +74,7 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, trend, e
           ))}
         </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 });
 

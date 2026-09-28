@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions, type Sty
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { fireHaptic } from '../../motion/AnimatedPressable';
-import { enterFade } from '../../motion/presets';
+import { enterBubble } from '../../motion/presets';
 import { COLORS, FONTS } from '../../constants';
 import { themed } from '../../theme/runtime';
 
@@ -69,7 +69,7 @@ export function InfoTip({ text, title, size = 16, style }: Props) {
       <Modal visible={!!anchor} transparent animationType="none" onRequestClose={close} statusBarTranslucent>
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityRole="button" accessibilityLabel="Close">
           {place && (
-            <Animated.View entering={enterFade} style={[s.bubble, { width: bubbleW }, place.box]}>
+            <Animated.View entering={enterBubble} style={[s.bubble, { width: bubbleW }, place.box]}>
               <View style={[s.arrow, place.arrow]} />
               {title ? <Text style={s.title}>{title}</Text> : null}
               <Text style={s.text}>{text}</Text>

@@ -42,6 +42,15 @@ export const enterSettle = new Keyframe({
   100: { opacity: 1, transform: [{ scale: 1 }], easing: Easing.out(Easing.cubic) },
 }).duration(TIMING.standard.duration).reduceMotion(system);
 
+/**
+ * A small floating surface (an info bubble, a popover): fades in while
+ * growing from 96% and settling a couple of points into place.
+ */
+export const enterBubble = new Keyframe({
+  0:   { opacity: 0, transform: [{ scale: 0.96 }, { translateY: 3 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }, { translateY: 0 }], easing: Easing.out(Easing.cubic) },
+}).duration(TIMING.quick.duration + 40).reduceMotion(system);
+
 /** Bottom sheets and docked bars sliding in from the bottom edge. */
 export const enterSheet = SlideInDown.duration(TIMING.emphasis.duration).easing(EASE_OUT).reduceMotion(system);
 export const exitSheet  = SlideOutDown.duration(220).easing(Easing.in(Easing.quad)).reduceMotion(system);

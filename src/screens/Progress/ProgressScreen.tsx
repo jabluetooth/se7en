@@ -17,7 +17,8 @@ import {
 } from '../../utils/progressInsights';
 import { useDockClearance } from '../../hooks/useDockClearance';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { enterRise } from '../../motion/presets';
+import { enterFade, enterRise, layoutSoft } from '../../motion/presets';
+import { useCountUp } from '../../motion/useCountUp';
 import { GainCard } from './components/GainCard';
 import { WeeklyBars } from './components/WeeklyBars';
 import { ExerciseCard } from './components/ExerciseCard';
@@ -103,14 +104,15 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
 
             {/* ── Three numbers ── */}
             <Animated.View entering={enterRise(0)} style={s.figures}>
-              <Figure value={String(summary.workouts)} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
+              <Figure num={summary.workouts} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
               <Figure
-                value={fmtVol(summary.volume)}
+                num={summary.volume}
+                format={fmtVol}
                 unit={unit}
                 label="Volume"
                 delta={deltaLabel(Math.round(summary.volume), summary.prevVolume == null ? null : Math.round(summary.prevVolume), true)}
               />
-              <Figure value={String(summary.records)} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
+              <Figure num={summary.records} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
             </Animated.View>
             <View style={s.captionRow}>
               <Text style={s.caption}>
@@ -196,15 +198,16 @@ export function ProgressScreen({ onStartWorkout }: Props = {}) {
                 <Text style={s.empty}>{q ? `No lifts match "${query.trim()}".` : 'Finish a workout to see your lifts here.'}</Text>
               ) : (
                 <View>
-                  {shown.map(({ h, t }) => (
-                    <ExerciseCard
-                      key={h.exerciseId}
-                      history={h}
-                      trend={t}
-                      expanded={expandedId === h.exerciseId}
-                      onToggle={() => setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))}
-                      chartWidth={contentW}
-                    />
+                  {shown.map(({ h, t }, i) => (
+                    <Animated.View key={h.exerciseId} entering={enterRise(i)} layout={layoutSoft}>
+                      <ExerciseCard
+                        history={h}
+                        trend={t}
+                        expanded={expandedId === h.exerciseId}
+                        onToggle={() => setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))}
+                        chartWidth={contentW}
+                      />
+                    </Animated.View>
                   ))}
                 </View>
               )}
@@ -236,15 +239,23 @@ function Section({ title, info, children }: { title: string; info: string; child
   );
 }
 
-function Figure({ value, unit, label, delta, accent }: { value: string; unit?: string; label: string; delta?: string | null; accent?: boolean }) {
+/** A figure that counts from its old value to its new one when the period changes. */
+function Figure({ num, format, unit, label, delta, accent }: {
+  num: number; format?: (n: number) => string; unit?: string; label: string; delta?: string | null; accent?: boolean;
+}) {
+  const shown = useCountUp(num, { duration: 600 });
   const up = !!delta && delta.startsWith('+');
   return (
     <View style={s.figure}>
       <Text style={[s.figVal, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}{unit ? <Text style={s.figUnit}> {unit}</Text> : null}
+        {format ? format(shown) : String(Math.round(shown))}{unit ? <Text style={s.figUnit}> {unit}</Text> : null}
       </Text>
       <Text style={s.figLbl}>{label}</Text>
-      {delta ? <Text style={[s.figDelta, up && { color: COLORS.success }]}>{delta.replace(' vs before', '')}</Text> : null}
+      {delta ? (
+        <Animated.Text key={delta} entering={enterFade} style={[s.figDelta, up && { color: COLORS.success }]}>
+          {delta.replace(' vs before', '')}
+        </Animated.Text>
+      ) : null}
     </View>
   );
 }

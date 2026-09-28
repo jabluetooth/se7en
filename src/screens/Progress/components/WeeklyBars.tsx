@@ -31,7 +31,7 @@ export function WeeklyBars({ bars, target, width }: Props) {
   useEffect(() => {
     grow.value = 0;
     grow.value = withTiming(1, { duration: 600, easing: EASE_OUT, reduceMotion: TIMING.standard.reduceMotion });
-  }, [bars.length]);
+  }, [bars.map(b => b.count).join(','), bars.length]);
   const growStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: grow.value }] }));
 
   const n = bars.length;

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { enterRise } from '../../motion/presets';
+import { useCountUp } from '../../motion/useCountUp';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -288,9 +289,9 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
               />
             </View>
             <View style={s.statRow}>
-              <Stat value={`${cycle.doneCount}`} unit={`/ ${cycle.workoutCount}`} label="Workouts" />
-              <Stat value={cycleStats.volume > 0 ? fmtVol(cycleStats.volume) : '0'} unit={unit} label="Volume" />
-              <Stat value={String(cycleStats.records)} label={cycleStats.records === 1 ? 'New record' : 'New records'} accent={cycleStats.records > 0} />
+              <Stat num={cycle.doneCount} unit={`/ ${cycle.workoutCount}`} label="Workouts" />
+              <Stat num={cycleStats.volume} format={n => (n > 0 ? fmtVol(n) : '0')} unit={unit} label="Volume" />
+              <Stat num={cycleStats.records} label={cycleStats.records === 1 ? 'New record' : 'New records'} accent={cycleStats.records > 0} />
             </View>
           </Animated.View>
 
@@ -322,11 +323,12 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
   );
 }
 
-function Stat({ value, unit, label, accent }: { value: string; unit?: string; label: string; accent?: boolean }) {
+function Stat({ num, format, unit, label, accent }: { num: number; format?: (n: number) => string; unit?: string; label: string; accent?: boolean }) {
+  const shown = useCountUp(num, { duration: 650, delay: 120 });
   return (
     <View style={s.stat}>
       <Text style={[s.statVal, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}{unit ? <Text style={s.statUnit}> {unit}</Text> : null}
+        {format ? format(shown) : String(Math.round(shown))}{unit ? <Text style={s.statUnit}> {unit}</Text> : null}
       </Text>
       <Text style={s.statLbl}>{label}</Text>
     </View>

@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { enterFade, enterSettle, exitFade, layoutSoft } from '../../motion/presets';
 import { useFeedback } from '../../components/feedback/Feedback';
 import { InfoTip } from '../../components/common/InfoTip';
 import { Segmented } from '../../components/common/Segmented';
@@ -175,6 +177,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onOpenPlan, onSignOut, u
               }
             />
             {settings.autoBackup && (
+              <Animated.View entering={enterFade} exiting={exitFade}>
               <Row
                 label="How often"
                 right={
@@ -186,6 +189,7 @@ export function SettingsScreen({ onOpenExerciseBuilder, onOpenPlan, onSignOut, u
                   />
                 }
               />
+              </Animated.View>
             )}
           </Section>
 
@@ -212,13 +216,13 @@ export function SettingsScreen({ onOpenExerciseBuilder, onOpenPlan, onSignOut, u
 
 function Section({ title, info, children }: { title: string; info?: string; children: React.ReactNode }) {
   return (
-    <View style={s.section}>
+    <Animated.View layout={layoutSoft} style={s.section}>
       <View style={s.sectionHead}>
         <Text style={s.sectionTitle}>{title}</Text>
         {info && <InfoTip title={title} text={info} size={15} />}
       </View>
       {children}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -281,7 +285,9 @@ function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boo
         </View>
       </View>
       <View style={s.tileLabelRow}>
-        <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={17} color={selected ? COLORS.accent : COLORS.textLabel} />
+        <Animated.View key={selected ? 'on' : 'off'} entering={enterSettle}>
+          <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={17} color={selected ? COLORS.accent : COLORS.textLabel} />
+        </Animated.View>
         <Text style={[s.tileLabel, selected && { color: COLORS.text }]}>{name === 'dark' ? 'Dark' : 'Light'}</Text>
       </View>
     </AnimatedPressable>

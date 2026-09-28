@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Easing, cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { enterFade, enterRise } from '../../motion/presets';
 import { COLORS, FONTS } from '../../constants';
 import type { WorkoutDay, WorkoutSession } from '../../types';
 import { fmtVol } from '../../utils/format';
@@ -52,7 +55,7 @@ export function TodayCard({ mode, unit, onStart, onResume }: Props) {
     return (
       <View style={s.card}>
         <View style={s.liveRow}>
-          <View style={s.liveDot} />
+          <LiveDot />
           <Text style={s.liveTxt}>Workout in progress</Text>
         </View>
         <Text style={s.body}>Your sets and timer are saved. Pick up where you left off.</Text>
@@ -86,12 +89,12 @@ export function TodayCard({ mode, unit, onStart, onResume }: Props) {
             <Text style={s.meta}>Nice work. Recover well.</Text>
           </View>
         </View>
-        <View style={s.recap}>
+        <Animated.View entering={enterFade.delay(120)} style={s.recap}>
           <Recap value={String(sets)} label="Sets" />
           <Recap value={load > 0 ? fmtVol(load) : '–'} unit={load > 0 ? unit : undefined} label="Volume" />
           <Recap value={session.duration > 0 ? String(session.duration) : '–'} unit={session.duration > 0 ? 'min' : undefined} label="Time" />
           {prs > 0 && <Recap value={String(prs)} label={prs === 1 ? 'Record' : 'Records'} accent />}
-        </View>
+        </Animated.View>
         {next && (
           <View style={s.nextRow}>
             <Text style={s.meta}>Next up</Text>
@@ -127,11 +130,11 @@ export function TodayCard({ mode, unit, onStart, onResume }: Props) {
         <Text style={s.body}>No exercises yet. Add some in Plan.</Text>
       ) : (
         <View>
-          {shown.map(ex => (
-            <View key={ex.id} style={s.exRow}>
+          {shown.map((ex, i) => (
+            <Animated.View key={ex.id} entering={enterRise(i + 2)} style={s.exRow}>
               <Text style={s.exName} numberOfLines={1}>{ex.name}</Text>
               <Text style={s.exMeta} numberOfLines={1}>{exerciseMeta(ex)}</Text>
-            </View>
+            </Animated.View>
           ))}
           {more > 0 && (
             <View style={s.exRow}>
@@ -153,6 +156,19 @@ export function TodayCard({ mode, unit, onStart, onResume }: Props) {
       </AnimatedPressable>
     </View>
   );
+}
+
+/** A slow, faint breathing dot for "in progress": felt, not watched. */
+function LiveDot() {
+  const reduced = useReducedMotion();
+  const o = useSharedValue(1);
+  useEffect(() => {
+    if (reduced) return;
+    o.value = withRepeat(withTiming(0.35, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => cancelAnimation(o);
+  }, [reduced]);
+  const style = useAnimatedStyle(() => ({ opacity: o.value }));
+  return <Animated.View style={[s.liveDot, style]} />;
 }
 
 function Recap({ value, unit, label, accent }: { value: string; unit?: string; label: string; accent?: boolean }) {

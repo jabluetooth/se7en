@@ -249,7 +249,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
     if (currentSet) {
       return (
         <Animated.View entering={enterFade} style={s.panelCol}>
-          {upNext && <Text style={s.upNext} numberOfLines={1}>{upNext}</Text>}
+          {upNext && <Animated.Text key={upNext} entering={enterFade} style={s.upNext} numberOfLines={1}>{upNext}</Animated.Text>}
           <AnimatedPressable
             style={s.primary}
             onPress={logSet}
@@ -257,7 +257,7 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
             accessibilityLabel={`Log set ${currentSet.setNumber}`}
           >
             <Ionicons name="checkmark" size={22} color={COLORS.onAccent} />
-            <Text style={s.primaryTxt}>Log set {currentSet.setNumber}</Text>
+            <Animated.Text key={currentSet.id} entering={enterFade} style={s.primaryTxt}>Log set {currentSet.setNumber}</Animated.Text>
           </AnimatedPressable>
         </Animated.View>
       );
