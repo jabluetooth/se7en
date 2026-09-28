@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { DRIFT, TIMING } from '../motion/tokens';
 import { View, StyleSheet, Modal } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FloatingDock, TabName }    from '../components/FloatingDock/FloatingDock';
@@ -100,8 +102,16 @@ export function AppNavigator() {
     return undefined; // plan is all rest days — NextUpPage shows empty state
   })();
 
-  const renderTab = () => {
-    switch (activeTab) {
+  // Tabs are mounted the first time they're opened, then kept alive so each
+  // keeps its scroll position and loaded state instead of rebuilding on every
+  // switch.
+  const [visited, setVisited] = useState<TabName[]>(['Home']);
+  useEffect(() => {
+    setVisited(v => (v.includes(activeTab) ? v : [...v, activeTab]));
+  }, [activeTab]);
+
+  const renderTab = (tab: TabName) => {
+    switch (tab) {
       case 'Home':     return (
         <HomeScreen
           onNavigate={setActiveTab}
@@ -128,6 +138,7 @@ export function AppNavigator() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         renderTab={renderTab}
+        visited={visited}
         workoutModal={workoutModal}
         onHideSession={() => setWorkoutModal({ phase: 'hidden' })}
         onSessionFinish={handleSessionFinish}
@@ -151,7 +162,8 @@ export function AppNavigator() {
 interface ShellProps {
   activeTab: TabName;
   setActiveTab: (t: TabName) => void;
-  renderTab: () => React.ReactNode;
+  renderTab: (tab: TabName) => React.ReactNode;
+  visited: TabName[];
   workoutModal: WorkoutModal;
   onHideSession: () => void;
   onSessionFinish: (session: WorkoutSession) => void;
@@ -169,7 +181,7 @@ interface ShellProps {
 }
 
 function AppShell({
-  activeTab, setActiveTab, renderTab,
+  activeTab, setActiveTab, renderTab, visited,
   workoutModal, onHideSession, onSessionFinish, onSessionCleared,
   finishedSession, nextDay, onPostWorkoutDone,
   showRestTimer, setShowRestTimer,
@@ -180,7 +192,11 @@ function AppShell({
     <View style={s.container}>
       {/* Content fills the FULL screen — dock overlays on top of it so the
           page background and tiles extend behind the dock + home indicator. */}
-      <View style={s.content}>{renderTab()}</View>
+      <View style={s.content}>
+        {visited.map(tab => (
+          <TabScene key={tab} active={tab === activeTab}>{renderTab(tab)}</TabScene>
+        ))}
+      </View>
       <FloatingDock activeTab={activeTab} onTabPress={setActiveTab} />
 
       {/* Single workout modal shared by ActiveSession and PostWorkoutSummary.
@@ -235,6 +251,44 @@ function AppShell({
         <FeedbackHost />
       </Modal>
     </View>
+  );
+}
+
+/**
+ * One tab's screen. The active one fades in while drifting a few points into
+ * place; inactive ones fade out, stop receiving touches, and are then taken
+ * out of layout (display: none) so hidden screens cost nothing to draw, while
+ * staying mounted.
+ */
+function TabScene({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const shown = useSharedValue(active ? 1 : 0);
+  const [hidden, setHidden] = useState(!active);
+
+  useEffect(() => {
+    if (active) {
+      setHidden(false);
+      shown.value = withTiming(1, TIMING.standard);
+      return;
+    }
+    shown.value = withTiming(0, TIMING.quick);
+    const t = setTimeout(() => setHidden(true), TIMING.quick.duration + 40);
+    return () => clearTimeout(t);
+  }, [active]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: shown.value,
+    transform: [{ translateY: (1 - shown.value) * DRIFT }],
+  }));
+
+  return (
+    <Animated.View
+      style={[StyleSheet.absoluteFill, style, hidden && { display: 'none' }]}
+      pointerEvents={active ? 'auto' : 'none'}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
