@@ -6,7 +6,7 @@ import {
   ImportPlan, WeightUnit, BarType, SetType,
 } from '../types';
 import { generateId } from '../utils/idGen';
-import { BAR_WEIGHTS } from '../constants';
+import { BAR_WEIGHTS, BAR_WEIGHTS_LB } from '../constants';
 import { PLAN_TEMPLATES } from '../data/planTemplates';
 import { findExercise } from '../data/exercises';
 import type { Unsubscribe } from 'firebase/firestore';
@@ -34,7 +34,8 @@ interface PlanStore {
   _persist:   (plans: WorkoutPlan[], changed?: WorkoutPlan | WorkoutPlan[], uid?: string | null) => Promise<void>;
 
   createPlan:              (name: string, splitType: string) => WorkoutPlan;
-  createPlanFromTemplate:  (templateId: string, name?: string) => WorkoutPlan;
+  /** `unit: 'lb'` converts the template's kg targets (rounded to 5 lb) and bar weights. */
+  createPlanFromTemplate:  (templateId: string, name?: string, unit?: 'kg' | 'lb') => WorkoutPlan;
   importPlan:              (data: ImportPlan) => WorkoutPlan;
   updatePlan:              (planId: string, partial: Partial<WorkoutPlan>) => void;
   deletePlan:              (planId: string) => void;
@@ -139,7 +140,8 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
     return plan;
   },
 
-  createPlanFromTemplate: (templateId, name) => {
+  createPlanFromTemplate: (templateId, name, unit = 'kg') => {
+    const toLb = unit === 'lb';
     const template = PLAN_TEMPLATES.find(t => t.id === templateId);
     if (!template) throw new Error(`Template ${templateId} not found`);
     const days: WorkoutDay[] = Array.from({ length: 7 }, (_, i) => {
@@ -150,13 +152,17 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
         id: generateId(), dayPosition: pos, label: td.label, isRestDay: false,
         exercises: td.exercises.map((te, idx) => {
           const lib = findExercise(te.exerciseId);
+          const convert = toLb && te.weightUnit === 'kg';
           return {
             id: generateId(), name: lib?.name ?? te.exerciseId, order: idx + 1,
             setType: te.setType, supersetGroup: null, targetSets: te.targetSets,
             targetRepsMin: te.targetRepsMin, targetRepsMax: te.targetRepsMax,
-            toFailure: te.toFailure, targetWeight: te.targetWeight,
-            weightUnit: te.weightUnit, barType: te.barType,
-            barWeight: BAR_WEIGHTS[te.barType] ?? 0,
+            toFailure: te.toFailure,
+            targetWeight: convert && te.targetWeight != null
+              ? Math.max(5, Math.round((te.targetWeight * 2.20462) / 5) * 5)
+              : te.targetWeight,
+            weightUnit: convert ? 'lb' : te.weightUnit, barType: te.barType,
+            barWeight: (convert ? BAR_WEIGHTS_LB : BAR_WEIGHTS)[te.barType] ?? 0,
             perSetTargets: null, notes: te.notes, createdAt: new Date().toISOString(),
           };
         }),

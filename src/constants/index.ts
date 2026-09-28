@@ -64,6 +64,15 @@ export const BAR_WEIGHTS: Record<string, number> = {
   none:     0,
 };
 
+// Standard bar weights in pounds (a 20 kg Olympic bar is sold as 45 lb).
+export const BAR_WEIGHTS_LB: Record<string, number> = {
+  barbell:  45,
+  ezbar:    25,
+  smith:    35,
+  dumbbell: 0,
+  none:     0,
+};
+
 export const DEFAULT_METRIC_PLATES   = [20, 15, 10, 5, 2.5, 1.25];
 export const DEFAULT_IMPERIAL_PLATES = [45, 35, 25, 10, 5, 2.5];
 
