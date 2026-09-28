@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform,
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import Animated, {
+  interpolate, interpolateColor, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue,
+} from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { usePRStore } from '../../stores/prStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { sessionLoad } from '../../utils/volume';
+import { fmtRecord, prMetricLabel } from '../../utils/sessionSummary';
 import { WorkoutSession } from '../../types';
 import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
@@ -53,8 +57,11 @@ function fmtVol(v: number): string {
 }
 
 export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planLength, onNavigate }: Props) {
-  const [activeIdx, setActiveIdx] = useState(0);
+  const scrollX = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({ onScroll: e => { scrollX.value = e.contentOffset.x; } });
   const { records } = usePRStore();
+  const unit = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
+  const load = (sess: WorkoutSession) => sessionLoad(sess.exercises, unit);
 
   const completed = sessions.filter(s => s.status === 'completed' && s.finishedAt);
 
@@ -94,8 +101,8 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
   const thisCycleSessions = completed.filter(s => inWindow(s, currentCycleStart, currentCycleEnd));
   const prevCycleSessions = completed.filter(s => inWindow(s, prevCycleStart, currentCycleStart));
 
-  const thisCycleVol  = thisCycleSessions.reduce((a, s) => a + s.totalVolume, 0);
-  const prevCycleVol  = prevCycleSessions.reduce((a, s) => a + s.totalVolume, 0);
+  const thisCycleVol  = thisCycleSessions.reduce((a, s) => a + load(s), 0);
+  const prevCycleVol  = prevCycleSessions.reduce((a, s) => a + load(s), 0);
   const cycleVolDelta = prevCycleVol > 0
     ? Math.round(((thisCycleVol - prevCycleVol) / prevCycleVol) * 100)
     : thisCycleVol > 0 ? 100 : 0;
@@ -108,31 +115,17 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       )[0]
     : null;
 
-  const latestPR = records.length > 0
+  // Latest genuine record: sessions finished since PR details were recorded
+  // know which metric improved; older ones fall back to the record store.
+  const latestDetail = [...completed]
+    .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())
+    .flatMap(sess => (sess.prDetails ?? []).filter(d => !d.isFirst))[0] ?? null;
+  const latestPR = latestDetail ? null : records.length > 0
     ? [...records].sort(
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )[0]
     : null;
-
-  // Returns the dominant weight unit across a list of exercises.
-  // Falls back to 'mixed' when multiple units are present so we never
-  // mislabel lb/plates volume as kg.
-  const dominantUnit = (exList: { weightUnit: string }[]): string => {
-    const counts = new Map<string, number>();
-    exList.forEach(e => counts.set(e.weightUnit, (counts.get(e.weightUnit) ?? 0) + 1));
-    if (counts.size === 0) return 'kg';
-    if (counts.size === 1) {
-      const u = [...counts.keys()][0];
-      return u === 'bodyweight' ? 'reps' : u;
-    }
-    return 'mixed';
-  };
-
-  const cycleUnit      = dominantUnit(thisCycleSessions.flatMap(s => s.exercises));
-  const lastSessUnit   = lastSession ? dominantUnit(lastSession.exercises) : 'kg';
-
-  // Look up the PR exercise's unit from session history — PersonalRecord
-  // doesn't store weightUnit, so we find the most recent matching exercise.
+  // PersonalRecord doesn't store a unit, so look it up from session history.
   const prUnit = latestPR
     ? (completed
         .flatMap(s => s.exercises)
@@ -140,6 +133,17 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
                    e.exerciseName.toLowerCase() === latestPR.exerciseName.toLowerCase())
         ?.weightUnit ?? 'kg')
     : 'kg';
+  const prHero = latestDetail
+    ? {
+        hero: fmtRecord(latestDetail.value, latestDetail.unit).split(' ')[0],
+        unit: `${latestDetail.unit} · ${prMetricLabel(latestDetail).toLowerCase()}`,
+        name: latestDetail.exerciseName,
+      }
+    : latestPR
+    ? (prUnit === 'bodyweight' || prUnit === 'plates'
+        ? { hero: `${latestPR.mostReps}`, unit: 'reps · most reps', name: latestPR.exerciseName }
+        : { hero: `${latestPR.heaviestWeight}`, unit: `${prUnit} · heaviest lift`, name: latestPR.exerciseName })
+    : null;
 
   // Short date label for last session card
   const lastSessDate = lastSession
@@ -152,7 +156,7 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       tag:   'CYCLE PROGRESS',
       icon:  'pulse',
       hero:  fmtVol(thisCycleVol),
-      unit:  thisCycleVol > 0 ? `${cycleUnit} this cycle` : 'no data yet',
+      unit:  thisCycleVol > 0 ? `${unit} this cycle` : 'no data yet',
       title: 'Progress',
       sub:   thisCycleSessions.length > 0
         ? `${thisCycleSessions.length} session${thisCycleSessions.length !== 1 ? 's' : ''} · ${cycleVolDelta > 0 ? '+' : ''}${cycleVolDelta}% vs last cycle`
@@ -165,16 +169,10 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       id:    'pr',
       tag:   'PERSONAL RECORD',
       icon:  'trophy',
-      hero:  latestPR
-        ? (prUnit === 'bodyweight' || prUnit === 'plates'
-            ? `${latestPR.mostReps}`
-            : `${latestPR.heaviestWeight}`)
-        : '—',
-      unit:  latestPR
-        ? (prUnit === 'bodyweight' ? 'reps PR' : prUnit === 'plates' ? 'plates PR' : `${prUnit} PR`)
-        : 'no records yet',
+      hero:  prHero?.hero ?? '—',
+      unit:  prHero?.unit ?? 'no records yet',
       title: 'Records',
-      sub:   latestPR ? latestPR.exerciseName : 'Train to set your first PR',
+      sub:   prHero ? prHero.name : 'Beat a previous best to set your first PR',
       grad:  ['#2A0F9E', '#5B30D6', '#8B63FF'] as const,
       hi:    '#C4AAFF',
       tab:   'Progress',
@@ -183,29 +181,26 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       id:    'prev',
       tag:   'LAST SESSION',
       icon:  'barbell',
-      hero:  lastSession ? fmtVol(lastSession.totalVolume) : '—',
-      unit:  lastSession ? `${lastSessUnit} lifted` : 'no sessions yet',
+      hero:  lastSession ? fmtVol(load(lastSession)) : '—',
+      unit:  lastSession ? `${unit} lifted` : 'no sessions yet',
       title: 'Last Session',
       sub:   lastSession && lastSessDate
         ? `${lastSession.dayLabel} · ${lastSessDate}`
         : 'Complete a workout to see history',
       grad: ['#062D6B', '#0D5BC4', '#3A94F5'] as const,
       hi:   '#8FCEFF',
-      tab:  'Cycle',
+      tab:  'Progress',
     },
   ];
 
   const ringColor = DAY_COLOR[currentDay] ?? COLORS.accent;
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setActiveIdx(Math.round(e.nativeEvent.contentOffset.x / (CARD_W + GAP)));
-  };
 
   return (
     <View style={s.wrap}>
       <Text style={s.label}>HIGHLIGHTS</Text>
 
-      <ScrollView
+      <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_W + GAP}
@@ -223,15 +218,29 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
             <CardView card={card} ringColor={ringColor} />
           </AnimatedPressable>
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View style={s.dots}>
         {cards.map((c, i) => (
-          <View key={c.id} style={[s.dot, i === activeIdx && s.dotActive]} />
+          <Dot key={c.id} index={i} scrollX={scrollX} />
         ))}
       </View>
     </View>
   );
+}
+
+// Page dot that widens and warms as its card scrolls into place, tracking the
+// finger continuously instead of snapping when the swipe settles.
+function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }) {
+  const style = useAnimatedStyle(() => {
+    const pos = scrollX.value / (CARD_W + GAP);
+    const t = Math.max(0, 1 - Math.abs(pos - index));
+    return {
+      width: interpolate(t, [0, 1], [6, 20]),
+      backgroundColor: interpolateColor(t, [0, 1], ['rgba(255,255,255,0.18)', COLORS.accent]),
+    };
+  });
+  return <Animated.View style={[s.dot, style]} />;
 }
 
 function CardView({ card, ringColor }: { card: CardModel; ringColor: string }) {
@@ -335,7 +344,6 @@ const s = StyleSheet.create({
 
   dots:      { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 11 },
   dot:       { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
-  dotActive: { width: 20, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
 });
 
 const ring = StyleSheet.create({

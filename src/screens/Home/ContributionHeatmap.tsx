@@ -4,6 +4,8 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { sessionLoad } from '../../utils/volume';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
@@ -51,6 +53,17 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   const year  = view.getFullYear();
   const month = view.getMonth();
   const all   = sessions;
+  // Weight moved in the user's unit. Session.totalVolume mixes kg, lb and
+  // bodyweight reps, so it can't be labelled with a single unit.
+  const unit  = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
+  const loadOf = useMemo(() => {
+    const cache = new Map<string, number>();
+    return (sess: WorkoutSession) => {
+      let v = cache.get(sess.id);
+      if (v === undefined) { v = sessionLoad(sess.exercises, unit); cache.set(sess.id, v); }
+      return v;
+    };
+  }, [unit, all]);
 
   const splitName = activePlan?.name ?? 'Workout';
 
@@ -114,12 +127,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
       if (d.getFullYear() !== year || d.getMonth() !== month) return;
       const day = d.getDate();
       const cur = m.get(day);
-      if (!cur || s.totalVolume > cur.totalVolume) m.set(day, s);
+      if (!cur || loadOf(s) > loadOf(cur)) m.set(day, s);
     });
     return m;
-  }, [all, year, month]);
+  }, [all, year, month, loadOf]);
 
-  const maxVol     = useMemo(() => Math.max(...all.map(s => s.totalVolume), 1), [all]);
+  const maxVol     = useMemo(() => Math.max(...all.map(loadOf), 1), [all, loadOf]);
   const monthCount = dayMap.size;
 
   // ── First session date — no day before this can be "Missed" ──────────────────
@@ -383,11 +396,11 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                               bgStyle = s.cellEmpty;
                             }
 
-                            const fh = color ? fillHeight(sess!.totalVolume, maxVol) : 0;
+                            const fh = color ? fillHeight(loadOf(sess!), maxVol) : 0;
                             const cellDateLabel = new Date(year, month, day)
                               .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
                             const cellStatusLabel = sess
-                              ? `${sess.dayLabel} completed, ${Math.round(sess.totalVolume)} kg`
+                              ? `${sess.dayLabel} completed, ${Math.round(loadOf(sess)).toLocaleString()} ${unit}`
                               : missed
                               ? 'missed'
                               : showAsRest
@@ -491,9 +504,9 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               </View>
               <View style={s.cardVolRow}>
                 <Text style={[s.cardVolNum, { color: selColor }]}>
-                  {Math.round(selSess.totalVolume).toLocaleString()}
+                  {Math.round(loadOf(selSess)).toLocaleString()}
                 </Text>
-                <Text style={s.cardVolUnit}> kg</Text>
+                <Text style={s.cardVolUnit}> {unit}</Text>
               </View>
               <Text style={s.cardMeta}>
                 {selSess.exercises.reduce((a, e) => a + e.sets.filter(st => st.isCompleted).length, 0)} sets
