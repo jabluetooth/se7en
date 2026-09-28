@@ -128,6 +128,7 @@ export function AppNavigator() {
       case 'Settings': return (
         <SettingsScreen
           onOpenExerciseBuilder={() => setShowBuilder(true)}
+          onOpenPlan={() => setActiveTab('Cycle')}
           onSignOut={() => { lastTab = 'Home'; return signOut(); }}
           userEmail={user?.email ?? undefined}
           userName={user?.displayName ?? undefined}

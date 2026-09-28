@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay } from '../../../types';
 import { planLabel } from '../../../utils/format';
-import { enterFade, enterRise } from '../../../motion/presets';
-import { ink, themed } from '../../../theme/runtime';
+import { enterRise } from '../../../motion/presets';
+import { InfoTip } from '../../../components/common/InfoTip';
+import { themed } from '../../../theme/runtime';
 
 interface Props {
   nextDay?:    WorkoutDay;
@@ -15,9 +15,9 @@ interface Props {
   bottomInset: number;
 }
 
-// Page 3 — what's coming next time. The exercise list is only mounted the
-// first time this page is on screen, so its staggered entrance plays when
-// the user actually swipes here instead of finishing unseen off-screen.
+// Page 3: what's coming next time, as a plain list. The rows are only mounted
+// the first time this page is on screen, so their entrance plays when you
+// actually swipe here.
 export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
   const [seen, setSeen] = useState(visible);
   useEffect(() => { if (visible) setSeen(true); }, [visible]);
@@ -25,12 +25,13 @@ export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
   if (!nextDay) {
     return (
       <View style={[s.page, s.center, { width, paddingBottom: bottomInset }]}>
-        <Ionicons name="moon-outline" size={36} color={COLORS.textLabel} />
-        <Text style={s.empty}>Nothing scheduled next</Text>
-        <Text style={s.emptySub}>Rest and recover. You've earned it.</Text>
+        <Text style={s.emptyTitle}>Nothing scheduled next</Text>
+        <Text style={s.emptySub}>Rest and recover.</Text>
       </View>
     );
   }
+
+  const sets = nextDay.exercises.reduce((a, e) => a + e.targetSets, 0);
 
   return (
     <ScrollView
@@ -39,28 +40,28 @@ export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
     >
-      <View style={s.head}>
-        <Text style={s.eyebrow}>Up next</Text>
+      <Text style={s.eyebrow}>Up next · Day {nextDay.dayPosition}</Text>
+      <View style={s.titleRow}>
         <Text style={s.dayName}>{nextDay.label}</Text>
-        <Text style={s.daySub}>
-          Day {nextDay.dayPosition} · {nextDay.exercises.length} exercise{nextDay.exercises.length !== 1 ? 's' : ''}
-        </Text>
+        <InfoTip
+          title="Up next"
+          text="Today's numbers will be waiting on each set as your starting point, so you can try to beat them."
+          size={18}
+        />
       </View>
+      <Text style={s.daySub}>
+        {nextDay.exercises.length} exercise{nextDay.exercises.length === 1 ? '' : 's'} · {sets} sets
+      </Text>
 
       {seen && (
         <View style={s.list}>
           {nextDay.exercises.map((ex, i) => (
             <Animated.View key={ex.id} entering={enterRise(i)} style={s.row}>
               <Text style={s.index}>{i + 1}</Text>
-              <View style={s.rowText}>
-                <Text style={s.exName} numberOfLines={1}>{ex.name}</Text>
-                <Text style={s.exMeta}>{planLabel(ex)}</Text>
-              </View>
+              <Text style={s.exName} numberOfLines={1}>{ex.name}</Text>
+              <Text style={s.exMeta} numberOfLines={1}>{planLabel(ex).replace(/ sets? × /, ' × ')}</Text>
             </Animated.View>
           ))}
-          <Animated.Text entering={enterFade.delay(260)} style={s.footnote}>
-            Your numbers from today will be waiting as "last time" on each set.
-          </Animated.Text>
         </View>
       )}
     </ScrollView>
@@ -68,26 +69,22 @@ export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
 }
 
 const s = themed(() => StyleSheet.create({
-  page:     { paddingHorizontal: 16, paddingTop: 8 },
-  center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  page:       { paddingHorizontal: 20, paddingTop: 12 },
+  center:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text },
+  emptySub:   { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 6 },
 
-  empty:    { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.textSecondary, marginTop: 14 },
-  emptySub: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 6 },
+  eyebrow:    { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  titleRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  dayName:    { flexShrink: 1, fontSize: 40, lineHeight: 44, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.3 },
+  daySub:     { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 6, fontVariant: ['tabular-nums'] },
 
-  head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 26 },
-  eyebrow:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
-  dayName:  { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
-  daySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
-
-  list:     { gap: 10 },
-  row:      {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16,
-    backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08),
+  list:       { marginTop: 24 },
+  row:        {
+    flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
   },
-  index:    { width: 22, fontSize: 15, fontFamily: FONTS.dataBold, color: COLORS.textLabel, textAlign: 'center' },
-  rowText:  { flex: 1, minWidth: 0, gap: 3 },
-  exName:   { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.4 },
-  exMeta:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
-  footnote: { marginTop: 10, fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 18 },
+  index:      { width: 20, fontSize: 14, fontFamily: FONTS.display, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
+  exName:     { flex: 1, fontSize: 16, fontFamily: FONTS.medium, color: COLORS.text },
+  exMeta:     { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
 }));

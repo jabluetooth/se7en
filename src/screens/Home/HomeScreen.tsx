@@ -14,6 +14,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { CoachTip } from '../../components/CoachWidget/CoachTip';
+import { InfoTip } from '../../components/common/InfoTip';
 import { DayPreviewSheet } from './DayPreviewSheet';
 import { WeekStrip } from './WeekStrip';
 import { TodayCard } from './TodayCard';
@@ -278,7 +279,14 @@ export function HomeScreen({ onNavigate, onOpenCoach, onResumeSession }: Props) 
 
           {/* ── Numbers for this cycle ── */}
           <Animated.View entering={enterRise(3)} style={s.stats}>
-            <Text style={s.sectionTitle}>This cycle</Text>
+            <View style={s.sectionRow}>
+              <Text style={s.sectionTitle}>This cycle</Text>
+              <InfoTip
+                title="This cycle"
+                text={`Your plan repeats every ${len} days. Workouts: done out of planned this cycle. Volume: weight × reps over every logged set, in ${unit}. Records: new bests set this cycle.`}
+                size={15}
+              />
+            </View>
             <View style={s.statRow}>
               <Stat value={`${cycle.doneCount}`} unit={`/ ${cycle.workoutCount}`} label="Workouts" />
               <Stat value={cycleStats.volume > 0 ? fmtVol(cycleStats.volume) : '0'} unit={unit} label="Volume" />
@@ -347,6 +355,7 @@ const s = themed(() => StyleSheet.create({
   week:       { paddingHorizontal: 12, marginTop: -4 },
 
   stats:        { paddingHorizontal: 20, gap: 10 },
+  sectionRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
   statRow:      { flexDirection: 'row', gap: 12 },
   stat:         { flex: 1, gap: 3 },

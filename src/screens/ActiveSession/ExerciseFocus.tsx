@@ -6,6 +6,7 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { enterFade, enterSettle, layoutSoft } from '../../motion/presets';
 import { SetTypeBadge } from '../../components/common/SetTypeBadge';
 import { RPEInput } from '../../components/RPEInput/RPEInput';
+import { InfoTip } from '../../components/common/InfoTip';
 import { COLORS, FONTS } from '../../constants';
 import type { SessionExercise, SetLog } from '../../types';
 import type { LastSet } from '../../utils/exerciseHistory';
@@ -74,9 +75,16 @@ export function ExerciseFocus(p: Props) {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
-      <Text style={s.eyebrow} numberOfLines={1}>
-        Exercise {p.index + 1} of {p.count}{p.muscleTags.length ? ` · ${p.muscleTags.join(', ')}` : ''}
-      </Text>
+      <View style={s.eyebrowRow}>
+        <Text style={s.eyebrow} numberOfLines={1}>
+          Exercise {p.index + 1} of {p.count}{p.muscleTags.length ? ` · ${p.muscleTags.join(', ')}` : ''}
+        </Text>
+        <InfoTip
+          title="Logging sets"
+          text="The steppers start from the set you just did, or from last time. Adjust them, then tap Log set. Tap the last logged set's circle to undo it. Swipe sideways to switch exercise."
+          size={15}
+        />
+      </View>
       <View style={s.titleRow}>
         <Text style={s.title} accessibilityRole="header">{ex.exerciseName}</Text>
         <SetTypeBadge type={ex.setType} />
@@ -269,7 +277,8 @@ const st = themed(() => StyleSheet.create({
 
 const s = themed(() => StyleSheet.create({
   page:     { paddingHorizontal: 20, paddingTop: 18 },
-  eyebrow:  { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  eyebrow:  { flexShrink: 1, fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 4 },
   title:    { flexShrink: 1, fontSize: 30, lineHeight: 34, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.8 },
   sub:      { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 8, lineHeight: 20, fontVariant: ['tabular-nums'] },

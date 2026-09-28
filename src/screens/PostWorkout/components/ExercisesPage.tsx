@@ -1,90 +1,75 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { TrophyIcon } from '../../../components/common/TrophyIcon';
+import React, { useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { EASE_OUT, TIMING } from '../../../motion/tokens';
-import { enterFade, layoutSoft } from '../../../motion/presets';
-import { GlassView } from '../../../components/common/GlassView';
+import { InfoTip } from '../../../components/common/InfoTip';
 import { COLORS, FONTS } from '../../../constants';
-import { WorkoutSession } from '../../../types';
-import { fmtVol } from '../../../utils/format';
-import { accentA, ink, themed } from '../../../theme/runtime';
-
-// Per-exercise colour palette — locked to the exercise's *original* index so
-// the same exercise keeps its hue regardless of how the list is sorted.
-// Shades of the accent (read at render so they follow the theme): the
-// volume split stays legible without a rainbow of unrelated colours.
-const exColor = (i: number) => [COLORS.accent, accentA(0.62), accentA(0.38), COLORS.textLabel][i % 4];
-
-function rpeColor(n: number): string {
-  if (n <= 4) return COLORS.success;
-  if (n <= 6) return COLORS.warning;
-  if (n <= 8) return COLORS.accent;
-  return COLORS.danger;
-}
+import type { SessionExercise, WorkoutSession } from '../../../types';
+import { useSettingsStore } from '../../../stores/settingsStore';
+import { ink, themed } from '../../../theme/runtime';
 
 interface Props {
   session:     WorkoutSession;
   width:       number;
-  /** The volume bar grows in the first time this page is shown. */
+  /** Bars grow in the first time this page is shown. */
   active:      boolean;
   bottomInset: number;
 }
 
-// Reps count as "volume" only for reps-only exercises; a weighted set with no
-// weight logged contributes nothing rather than a misleading reps × 1.
-const setVol = (reps: number, weight: number | null, unit: string) =>
-  unit === 'bodyweight' || unit === 'plates' ? reps : reps * (weight ?? 0);
+const KG_PER_LB = 0.45359237;
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10));
 
-function Chevron({ open }: { open: boolean }) {
-  const turn = useSharedValue(open ? 1 : 0);
-  useEffect(() => { turn.value = withTiming(open ? 1 : 0, TIMING.standard); }, [open]);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
-  return (
-    <Animated.View style={style}>
-      <Ionicons name="chevron-down" size={18} color={COLORS.textMuted} />
-    </Animated.View>
-  );
+interface Row {
+  id:    string;
+  name:  string;
+  value: number;
+  sets:  string;
+  rpe:   number | null;
+  note:  string;
+  pr:    boolean;
 }
 
-// Page 2 — stacked volume bar + per-exercise expandable cards.
+function repsOf(s: SessionExercise['sets'][number]) {
+  return s.actualRepsToFailure ?? s.actualReps;
+}
+
+/**
+ * Page 2: what each exercise contributed, as a bar chart. One bar per
+ * exercise, longest first, with the total written at the end of the bar and
+ * the sets underneath as plain numbers. Weighted lifts (weight × reps,
+ * converted to your unit) and reps-only lifts get separate charts so the two
+ * never share a scale. Orange marks a new record; everything else is grey.
+ */
 export function ExercisesPage({ session, width, active, bottomInset }: Props) {
+  const unit = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
   const recordIds = new Set((session.prDetails ?? []).filter(d => !d.isFirst).map(d => d.exerciseId));
 
-  // Grow the stacked bar in from the left once, the first time the page shows.
-  const grow = useSharedValue(0);
-  useEffect(() => {
-    if (active && grow.value === 0) grow.value = withTiming(1, { duration: 700, easing: EASE_OUT, reduceMotion: TIMING.standard.reduceMotion });
-  }, [active]);
-  const growStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: grow.value }] }));
-  const [openId,   setOpenId]   = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<'volume' | 'order'>('volume');
-
-  const exStats = session.exercises.map((ex, originalIdx) => {
-    const completed = ex.sets.filter(s => s.isCompleted);
-    const volume    = completed.reduce(
-      (a, s) => a + setVol(s.actualRepsToFailure ?? s.actualReps, s.actualWeight, ex.weightUnit),
-      0,
-    );
-    const totalReps = completed.reduce(
-      (a, s) => a + (s.actualRepsToFailure ?? s.actualReps),
-      0,
-    );
-    const bestSet = completed.reduce<typeof completed[0] | null>(
-      (b, s) => ((s.actualWeight ?? 0) > (b?.actualWeight ?? 0) ? s : b),
-      null,
-    );
-    return {
-      ex, completed, volume, totalReps, bestSet,
-      color: exColor(originalIdx),
+  const weighted: Row[] = [];
+  const repsOnly: Row[] = [];
+  for (const ex of session.exercises) {
+    const done = ex.sets.filter(s => s.isCompleted);
+    if (done.length === 0) continue;
+    const isWeighted = ex.weightUnit === 'kg' || ex.weightUnit === 'lb';
+    const factor = !isWeighted || ex.weightUnit === unit ? 1 : ex.weightUnit === 'kg' ? 1 / KG_PER_LB : KG_PER_LB;
+    const row: Row = {
+      id: ex.id,
+      name: ex.exerciseName,
+      value: isWeighted
+        ? done.reduce((a, s) => a + repsOf(s) * (s.actualWeight ?? 0) * factor, 0)
+        : done.reduce((a, s) => a + repsOf(s), 0),
+      sets: done
+        .map(s => (isWeighted && s.actualWeight != null ? `${fmt(s.actualWeight)}×${repsOf(s)}` : `${repsOf(s)}`))
+        .join('  '),
+      rpe: ex.rpe != null && ex.rpe > 0 ? ex.rpe : null,
+      note: ex.exerciseNote ?? '',
+      pr: recordIds.has(ex.exerciseId),
     };
-  });
+    (isWeighted ? weighted : repsOnly).push(row);
+  }
+  weighted.sort((a, b) => b.value - a.value);
+  repsOnly.sort((a, b) => b.value - a.value);
 
-  const totalVolume = exStats.reduce((a, x) => a + x.volume, 0);
-  const list        = sortMode === 'volume'
-    ? [...exStats].sort((a, b) => b.volume - a.volume)
-    : exStats;
+  const chartW = width - 32;
 
   return (
     <ScrollView
@@ -93,205 +78,101 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
     >
-      {/* ── Section header: title + sort toggle ─────────── */}
-      <View style={s.header}>
-        <Text style={s.headerTitle}>Volume Breakdown</Text>
-        <View style={s.toggle}>
-          {(['volume', 'order'] as const).map(mode => {
-            const active = sortMode === mode;
-            return (
-              <Pressable
-                key={mode}
-                onPress={() => setSortMode(mode)}
-                style={[s.togglePill, active && s.togglePillActive]}
-              >
-                <Text style={[s.toggleTxt, active && s.toggleTxtActive]}>
-                  {mode === 'volume' ? 'By volume' : 'By order'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* ── Stacked volume bar ─────────────────────────── */}
-      {totalVolume > 0 && (
-        <Animated.View style={[s.bar, { transformOrigin: 'left' }, growStyle]}>
-          {list.map((x, i) => {
-            const pct = x.volume / totalVolume;
-            if (pct <= 0) return null;
-            const isFirst = i === 0;
-            const isLast  = i === list.length - 1;
-            return (
-              <View
-                key={x.ex.id}
-                style={[
-                  s.barSeg,
-                  { flex: pct, backgroundColor: x.color },
-                  isFirst && { borderTopLeftRadius: 7, borderBottomLeftRadius: 7 },
-                  isLast  && { borderTopRightRadius: 7, borderBottomRightRadius: 7 },
-                ]}
-              >
-                {pct >= 0.15 && (
-                  <Text style={s.barLabel} numberOfLines={1}>{Math.round(pct * 100)}%</Text>
-                )}
-              </View>
-            );
-          })}
-        </Animated.View>
+      {weighted.length > 0 && (
+        <Chart
+          title={`Volume by exercise`}
+          info={`Weight × reps across the sets you logged, in ${unit}. Longest bar first. Orange bars are exercises where you set a record today.`}
+          rows={weighted}
+          unit={unit}
+          width={chartW}
+          active={active}
+        />
       )}
-
-      {/* ── Exercise rows ─────────────────────────────── */}
-      {list.map((x, i) => {
-        const open       = openId === x.ex.id;
-        const isFirst    = i === 0;
-        const isLast     = i === list.length - 1;
-        const prevOpen   = !isFirst && openId === list[i - 1].ex.id;
-        const nextOpen   = !isLast  && openId === list[i + 1].ex.id;
-        const gapAbove   = isFirst || open || prevOpen;
-        const gapBelow   = isLast  || open || nextOpen;
-        const marginBot  = isLast ? 0 : (open || nextOpen ? 14 : 4);
-        const showWeight = x.ex.weightUnit !== 'bodyweight';
-        const volLabel   = `${fmtVol(x.volume)}${showWeight ? ' ' + x.ex.weightUnit : ' reps'}`;
-
-        return (
-          <Animated.View key={x.ex.id} layout={layoutSoft}>
-          <GlassView
-            radius={0}
-            style={[
-              s.card,
-              { borderTopLeftRadius:    gapAbove ? 12 : 0,
-                borderTopRightRadius:   gapAbove ? 12 : 0,
-                borderBottomLeftRadius: gapBelow ? 12 : 0,
-                borderBottomRightRadius:gapBelow ? 12 : 0,
-                marginBottom: marginBot },
-            ]}
-          >
-            <Pressable
-              onPress={() => setOpenId(open ? null : x.ex.id)}
-              style={({ pressed }) => [s.row, pressed && { opacity: 0.75 }]}
-            >
-              <View style={[s.marker, { backgroundColor: x.color }]} />
-
-              <View style={s.info}>
-                <View style={s.nameRow}>
-                  <Text style={s.name} numberOfLines={1}>{x.ex.exerciseName}</Text>
-                  {recordIds.has(x.ex.exerciseId) && (
-                    <View style={s.prTag} accessibilityLabel="New personal record">
-                      <TrophyIcon size={11} color={COLORS.onAccent} />
-                      <Text style={s.prTagTxt}>PR</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={s.chipsRow}>
-                  <View style={s.chip}>
-                    <Text style={s.chipTxt}>{x.completed.length}/{x.ex.sets.length} sets</Text>
-                  </View>
-                  <View style={[
-                    s.chip,
-                    { backgroundColor: x.color + '22', borderColor: x.color + '55' },
-                  ]}>
-                    <Text style={[s.chipTxt, { color: x.color, fontFamily: FONTS.display }]}>{volLabel}</Text>
-                  </View>
-                  {showWeight && x.bestSet && x.bestSet.actualWeight != null && (
-                    <View style={s.chip}>
-                      <Text style={s.chipTxt}>
-                        best {x.bestSet.actualWeight}{x.ex.weightUnit} × {x.bestSet.actualRepsToFailure ?? x.bestSet.actualReps}
-                      </Text>
-                    </View>
-                  )}
-                  {x.ex.rpe != null && x.ex.rpe > 0 && (
-                    <View style={[s.chip, { backgroundColor: rpeColor(x.ex.rpe) + '22', borderColor: rpeColor(x.ex.rpe) + '55' }]}>
-                      <Text style={[s.chipTxt, { color: rpeColor(x.ex.rpe), fontFamily: FONTS.display }]}>RPE {x.ex.rpe}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <Chevron open={open} />
-            </Pressable>
-
-            {open && (
-              <Animated.View entering={enterFade} style={s.table}>
-                <View style={s.tableHead}>
-                  {['Set', 'Weight', 'Reps', 'Vol'].map((h, hi) => (
-                    <Text key={hi} style={[s.th, hi > 0 && s.thRight]}>{h}</Text>
-                  ))}
-                </View>
-                {x.completed.map((set, si) => {
-                  const reps = set.actualRepsToFailure ?? set.actualReps;
-                  const vol  = Math.round(setVol(reps, set.actualWeight, x.ex.weightUnit));
-                  return (
-                    <View key={si} style={s.tableRow}>
-                      <Text style={s.td}>S{set.setNumber}</Text>
-                      <Text style={[s.td, s.tdRight]}>
-                        {set.actualWeight != null ? `${set.actualWeight}${x.ex.weightUnit}` : '—'}
-                      </Text>
-                      <Text style={[s.td, s.tdRight]}>{reps}</Text>
-                      <Text style={[s.td, s.tdRight, { color: COLORS.textMuted }]}>{vol}</Text>
-                    </View>
-                  );
-                })}
-                {x.ex.exerciseNote ? (
-                  <View style={s.noteRow}>
-                    <Text style={s.noteLabel}>Note</Text>
-                    <Text style={s.noteTxt}>{x.ex.exerciseNote}</Text>
-                  </View>
-                ) : null}
-              </Animated.View>
-            )}
-          </GlassView>
-          </Animated.View>
-        );
-      })}
+      {repsOnly.length > 0 && (
+        <Chart
+          title="Reps by exercise"
+          info="Bodyweight and plate-loaded exercises, counted in total reps so they aren't mixed with weighted volume."
+          rows={repsOnly}
+          unit="reps"
+          width={chartW}
+          active={active}
+          offset={weighted.length}
+        />
+      )}
+      {weighted.length === 0 && repsOnly.length === 0 && (
+        <Text style={s.empty}>No sets were logged in this workout.</Text>
+      )}
     </ScrollView>
   );
 }
 
+function Chart({ title, info, rows, unit, width, active, offset = 0 }: {
+  title: string; info: string; rows: Row[]; unit: string; width: number; active: boolean; offset?: number;
+}) {
+  const max = Math.max(...rows.map(r => r.value), 1);
+  return (
+    <View style={s.chart}>
+      <View style={s.titleRow}>
+        <Text style={s.title}>{title}</Text>
+        <InfoTip title={title} text={info} />
+      </View>
+      {rows.map((r, i) => (
+        <View
+          key={r.id}
+          style={s.row}
+          accessible
+          accessibilityLabel={`${r.name}, ${Math.round(r.value).toLocaleString()} ${unit}${r.pr ? ', new record' : ''}. Sets ${r.sets}.`}
+        >
+          <View style={s.labelRow}>
+            <Text style={s.name} numberOfLines={1}>{r.name}</Text>
+            {r.pr && <Text style={s.prTxt}>Record</Text>}
+            <Text style={[s.value, r.pr && { color: COLORS.accent }]}>
+              {Math.round(r.value).toLocaleString()} <Text style={s.unit}>{unit}</Text>
+            </Text>
+          </View>
+          <Bar fraction={r.value / max} width={width} pr={r.pr} active={active} index={offset + i} />
+          <Text style={s.sets} numberOfLines={2}>
+            {r.sets}{r.rpe != null ? `   ·   RPE ${r.rpe}` : ''}
+          </Text>
+          {r.note ? <Text style={s.note} numberOfLines={2}>{r.note}</Text> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Bar({ fraction, width, pr, active, index }: { fraction: number; width: number; pr: boolean; active: boolean; index: number }) {
+  const grow = useSharedValue(0);
+  useEffect(() => {
+    if (active && grow.value === 0) {
+      grow.value = withDelay(Math.min(index, 8) * 50, withTiming(1, { duration: 600, easing: EASE_OUT, reduceMotion: TIMING.standard.reduceMotion }));
+    }
+  }, [active]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scaleX: grow.value }] }));
+  return (
+    <Animated.View
+      style={[
+        s.bar,
+        { width: Math.max(4, fraction * width), transformOrigin: 'left', backgroundColor: pr ? COLORS.accent : ink(0.28) },
+        style,
+      ]}
+    />
+  );
+}
+
 const s = themed(() => StyleSheet.create({
-  page:             { paddingHorizontal: 16, paddingTop: 8 },
-
-  // Section header
-  header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  headerTitle:      { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
-
-  // Sort toggle
-  toggle:           { flexDirection: 'row', backgroundColor: ink(0.05), borderRadius: 9, padding: 3, borderWidth: 1, borderColor: ink(0.08) },
-  togglePill:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  togglePillActive: { backgroundColor: ink(0.14) },
-  toggleTxt:        { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  toggleTxtActive:  { color: COLORS.text, fontFamily: FONTS.display },
-
-  // Stacked bar
-  bar:      { flexDirection: 'row', height: 32, marginBottom: 14, gap: 2 },
-  barSeg:   { justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  barLabel: { fontSize: 11, fontFamily: FONTS.display, color: COLORS.onAccent },
-
-  // Card
-  card:     { overflow: 'hidden' },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
-  marker:   { width: 5, alignSelf: 'stretch', borderRadius: 3 },
-  info:     { flex: 1, minWidth: 0, gap: 7 },
-  nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name:     { flexShrink: 1, fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
-  prTag:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: COLORS.accent },
-  prTagTxt: { fontSize: 11, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: 0.3 },
-
-  chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  chip:     { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04) },
-  chipTxt:  { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-
-  // Expanded set table
-  table:     { borderTopWidth: 1, borderTopColor: ink(0.07), backgroundColor: ink(0.03) },
-  tableHead: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9 },
-  th:        { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, flex: 1 },
-  thRight:   { textAlign: 'right' },
-  tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: ink(0.06) },
-  td:        { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, flex: 1 },
-  tdRight:   { textAlign: 'right' },
-  // Exercise note
-  noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: ink(0.06) },
-  noteLabel: { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 2, width: 34 },
-  noteTxt:   { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
+  page:     { paddingHorizontal: 16, paddingTop: 12, gap: 32 },
+  chart:    { gap: 18 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title:    { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text },
+  row:      { gap: 6 },
+  labelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  name:     { flexShrink: 1, fontSize: 15, fontFamily: FONTS.medium, color: COLORS.text },
+  prTxt:    { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent },
+  value:    { marginLeft: 'auto', fontSize: 16, fontFamily: FONTS.display, color: COLORS.text, fontVariant: ['tabular-nums'] },
+  unit:     { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  bar:      { height: 10, borderRadius: 5 },
+  sets:     { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
+  note:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic' },
+  empty:    { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', marginTop: 40 },
 }));

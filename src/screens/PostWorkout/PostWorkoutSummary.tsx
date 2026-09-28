@@ -257,8 +257,8 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 const hd = themed(() => StyleSheet.create({
   bar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 },
   side:    { width: 40, alignItems: 'flex-end' },
-  tabs:    { flexDirection: 'row', borderRadius: 99, backgroundColor: ink(0.06), padding: 3 },
-  pill:    { position: 'absolute', top: 3, left: 3, bottom: 3, borderRadius: 99, backgroundColor: accentA(0.18), borderWidth: 1, borderColor: accentA(0.35) },
+  tabs:    { flexDirection: 'row', borderRadius: 12, backgroundColor: ink(0.05), padding: 3 },
+  pill:    { position: 'absolute', top: 3, left: 3, bottom: 3, borderRadius: 10, backgroundColor: COLORS.surfaceElevated },
   tab:     { height: 34, alignItems: 'center', justifyContent: 'center' },
   tabTxt:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
   tabTxtActive: { color: COLORS.text },

@@ -467,7 +467,7 @@ function Review({ template, planName, onName, loading, onStart }:
         ))}
       </View>
 
-      <Text style={q.hint}>Change any exercise, set, rep or weight later in the Cycle tab.</Text>
+      <Text style={q.hint}>You can change any exercise, set, rep or weight later in the Plan tab.</Text>
       <PrimaryButton label={loading ? 'Setting up…' : 'Start training'} onPress={onStart} disabled={loading} />
     </View>
   );

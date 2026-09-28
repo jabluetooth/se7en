@@ -5,6 +5,7 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { COLORS, FONTS } from '../../constants';
 import type { WorkoutDay, WorkoutSession } from '../../types';
 import { fmtVol } from '../../utils/format';
+import { InfoTip } from '../../components/common/InfoTip';
 import { sessionLoad } from '../../utils/volume';
 import { accentA, themed } from '../../theme/runtime';
 
@@ -110,7 +111,16 @@ export function TodayCard({ mode, unit, onStart, onResume }: Props) {
     <View style={s.card}>
       <View style={s.head}>
         <Text style={s.cardTitle}>{early ? `Up next · ${early}` : "Today's workout"}</Text>
-        <Text style={s.meta}>{totalSets} sets · ~{estMinutes(day)} min</Text>
+        <View style={s.metaRow}>
+          <Text style={s.meta}>{totalSets} sets · ~{estMinutes(day)} min</Text>
+          <InfoTip
+            title="Time estimate"
+            text={early
+              ? `Today is a rest day in your plan. You can start ${day.label} early; the time assumes about 2½ minutes per set, rest included.`
+              : 'About 2½ minutes per set, rest included. Your real time depends on how long you rest.'}
+            size={15}
+          />
+        </View>
       </View>
 
       {day.exercises.length === 0 ? (
@@ -163,6 +173,7 @@ const s = themed(() => StyleSheet.create({
   },
   head:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
   cardTitle: { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, flexShrink: 1 },
+  metaRow:   { flexDirection: 'row', alignItems: 'center', gap: 5 },
   meta:      { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
   body:      { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 21 },
 

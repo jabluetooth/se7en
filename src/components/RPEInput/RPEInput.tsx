@@ -4,6 +4,7 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { COLORS, GRAD, SPACING, FONTS } from '../../constants';
+import { InfoTip } from '../common/InfoTip';
 import { ink, themed } from '../../theme/runtime';
 
 // RPE color bands: 1-4 easy, 5-6 moderate, 7-8 hard, 9-10 max
@@ -47,7 +48,14 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
   return (
     <View style={s.container}>
       <View style={s.headerRow}>
-        <Text style={s.title}>How did that feel?</Text>
+        <View style={s.titleRow}>
+          <Text style={s.title}>How hard was that?</Text>
+          <InfoTip
+            title="Effort (RPE)"
+            text="Rate of perceived exertion, 1 to 10. 10 means you couldn't do another rep; 8 means about two left. Your coach uses it to suggest weights."
+            size={15}
+          />
+        </View>
         {onSkip && (
           <AnimatedPressable
             onPress={onSkip}
@@ -125,7 +133,8 @@ export function RPEInput({ initialRpe, initialNote = '', onSave, onSkip }: Props
 const s = themed(() => StyleSheet.create({
   container:   { paddingTop: SPACING.md, paddingBottom: SPACING.sm, borderTopWidth: 1, borderTopColor: ink(0.08) },
   headerRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.sm },
-  title:       { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  titleRow:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title:       { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.textSecondary },
   skip:        { fontSize: 12, color: COLORS.textLabel, fontFamily: FONTS.semibold },
   grid:        { flexDirection: 'row', gap: 6, marginBottom: SPACING.sm },
   // Fixed 48pt height (not aspectRatio) clears the 44pt touch-target

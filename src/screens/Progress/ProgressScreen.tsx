@@ -1,310 +1,250 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View, Text, ScrollView, Pressable, TextInput, StyleSheet,
-  useWindowDimensions,
-} from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
-import { FadeInItem } from '../../components/common/FadeInItem';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { InfoTip } from '../../components/common/InfoTip';
+import { Segmented } from '../../components/common/Segmented';
 import { fmtDate, fmtVol } from '../../utils/format';
 import { aggregateExercises } from '../../utils/exerciseHistory';
-import { ContributionHeatmap } from './components/ContributionHeatmap';
-import { GainCard } from './components/GainCard';
-import { summarize, deltaLabel, PERIOD_LABEL, type Period } from '../../utils/progressInsights';
-import { ExerciseCard } from './components/ExerciseCard';
+import {
+  summarize, deltaLabel, weeklyCounts, liftTrend, PERIOD_LABEL, type Period,
+} from '../../utils/progressInsights';
 import { useDockClearance } from '../../hooks/useDockClearance';
-import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { enterRise } from '../../motion/presets';
-import { accentA, ink, themed } from '../../theme/runtime';
+import { GainCard } from './components/GainCard';
+import { WeeklyBars } from './components/WeeklyBars';
+import { ExerciseCard } from './components/ExerciseCard';
+import { ink, themed } from '../../theme/runtime';
 
-// Progress leads with what changed (the biggest gain in the chosen window,
-// totals against the window before, the latest records), then consistency,
-// then every lift with its own chart.
-
-type SortMode = 'recent' | 'volume' | 'name';
+// Progress, read top to bottom: three numbers against the period before, the
+// lift that improved most, how often you trained each week against your
+// plan, the latest records, then every lift on one line each. Only data is
+// on the screen; how each figure is worked out sits behind its ⓘ. One
+// accent colour, used only for "now" and "best".
 
 interface Props {
-  /** Takes a brand-new user to Home to start their first workout. */
+  /** Takes a brand-new user to Today to start their first workout. */
   onStartWorkout?: () => void;
 }
+
+const LIFTS_SHOWN = 6;
+
+const PERIODS = [
+  { value: '4w' as const, label: PERIOD_LABEL['4w'] },
+  { value: '3m' as const, label: PERIOD_LABEL['3m'] },
+  { value: 'all' as const, label: PERIOD_LABEL.all },
+];
 
 export function ProgressScreen({ onStartWorkout }: Props = {}) {
   const { sessions }   = useSessionStore();
   const { activePlan } = usePlanStore();
   const unit           = useSettingsStore(st => st.settings.defaultWeightUnit ?? 'kg');
-  const { width: windowWidth } = useWindowDimensions();
+  const { width }      = useWindowDimensions();
   const dockClearance  = useDockClearance();
 
-  const [sortMode,    setSortMode]    = useState<SortMode>('recent');
-  const [expandedId,  setExpandedId]  = useState<string | null>(null);
-  const [searchOpen,  setSearchOpen]  = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAll,     setShowAll]     = useState(false);
-  const [period,      setPeriod]      = useState<Period>('4w');
-
-  // Initial card limit — keeps the Progress screen scannable for users with
-  // dozens of tracked exercises. Search bypasses the cap (the user is already
-  // narrowing the list themselves).
-  const INITIAL_LIMIT = 5;
+  const [period,     setPeriod]     = useState<Period>('4w');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searching,  setSearching]  = useState(false);
+  const [query,      setQuery]      = useState('');
+  const [showAll,    setShowAll]    = useState(false);
 
   const totalWorkouts = useMemo(() => sessions.filter(s => s.status === 'completed').length, [sessions]);
   const summary = useMemo(() => summarize(sessions, period, unit), [sessions, period, unit]);
+  const weeks = useMemo(() => weeklyCounts(sessions, period), [sessions, period]);
 
-  const histories = useMemo(() => aggregateExercises(sessions), [sessions]);
+  const target = useMemo(() => {
+    if (!activePlan || activePlan.days.length === 0) return null;
+    const workouts = activePlan.days.filter(d => !d.isRestDay).length;
+    return Math.round((workouts * 7 / activePlan.days.length) * 10) / 10;
+  }, [activePlan]);
 
-  const sortedHistories = useMemo(() => {
-    const arr = [...histories];
-    if (sortMode === 'recent') {
-      arr.sort((a, b) =>
-        new Date(b.sessions[b.sessions.length - 1].finishedAt).getTime() -
-        new Date(a.sessions[a.sessions.length - 1].finishedAt).getTime()
-      );
-    } else if (sortMode === 'volume') {
-      arr.sort((a, b) => {
-        const ta = a.sessions.reduce((acc, x) => acc + x.topVolume, 0);
-        const tb = b.sessions.reduce((acc, x) => acc + x.topVolume, 0);
-        return tb - ta;
-      });
-    } else {
-      arr.sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
+  // Every lift, most recently trained first.
+  const lifts = useMemo(() => {
+    const out: { h: ReturnType<typeof aggregateExercises>[number]; t: NonNullable<ReturnType<typeof liftTrend>> }[] = [];
+    for (const h of aggregateExercises(sessions)) {
+      const t = liftTrend(h, period);
+      if (t) out.push({ h, t });
     }
-    return arr;
-  }, [histories, sortMode]);
+    return out.sort((a, b) => new Date(b.t.lastAt).getTime() - new Date(a.t.lastAt).getTime());
+  }, [sessions, period]);
 
-  // Apply text search on top of the sorted list
-  const visibleHistories = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return sortedHistories;
-    return sortedHistories.filter(h => h.exerciseName.toLowerCase().includes(q));
-  }, [sortedHistories, searchQuery]);
+  const q = query.trim().toLowerCase();
+  const matching = q ? lifts.filter(l => l.h.exerciseName.toLowerCase().includes(q)) : lifts;
+  const shown = q || showAll ? matching : matching.slice(0, LIFTS_SHOWN);
 
-  // Apply the initial 5-card cap unless the user has opened search OR has
-  // already expanded the list. Capped list shows the most recent activity
-  // first when the default sort is 'recent'; switching sort changes which
-  // 5 are surfaced.
-  const isSearching = searchQuery.trim().length > 0;
-  const displayedHistories = (showAll || isSearching)
-    ? visibleHistories
-    : visibleHistories.slice(0, INITIAL_LIMIT);
-  const hiddenCount = visibleHistories.length - displayedHistories.length;
-
-  // Chart width = window - ScrollView padding (32) - card padding (24) - border (2) - safety margin (4)
-  const chartWidth = Math.max(240, windowWidth - 32 - 24 - 6);
-
-  const closeSearch = () => { setSearchOpen(false); setSearchQuery(''); };
+  const contentW = width - 40;
+  const periodWords = period === 'all' ? 'all time' : `the last ${PERIOD_LABEL[period].toLowerCase()}`;
 
   return (
     <View style={{ flex: 1 }}>
       <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={s.header}>
-          <Text style={s.title}>Progress</Text>
-          {activePlan && <Text style={s.sub}>{activePlan.name}</Text>}
-        </View>
-
         {totalWorkouts === 0 ? (
-          <FirstRun bottom={dockClearance} onStart={onStartWorkout} />
+          <>
+            <Text style={[s.title, { paddingHorizontal: 20 }]}>Progress</Text>
+            <FirstRun bottom={dockClearance} onStart={onStartWorkout} />
+          </>
         ) : (
-        <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
-          {/* Window */}
-          <View style={s.periods} accessibilityRole="tablist">
-            {(['4w', '3m', 'all'] as const).map(p => {
-              const active = p === period;
-              return (
-                <Pressable
-                  key={p}
-                  onPress={() => setPeriod(p)}
-                  style={[s.periodPill, active && s.periodPillOn]}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                >
-                  <Text style={[s.periodTxt, active && s.periodTxtOn]}>{PERIOD_LABEL[p]}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <ScrollView
+            contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={s.title} accessibilityRole="header">Progress</Text>
 
-          {/* What changed */}
-          <Animated.View entering={enterRise(0)}>
-            <GainCard gain={summary.gain} periodLabel={PERIOD_LABEL[period]} width={windowWidth - 32} />
-          </Animated.View>
+            <Segmented options={PERIODS} value={period} onChange={setPeriod} stretch a11yLabel="Time period" style={s.periods} />
 
-          <Animated.View entering={enterRise(1)} style={s.statsRow}>
-            <Stat value={String(summary.workouts)} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
-            <Stat
-              value={fmtVol(summary.volume)}
-              unit={unit}
-              label="Volume"
-              delta={deltaLabel(Math.round(summary.volume), summary.prevVolume == null ? null : Math.round(summary.prevVolume), true)}
-            />
-            <Stat value={String(summary.records)} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
-          </Animated.View>
-
-          {summary.recentPRs.length > 0 && (
-            <View style={s.block}>
-              <Text style={s.blockTitle}>Latest records</Text>
-              {summary.recentPRs.slice(0, 4).map((pr, i) => (
-                <View key={`${pr.exerciseId}-${pr.finishedAt}-${i}`} style={s.prRow}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.prName} numberOfLines={1}>{pr.exerciseName}</Text>
-                    <Text style={s.prSub}>{fmtDate(pr.finishedAt)} · was {pr.previous} {pr.unit}</Text>
-                  </View>
-                  <Text style={s.prVal}>{pr.value} <Text style={s.prUnit}>{pr.unit}</Text></Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Consistency */}
-          <View style={s.block}>
-            <Text style={s.blockTitle}>Consistency</Text>
-            <ContributionHeatmap sessions={sessions} />
-          </View>
-
-          {/* Exercise progress — section header swaps to a search bar on demand */}
-          {searchOpen ? (
-            <View style={s.searchRow}>
-              <Ionicons name="search" size={15} color={COLORS.textSecondary} />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search exercises…"
-                placeholderTextColor={COLORS.textMuted}
-                style={s.searchInput}
-                autoFocus
-                returnKeyType="search"
-                accessibilityLabel="Search exercises"
+            {/* ── Three numbers ── */}
+            <Animated.View entering={enterRise(0)} style={s.figures}>
+              <Figure value={String(summary.workouts)} label="Workouts" delta={deltaLabel(summary.workouts, summary.prevWorkouts)} />
+              <Figure
+                value={fmtVol(summary.volume)}
+                unit={unit}
+                label="Volume"
+                delta={deltaLabel(Math.round(summary.volume), summary.prevVolume == null ? null : Math.round(summary.prevVolume), true)}
               />
-              <Pressable
-                onPress={closeSearch}
-                hitSlop={8}
-                style={({ pressed }) => [s.searchClose, pressed && { opacity: 0.6 }]}
-                accessibilityRole="button"
-                accessibilityLabel="Close search"
-              >
-                <Ionicons name="close" size={16} color={COLORS.textSecondary} />
-              </Pressable>
-            </View>
-          ) : (
-            <View style={s.progressHeader}>
-              <View style={s.titleRow}>
-                <Text style={s.blockTitle}>Lifts</Text>
-                <Pressable
-                  onPress={() => setSearchOpen(true)}
-                  hitSlop={8}
-                  style={({ pressed }) => [s.searchIcon, pressed && { opacity: 0.6 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Search exercises"
-                >
-                  <Ionicons name="search" size={15} color={COLORS.textSecondary} />
-                </Pressable>
-              </View>
-              <View style={s.toggle}>
-                {(['recent', 'volume', 'name'] as const).map(m => {
-                  const active = sortMode === m;
-                  const mLabel = m === 'recent' ? 'Recent' : m === 'volume' ? 'Volume' : 'A–Z';
-                  return (
-                    <Pressable
-                      key={m}
-                      onPress={() => setSortMode(m)}
-                      style={[s.togglePill, active && s.togglePillActive]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Sort by ${mLabel}`}
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text style={[s.toggleTxt, active && s.toggleTxtActive]}>
-                        {mLabel}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Search-active hint */}
-          {searchOpen && searchQuery.trim().length > 0 && (
-            <Text style={s.searchHint}>
-              {visibleHistories.length} match{visibleHistories.length === 1 ? '' : 'es'} for "{searchQuery.trim()}"
-            </Text>
-          )}
-
-          {visibleHistories.length === 0 ? (
-            <GlassView radius={14} style={s.emptyCard}>
-              <Ionicons
-                name={searchQuery.trim() ? 'search-outline' : 'trending-up-outline'}
-                size={28}
-                color={COLORS.textLabel}
-                style={{ marginBottom: 8 }}
-              />
-              <Text style={s.emptyText}>
-                {searchQuery.trim()
-                  ? `No exercises matching "${searchQuery.trim()}".`
-                  : 'Complete workouts to see exercise progress here.'}
+              <Figure value={String(summary.records)} label={summary.records === 1 ? 'Record' : 'Records'} accent={summary.records > 0} />
+            </Animated.View>
+            <View style={s.captionRow}>
+              <Text style={s.caption}>
+                {period === 'all' ? 'All time' : `Last ${PERIOD_LABEL[period].toLowerCase()} vs the ${PERIOD_LABEL[period].toLowerCase()} before`}
               </Text>
-            </GlassView>
-          ) : (
-            <View style={s.cardList}>
-              {displayedHistories.map((h, i) => (
-                <FadeInItem key={h.exerciseId} index={i}>
-                  <ExerciseCard
-                    history={h}
-                    expanded={expandedId === h.exerciseId}
-                    onToggle={() =>
-                      setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))
-                    }
-                    chartWidth={chartWidth}
-                  />
-                </FadeInItem>
-              ))}
+              <InfoTip
+                title="How these are counted"
+                text={`Workouts: completed sessions. Volume: weight × reps over every logged set, in ${unit}; bodyweight sets aren't included. Records: new bests on weight, reps or volume. The line under each compares with the period just before.`}
+                size={15}
+              />
+            </View>
 
-              {/* Show-more / show-less control — only when the cap is actually
-                  hiding something OR when the user already expanded the list. */}
-              {!isSearching && (hiddenCount > 0 || showAll) && (
-                <Pressable
-                  onPress={() => setShowAll(v => !v)}
-                  style={({ pressed }) => [s.seeMoreBtn, pressed && { opacity: 0.7 }]}
+            {/* ── Biggest gain ── */}
+            <Section
+              title="Biggest gain"
+              info={`The lift whose top set went up the most, as a share of where it started, over ${periodWords}. The line shows its top set each workout, from the one just before the period to now.`}
+            >
+              <GainCard gain={summary.gain} width={contentW} />
+            </Section>
+
+            {/* ── Consistency ── */}
+            <Section
+              title="Workouts per week"
+              info={target
+                ? `Each column is one week, Monday to Sunday. The dashed line is your plan's pace: ${target} workouts a week. This week is orange.`
+                : 'Each column is one week, Monday to Sunday. This week is orange.'}
+            >
+              <WeeklyBars bars={weeks} target={target} width={contentW} />
+            </Section>
+
+            {/* ── Latest records ── */}
+            {summary.recentPRs.length > 0 && (
+              <Section title="Latest records" info="New heaviest top sets in this period, newest first, with the best they replaced.">
+                <View>
+                  {summary.recentPRs.slice(0, 3).map((pr, i) => (
+                    <View key={`${pr.exerciseId}-${pr.finishedAt}-${i}`} style={s.prRow}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={s.prName} numberOfLines={1}>{pr.exerciseName}</Text>
+                        <Text style={s.prSub}>{fmtDate(pr.finishedAt)} · was {pr.previous}</Text>
+                      </View>
+                      <Text style={s.prVal}>{pr.value}<Text style={s.prUnit}> {pr.unit}</Text></Text>
+                    </View>
+                  ))}
+                </View>
+              </Section>
+            )}
+
+            {/* ── Lifts ── */}
+            <View style={s.section}>
+              <View style={s.sectionHead}>
+                <Text style={s.sectionTitle}>Lifts</Text>
+                <InfoTip
+                  title="Lifts"
+                  text="Each row: your latest top set, its trend over the period, and how much it changed from the first workout in the period. An orange dot means a new best. Tap a lift for its full history."
+                  size={15}
+                />
+                <AnimatedPressable
+                  scale="strong"
+                  onPress={() => { setSearching(v => !v); setQuery(''); }}
+                  style={s.searchBtn}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={searching ? 'Close search' : 'Search lifts'}
                 >
-                  <Text style={s.seeMoreTxt}>
-                    {showAll ? 'See less' : `See ${hiddenCount} more`}
-                  </Text>
-                  <Ionicons
-                    name={showAll ? 'chevron-up' : 'chevron-down'}
-                    size={14}
-                    color={COLORS.accent}
-                  />
-                </Pressable>
+                  <Ionicons name={searching ? 'close' : 'search'} size={18} color={COLORS.textSecondary} />
+                </AnimatedPressable>
+              </View>
+
+              {searching && (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search lifts"
+                  placeholderTextColor={COLORS.textLabel}
+                  style={s.search}
+                  autoFocus
+                  returnKeyType="search"
+                  accessibilityLabel="Search lifts"
+                />
+              )}
+
+              {shown.length === 0 ? (
+                <Text style={s.empty}>{q ? `No lifts match "${query.trim()}".` : 'Finish a workout to see your lifts here.'}</Text>
+              ) : (
+                <View>
+                  {shown.map(({ h, t }) => (
+                    <ExerciseCard
+                      key={h.exerciseId}
+                      history={h}
+                      trend={t}
+                      expanded={expandedId === h.exerciseId}
+                      onToggle={() => setExpandedId(id => (id === h.exerciseId ? null : h.exerciseId))}
+                      chartWidth={contentW}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {!q && matching.length > LIFTS_SHOWN && (
+                <AnimatedPressable onPress={() => setShowAll(v => !v)} style={s.more} accessibilityRole="button">
+                  <Text style={s.moreTxt}>{showAll ? 'Show fewer' : `Show all ${matching.length}`}</Text>
+                </AnimatedPressable>
               )}
             </View>
-          )}
-
-          {/* Bottom breathing room — AppNavigator already pads 80px for the
-              floating dock, so this is just the small gap between the last
-              card and the dock's top edge (about half the dock's height). */}
-          <View style={{ height: 24 }} />
-        </ScrollView>
+          </ScrollView>
         )}
       </SafeAreaView>
     </View>
   );
 }
 
-function Stat({ value, unit, label, delta, accent }: { value: string; unit?: string; label: string; delta?: string | null; accent?: boolean }) {
-  const down = delta?.startsWith('−');
+// ─── Pieces ──────────────────────────────────────────────────────────────────
+
+function Section({ title, info, children }: { title: string; info: string; children: React.ReactNode }) {
   return (
-    <View style={s.stat}>
-      <Text style={[s.statValue, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-        {value}{unit ? <Text style={s.statUnit}> {unit}</Text> : null}
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <Text style={s.sectionTitle}>{title}</Text>
+        <InfoTip title={title} text={info} size={15} />
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function Figure({ value, unit, label, delta, accent }: { value: string; unit?: string; label: string; delta?: string | null; accent?: boolean }) {
+  const up = !!delta && delta.startsWith('+');
+  return (
+    <View style={s.figure}>
+      <Text style={[s.figVal, accent && { color: COLORS.accent }]} numberOfLines={1} adjustsFontSizeToFit>
+        {value}{unit ? <Text style={s.figUnit}> {unit}</Text> : null}
       </Text>
-      <Text style={s.statLabel}>{label}</Text>
-      {delta ? <Text style={[s.statDelta, down && { color: COLORS.textMuted }]}>{delta}</Text> : null}
+      <Text style={s.figLbl}>{label}</Text>
+      {delta ? <Text style={[s.figDelta, up && { color: COLORS.success }]}>{delta.replace(' vs before', '')}</Text> : null}
     </View>
   );
 }
@@ -314,30 +254,25 @@ function Stat({ value, unit, label, delta, accent }: { value: string; unit?: str
  * screen of zeros, say what will appear here and point to where to start.
  */
 function FirstRun({ bottom, onStart }: { bottom: number; onStart?: () => void }) {
-  const items: [React.ComponentProps<typeof Ionicons>['name'], string, string][] = [
-    ['calendar-outline', 'Your training calendar', 'Every day you train, filled in.'],
-    ['trending-up-outline', 'A trend for each lift', 'How your weights and reps move over time.'],
-    ['trophy-outline', 'Personal records', 'Flagged the moment you beat a previous best.'],
+  const items: [React.ComponentProps<typeof Ionicons>['name'], string][] = [
+    ['stats-chart-outline', 'How often you train, week by week'],
+    ['trending-up-outline', 'A trend line for every lift'],
+    ['trophy-outline', 'Your records, as you set them'],
   ];
   return (
     <ScrollView contentContainerStyle={[fr.wrap, { paddingBottom: bottom }]} showsVerticalScrollIndicator={false}>
-      <Animated.View entering={enterRise(0)} style={fr.hero}>
-        <View style={fr.icon}><Ionicons name="pulse" size={28} color={COLORS.accent} /></View>
-        <Text style={fr.title}>Your progress starts here</Text>
-        <Text style={fr.sub}>Finish your first workout and this screen fills in with:</Text>
+      <Animated.View entering={enterRise(0)}>
+        <Text style={fr.title}>Your progress starts with your first workout</Text>
       </Animated.View>
-      {items.map(([icon, title, desc], i) => (
+      {items.map(([icon, title], i) => (
         <Animated.View key={title} entering={enterRise(i + 1)} style={fr.item}>
           <Ionicons name={icon} size={20} color={COLORS.accent} />
-          <View style={{ flex: 1 }}>
-            <Text style={fr.itemTitle}>{title}</Text>
-            <Text style={fr.itemDesc}>{desc}</Text>
-          </View>
+          <Text style={fr.itemTitle}>{title}</Text>
         </Animated.View>
       ))}
       {onStart && (
         <Animated.View entering={enterRise(4)}>
-          <AnimatedPressable haptic="light" style={fr.cta} onPress={onStart} accessibilityRole="button" accessibilityLabel="Go to Home to start your first workout">
+          <AnimatedPressable haptic="light" style={fr.cta} onPress={onStart} accessibilityRole="button" accessibilityLabel="Go to Today to start your first workout">
             <Text style={fr.ctaTxt}>Start your first workout</Text>
           </AnimatedPressable>
         </Animated.View>
@@ -347,71 +282,50 @@ function FirstRun({ bottom, onStart }: { bottom: number; onStart?: () => void })
 }
 
 const fr = themed(() => StyleSheet.create({
-  wrap:      { paddingHorizontal: 20, paddingTop: 12, gap: 12 },
-  hero:      { alignItems: 'center', paddingVertical: 20 },
-  icon:      { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.12), marginBottom: 16 },
-  title:     { fontSize: 24, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.8, textAlign: 'center' },
-  sub:       { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 21 },
-  item:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08) },
-  itemTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
-  itemDesc:  { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2 },
-  cta:       { marginTop: 8, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  ctaTxt:    { fontSize: 16, fontFamily: FONTS.display, color: COLORS.onAccent },
+  wrap:      { paddingHorizontal: 20, paddingTop: 16 },
+  title:     { fontSize: 22, lineHeight: 28, fontFamily: FONTS.display, color: COLORS.text, marginBottom: 12 },
+  item:      {
+    flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
+  },
+  itemTitle: { fontSize: 16, fontFamily: FONTS.medium, color: COLORS.text },
+  cta:       { marginTop: 20, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
+  ctaTxt:    { fontSize: 17, fontFamily: FONTS.display, color: COLORS.onAccent },
 }));
 
 const s = themed(() => StyleSheet.create({
-  header:           { paddingHorizontal: 20, paddingBottom: 12 },
-  title:            { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2 },
-  sub:              { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
-  scroll:           { paddingHorizontal: 16, gap: 16 },
+  scroll:       { paddingHorizontal: 20 },
+  title:        { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2, marginTop: 4 },
+  periods:      { marginTop: 16 },
 
-  periods:          { flexDirection: 'row', padding: 3, borderRadius: 12, backgroundColor: ink(0.05) },
-  periodPill:       { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
-  periodPillOn:     { backgroundColor: COLORS.surfaceElevated },
-  periodTxt:        { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  periodTxtOn:      { color: COLORS.text },
+  figures:      { flexDirection: 'row', gap: 12, marginTop: 24 },
+  figure:       { flex: 1, gap: 2 },
+  figVal:       { fontSize: 30, lineHeight: 34, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  figUnit:      { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0 },
+  figLbl:       { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  figDelta:     { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
+  captionRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  caption:      { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textLabel },
 
-  statsRow:         { flexDirection: 'row', gap: 12, paddingHorizontal: 4 },
-  stat:             { flex: 1, gap: 2 },
-  statValue:        { fontSize: 26, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
-  statUnit:         { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0 },
-  statLabel:        { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted },
-  statDelta:        { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.success, marginTop: 2 },
+  section:      { marginTop: 36, gap: 14 },
+  sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionTitle: { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text },
 
-  block:            { gap: 10 },
-  blockTitle:       { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, paddingHorizontal: 4 },
-  prRow:            {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4,
+  prRow:        {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border,
   },
-  prName:           { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
-  prSub:            { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
-  prVal:            { fontSize: 20, fontFamily: FONTS.hero, color: COLORS.accent, fontVariant: ['tabular-nums'] },
-  prUnit:           { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  prName:       { fontSize: 16, fontFamily: FONTS.medium, color: COLORS.text },
+  prSub:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
+  prVal:        { fontSize: 20, fontFamily: FONTS.hero, color: COLORS.accent, fontVariant: ['tabular-nums'] },
+  prUnit:       { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
 
-  // Section header + sort toggle
-  progressHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  titleRow:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
-  searchIcon:       { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
-  toggle:           { flexDirection: 'row', backgroundColor: ink(0.05), borderRadius: 8, padding: 2, borderWidth: 1, borderColor: ink(0.08) },
-  togglePill:       { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  togglePillActive: { backgroundColor: ink(0.14) },
-  toggleTxt:        { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  toggleTxtActive:  { color: COLORS.text, fontFamily: FONTS.display },
-
-  // Search bar (replaces section header when active)
-  searchRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.1) },
-  searchInput:      { flex: 1, fontSize: 14, color: COLORS.text, padding: 0, fontFamily: FONTS.medium },
-  searchClose:      { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  searchHint:       { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, paddingHorizontal: 4, fontFamily: FONTS.semibold },
-
-  // Card list
-  cardList:         { gap: 8 },
-  emptyCard:        { padding: 20, alignItems: 'center' },
-  emptyText:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center' },
-
-  // See more / less control
-  seeMoreBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, marginTop: 2, borderRadius: 10, borderWidth: 1, borderColor: accentA(0.28), backgroundColor: accentA(0.06) },
-  seeMoreTxt:       { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.accent },
+  searchBtn:    { marginLeft: 'auto', width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: ink(0.05) },
+  search:       {
+    height: 44, borderRadius: 12, paddingHorizontal: 14, backgroundColor: ink(0.05),
+    fontSize: 16, fontFamily: FONTS.body, color: COLORS.text,
+  },
+  empty:        { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textMuted, paddingVertical: 8 },
+  more:         { alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 12, marginLeft: -12, borderRadius: 10 },
+  moreTxt:      { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.accent },
 }));

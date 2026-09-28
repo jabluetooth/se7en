@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { useFeedback } from '../../components/feedback/Feedback';
+import { View, Text, ScrollView, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from '../../components/common/GlassView';
-import { Badge } from '../../components/common/Badge';
+import { AnimatedPressable } from '../../motion/AnimatedPressable';
+import { useFeedback } from '../../components/feedback/Feedback';
+import { InfoTip } from '../../components/common/InfoTip';
+import { Segmented } from '../../components/common/Segmented';
 import { InlineBanner } from '../../components/common/InlineBanner';
 import { usePlanStore } from '../../stores/planStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -18,124 +18,55 @@ import {
   scheduleDailyCoachReminder,
   cancelDailyCoachReminder,
 } from '../../services/notificationService';
+import { PALETTES, type ThemeName } from '../../theme/palettes';
 import { ink, themed } from '../../theme/runtime';
 import { useThemeStore } from '../../theme/themeStore';
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-// All hoisted to module scope. Previously these lived inside SettingsScreen,
-// which gave them a fresh identity on every render and caused React to
-// unmount + remount the entire settings list on each state change.
-
-// Flat solid surface, not blurred glass — five stacked blur cards on one
-// scrollable list was the single heaviest "generated dashboard" tell on this
-// screen (and five simultaneous BlurViews cost real GPU time on lower-end
-// Android). A subtle border on a solid surface color groups the rows just as
-// clearly without it.
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={s.section}>
-      <Text style={s.sectionTitle}>{title}</Text>
-      <View style={s.sectionCard}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
-interface RowProps {
-  label:   string;
-  sub?:    string;
-  right?:  React.ReactNode;
-  onPress?: () => void;
-  danger?: boolean;
-  last?:   boolean;
-}
-function Row({ label, sub, right, onPress, danger, last }: RowProps) {
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      scale={onPress ? 'normal' : 1}
-      disabled={!onPress}
-      style={[s.row, !last && s.rowBorder]}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={sub ? `${label}, ${sub}` : label}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={[s.rowLabel, danger && { color: COLORS.danger }]}>{label}</Text>
-        {sub ? <Text style={s.rowSub}>{sub}</Text> : null}
-      </View>
-      {right}
-    </AnimatedPressable>
-  );
-}
-
-interface SegControlProps<T extends string> {
-  options:  readonly T[];
-  value:    T;
-  onChange: (v: T) => void;
-}
-function SegControl<T extends string>({ options, value, onChange }: SegControlProps<T>) {
-  return (
-    <View style={s.seg}>
-      {options.map(opt => {
-        const active = value === opt;
-        return (
-          <AnimatedPressable
-            key={opt}
-            onPress={() => onChange(opt)}
-            style={[s.segBtn, active && s.segBtnActive]}
-            accessibilityRole="button"
-            accessibilityLabel={opt}
-            accessibilityState={{ selected: active }}
-          >
-            <Text style={active ? s.segTextActive : s.segText}>{opt}</Text>
-          </AnimatedPressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function Toggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
-  return (
-    <AnimatedPressable
-      onPress={onToggle}
-      style={[s.toggle, on && s.toggleOn]}
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityState={{ checked: on }}
-    >
-      <View style={[s.toggleThumb, on && s.toggleThumbOn]} />
-    </AnimatedPressable>
-  );
-}
-
-function ChevronRight() {
-  return <Ionicons name="chevron-forward" size={16} color={COLORS.textSecondary} />;
-}
-
-function DangerChevron() {
-  return <Ionicons name="chevron-forward" size={16} color={COLORS.danger} />;
-}
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
+// Settings as a plain list: section names, rows divided by hairlines, native
+// switches, and no boxes. What a setting does lives behind its ⓘ, so each
+// row is just a name and a control.
 
 interface Props {
   onOpenExerciseBuilder?: () => void;
+  onOpenPlan?:            () => void;
   onSignOut?:             () => void;
   userEmail?:             string;
   userName?:              string;
 }
 
-export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, userName }: Props) {
+export function SettingsScreen({ onOpenExerciseBuilder, onOpenPlan, onSignOut, userEmail, userName }: Props) {
   const { activePlan }              = usePlanStore();
   const { settings, save, loadError, load: loadSettings } = useSettingsStore();
-  const { toast, confirm } = useFeedback();
-  const { clearAllSessions }        = useSessionStore();
+  const { toast, confirm }          = useFeedback();
+  const { clearAllSessions, sessions } = useSessionStore();
   const dockClearance               = useDockClearance();
   const uid                         = useAuthStore(u => u.user?.uid);
   const theme                       = useThemeStore(t => t.theme);
   const setTheme                    = useThemeStore(t => t.setTheme);
+
+  const workouts = sessions.filter(x => x.status === 'completed').length;
+  const initial = (userName?.trim()[0] ?? userEmail?.trim()[0] ?? '7').toUpperCase();
+  const reminderTime = `${String(settings.coachNotificationHour).padStart(2, '0')}:${String(settings.coachNotificationMinute).padStart(2, '0')}`;
+  const lastBackup = settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleDateString() : 'never';
+
+  const pickTheme = (t: ThemeName) => {
+    if (t === theme) return;
+    save({ theme: t });
+    setTheme(t);
+  };
+
+  const toggleCoach = async (next: boolean) => {
+    await save({ coachNotificationsEnabled: next });
+    if (next) {
+      const ok = await scheduleDailyCoachReminder(settings.coachNotificationHour, settings.coachNotificationMinute);
+      if (!ok) {
+        toast.warning('Turn on notifications for Se7en in your phone settings to get daily tips.', { title: 'Notifications are off' });
+        await save({ coachNotificationsEnabled: false });
+      }
+    } else {
+      await cancelDailyCoachReminder();
+    }
+  };
 
   const handleClearHistory = () =>
     confirm({
@@ -145,208 +76,255 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
       destructive: true,
     }).then(ok => { if (ok) clearAllSessions(); });
 
+  const switchColors = { false: ink(0.16), true: COLORS.accent };
+
   return (
     <View style={{ flex: 1 }}>
       <AppBackground />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <View style={s.header}>
-          <Text style={s.title}>Settings</Text>
-        </View>
         {loadError && (
           <InlineBanner
-            message="Couldn't sync your settings — showing the last saved copy."
+            message="Couldn't sync your settings. Showing the last saved copy."
             onRetry={uid ? () => loadSettings(uid) : undefined}
           />
         )}
         <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: dockClearance }]} showsVerticalScrollIndicator={false}>
+          <Text style={s.title} accessibilityRole="header">Settings</Text>
 
-          {/* Active plan card */}
-          {activePlan && (
-            <GlassView radius={18} style={s.planCard} glow>
-              <View style={s.planIcon}>
-                <Text style={s.planIconText}>7</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.planName}>{activePlan.name}</Text>
-                <Text style={s.planSub}>Active plan · {activePlan.splitType} split</Text>
-              </View>
-              <Badge label="Active" variant="accent" size="xs" />
-            </GlassView>
-          )}
+          {/* ── You ── */}
+          <View style={s.profile}>
+            <View style={s.avatar}><Text style={s.avatarTxt}>{initial}</Text></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.name} numberOfLines={1}>{userName || 'Your account'}</Text>
+              {userEmail ? <Text style={s.email} numberOfLines={1}>{userEmail}</Text> : null}
+            </View>
+            <View style={s.count}>
+              <Text style={s.countVal}>{workouts}</Text>
+              <Text style={s.countLbl}>{workouts === 1 ? 'workout' : 'workouts'}</Text>
+            </View>
+          </View>
 
-          <Section title="Appearance">
-            <Row
-              label="Theme"
-              sub="Applies on this device"
-              right={
-                <SegControl
-                  options={['Dark', 'Light'] as const}
-                  value={theme === 'dark' ? 'Dark' : 'Light'}
-                  onChange={v => {
-                    const next = v === 'Dark' ? 'dark' : 'light';
-                    save({ theme: next });
-                    setTheme(next);
-                  }}
-                />
-              }
-              last
-            />
-          </Section>
-
-          {/* Weight & Units — now persisted via settings store */}
-          <Section title="Weight & Units">
-            <Row
-              label="Weight Unit"
-              sub="Used as the default for new exercises"
-              right={
-                <SegControl
-                  options={['kg', 'lb'] as const}
-                  value={settings.defaultWeightUnit ?? 'kg'}
-                  onChange={v => save({ defaultWeightUnit: v })}
-                />
-              }
-              last
-            />
-          </Section>
-
-          <Section title="Backup">
-            <Row
-              label="Auto Backup"
-              sub={`Last backup: ${settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleDateString() : 'Never'}`}
-              right={
-                <Toggle
-                  label="Auto Backup"
-                  on={settings.autoBackup}
-                  onToggle={() => save({ autoBackup: !settings.autoBackup })}
-                />
-              }
-            />
-            <Row
-              label="Backup Frequency"
-              right={
-                <SegControl
-                  options={['daily', 'weekly'] as const}
-                  value={settings.backupFrequency}
-                  onChange={v => save({ backupFrequency: v })}
-                />
-              }
-              last
-            />
-          </Section>
-
-          {/* AI Coach */}
-          <Section title="AI Coach">
-            <Row
-              label="Daily Reminder"
-              sub={
-                settings.coachNotificationsEnabled
-                  ? `Notifies you at ${String(settings.coachNotificationHour).padStart(2, '0')}:${String(settings.coachNotificationMinute).padStart(2, '0')} every day`
-                  : 'Get a daily coaching tip notification'
-              }
-              right={
-                <Toggle
-                  label="Daily Coach Reminder"
-                  on={settings.coachNotificationsEnabled}
-                  onToggle={async () => {
-                    const next = !settings.coachNotificationsEnabled;
-                    await save({ coachNotificationsEnabled: next });
-                    if (next) {
-                      const ok = await scheduleDailyCoachReminder(
-                        settings.coachNotificationHour,
-                        settings.coachNotificationMinute,
-                      );
-                      if (!ok) {
-                        toast.warning('Turn on notifications for Se7en in your device settings to get daily tips.', { title: 'Notifications are off' });
-                        await save({ coachNotificationsEnabled: false });
-                      }
-                    } else {
-                      await cancelDailyCoachReminder();
-                    }
-                  }}
-                />
-              }
-            />
-          </Section>
-
-          {/* Plans */}
-          <Section title="Plans">
-            {onOpenExerciseBuilder && (
+          {/* ── Training ── */}
+          <Section title="Training">
+            {activePlan && (
               <Row
-                label="Exercise Builder"
-                sub="Add or edit exercises"
-                right={<ChevronRight />}
-                onPress={onOpenExerciseBuilder}
+                label="Plan"
+                value={activePlan.name}
+                onPress={onOpenPlan}
               />
             )}
             <Row
-              label="Clear Session History"
-              sub="Removes all logged workouts from calendar"
-              danger
-              right={<DangerChevron />}
-              onPress={handleClearHistory}
-              last
+              label="Weight unit"
+              info="The unit new exercises start in, and the unit totals are shown in. Exercises you already have keep their own unit."
+              right={
+                <Segmented
+                  options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }] as const}
+                  value={settings.defaultWeightUnit ?? 'kg'}
+                  onChange={v => save({ defaultWeightUnit: v })}
+                  a11yLabel="Weight unit"
+                />
+              }
+            />
+            {onOpenExerciseBuilder && (
+              <Row label="Exercise library" onPress={onOpenExerciseBuilder} />
+            )}
+          </Section>
+
+          {/* ── Appearance ── */}
+          <Section title="Appearance" info="Saved on this phone only, so each device can have its own look.">
+            <View style={s.themes}>
+              {(['dark', 'light'] as const).map(t => (
+                <ThemeTile key={t} name={t} selected={theme === t} onPress={() => pickTheme(t)} />
+              ))}
+            </View>
+          </Section>
+
+          {/* ── Coach ── */}
+          <Section title="Coach">
+            <Row
+              label="Daily tip"
+              value={settings.coachNotificationsEnabled ? reminderTime : undefined}
+              info="One notification a day with a tip based on your recent workouts."
+              right={
+                <Switch
+                  value={settings.coachNotificationsEnabled}
+                  onValueChange={toggleCoach}
+                  trackColor={switchColors}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={ink(0.16)}
+                  accessibilityLabel="Daily coach tip"
+                />
+              }
             />
           </Section>
 
-          {/* Account */}
-          {(userName || userEmail || onSignOut) && (
-            <Section title="Account">
-              {(userName || userEmail) && (
-                <Row
-                  label={userName ?? 'Your account'}
-                  sub={userEmail}
-                  last={!onSignOut}
+          {/* ── Backup ── */}
+          <Section title="Backup">
+            <Row
+              label="Automatic backup"
+              info={`Keeps a copy of your plans and workouts in your account. Last backup: ${lastBackup}.`}
+              right={
+                <Switch
+                  value={settings.autoBackup}
+                  onValueChange={v => save({ autoBackup: v })}
+                  trackColor={switchColors}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={ink(0.16)}
+                  accessibilityLabel="Automatic backup"
                 />
-              )}
-              {onSignOut && (
-                <Row
-                  label="Sign Out"
-                  danger
-                  onPress={onSignOut}
-                  last
-                />
-              )}
-            </Section>
-          )}
+              }
+            />
+            {settings.autoBackup && (
+              <Row
+                label="How often"
+                right={
+                  <Segmented
+                    options={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }] as const}
+                    value={settings.backupFrequency}
+                    onChange={v => save({ backupFrequency: v })}
+                    a11yLabel="Backup frequency"
+                  />
+                }
+              />
+            )}
+          </Section>
 
-          <Text style={s.version}>Se7en v1.0.0 · MVP</Text>
-          <View style={{ height: 40 }} />
+          {/* ── Account ── */}
+          <Section title="Account">
+            {onSignOut && <Row label="Sign out" onPress={onSignOut} chevron={false} />}
+            <Row
+              label="Clear workout history"
+              danger
+              info="Deletes every logged workout for good. Your plan and settings stay."
+              onPress={handleClearHistory}
+              chevron={false}
+            />
+          </Section>
+
+          <Text style={s.version}>Se7en 1.0</Text>
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
+// ─── Pieces ──────────────────────────────────────────────────────────────────
+
+function Section({ title, info, children }: { title: string; info?: string; children: React.ReactNode }) {
+  return (
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <Text style={s.sectionTitle}>{title}</Text>
+        {info && <InfoTip title={title} text={info} size={15} />}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+interface RowProps {
+  label:    string;
+  value?:   string;
+  info?:    string;
+  right?:   React.ReactNode;
+  onPress?: () => void;
+  danger?:  boolean;
+  chevron?: boolean;
+}
+
+function Row({ label, value, info, right, onPress, danger, chevron = true }: RowProps) {
+  const body = (
+    <>
+      <View style={s.rowLeft}>
+        <Text style={[s.rowLabel, danger && { color: COLORS.danger }]}>{label}</Text>
+        {info && <InfoTip title={label} text={info} size={15} />}
+      </View>
+      {value ? <Text style={s.rowValue} numberOfLines={1}>{value}</Text> : null}
+      {right}
+      {onPress && chevron && <Ionicons name="chevron-forward" size={17} color={COLORS.textLabel} />}
+    </>
+  );
+  if (!onPress) return <View style={s.row}>{body}</View>;
+  return (
+    <AnimatedPressable
+      scale="subtle"
+      dimOnPress
+      onPress={onPress}
+      style={s.row}
+      accessibilityRole="button"
+      accessibilityLabel={value ? `${label}, ${value}` : label}
+    >
+      {body}
+    </AnimatedPressable>
+  );
+}
+
+/** A miniature of the app in each theme, drawn from that theme's palette. */
+function ThemeTile({ name, selected, onPress }: { name: ThemeName; selected: boolean; onPress: () => void }) {
+  const p = PALETTES[name];
+  return (
+    <AnimatedPressable
+      scale="subtle"
+      onPress={onPress}
+      style={s.tileWrap}
+      accessibilityRole="radio"
+      accessibilityLabel={name === 'dark' ? 'Dark theme' : 'Light theme'}
+      accessibilityState={{ selected }}
+    >
+      <View style={[s.tile, { backgroundColor: p.background, borderColor: selected ? COLORS.accent : COLORS.border }, selected && s.tileOn]}>
+        <View style={[s.miniLine, { width: '38%', backgroundColor: p.textMuted, opacity: 0.6 }]} />
+        <View style={[s.miniTitle, { backgroundColor: p.text }]} />
+        <View style={[s.miniCard, { backgroundColor: p.surface, borderColor: p.border }]}>
+          <View style={[s.miniLine, { width: '70%', backgroundColor: p.textMuted, opacity: 0.5 }]} />
+          <View style={[s.miniLine, { width: '55%', backgroundColor: p.textMuted, opacity: 0.5 }]} />
+          <View style={[s.miniBtn, { backgroundColor: p.accent }]} />
+        </View>
+      </View>
+      <View style={s.tileLabelRow}>
+        <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={17} color={selected ? COLORS.accent : COLORS.textLabel} />
+        <Text style={[s.tileLabel, selected && { color: COLORS.text }]}>{name === 'dark' ? 'Dark' : 'Light'}</Text>
+      </View>
+    </AnimatedPressable>
+  );
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const s = themed(() => StyleSheet.create({
-  header:         { paddingHorizontal: 20, paddingBottom: 16 },
-  title:          { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2 },
-  scroll:         { paddingHorizontal: 16 },
+  scroll:       { paddingHorizontal: 20 },
+  title:        { fontSize: 36, lineHeight: 40, fontFamily: FONTS.hero, color: COLORS.text, letterSpacing: -1.2, marginTop: 4 },
 
-  planCard:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, marginBottom: 24 },
-  planIcon:       { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  planIconText:   { fontSize: 24, fontFamily: FONTS.display, color: COLORS.onAccent },
-  planName:       { fontSize: 17, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.68 },
-  planSub:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
+  profile:      { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 20, marginBottom: 8 },
+  avatar:       { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.text },
+  avatarTxt:    { fontSize: 22, fontFamily: FONTS.hero, color: COLORS.background },
+  name:         { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text },
+  email:        { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2 },
+  count:        { alignItems: 'flex-end' },
+  countVal:     { fontSize: 22, fontFamily: FONTS.hero, color: COLORS.text, fontVariant: ['tabular-nums'] },
+  countLbl:     { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
 
-  section:        { marginBottom: 24 },
-  sectionTitle:   { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 8, paddingLeft: 4 },
-  sectionCard:    { overflow: 'hidden', borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
+  section:      { marginTop: 28 },
+  sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  sectionTitle: { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textMuted },
 
-  row:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  rowBorder:      { borderBottomWidth: 1, borderBottomColor: ink(0.09) },
-  rowLabel:       { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.text },
-  rowSub:         { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
+  row:          {
+    flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.border,
+  },
+  rowLeft:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowLabel:     { fontSize: 16, fontFamily: FONTS.medium, color: COLORS.text },
+  rowValue:     { maxWidth: '50%', fontSize: 15, fontFamily: FONTS.body, color: COLORS.textMuted },
 
-  seg:            { flexDirection: 'row', padding: 2, gap: 2, borderRadius: 8, backgroundColor: COLORS.background },
-  segBtn:         { borderRadius: 6, paddingHorizontal: 11, paddingVertical: 5 },
-  segBtnActive:   { backgroundColor: COLORS.accent },
-  segText:        { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.textSecondary },
-  segTextActive:  { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.onAccent },
+  themes:       { flexDirection: 'row', gap: 14, marginTop: 10 },
+  tileWrap:     { flex: 1, gap: 10 },
+  tile:         { aspectRatio: 1.15, borderRadius: 16, borderWidth: 1.5, padding: 12, gap: 6, overflow: 'hidden' },
+  tileOn:       { borderWidth: 2 },
+  miniTitle:    { width: '52%', height: 9, borderRadius: 3 },
+  miniCard:     { flex: 1, marginTop: 4, borderRadius: 9, borderWidth: 1, padding: 8, gap: 5, justifyContent: 'flex-end' },
+  miniLine:     { height: 4, borderRadius: 2 },
+  miniBtn:      { height: 12, borderRadius: 4, marginTop: 'auto' },
+  tileLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  tileLabel:    { fontSize: 15, fontFamily: FONTS.medium, color: COLORS.textMuted },
 
-  toggle:         { width: 48, height: 28, borderRadius: 14, backgroundColor: ink(0.12), overflow: 'hidden', borderWidth: 1, borderColor: ink(0.16), position: 'relative' },
-  toggleOn:       { borderColor: 'transparent', backgroundColor: COLORS.accent },
-  toggleThumb:    { position: 'absolute', top: 4, left: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.textSecondary },
-  toggleThumbOn:  { left: 24, backgroundColor: COLORS.onAccent },
-
-  version:        { textAlign: 'center', fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, paddingTop: 8 },
+  version:      { textAlign: 'center', fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 32 },
 }));

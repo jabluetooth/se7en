@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassView } from '../../components/common/GlassView';
+import { InfoTip } from '../../components/common/InfoTip';
 import { InlineBanner } from '../../components/common/InlineBanner';
 import { usePlanStore } from '../../stores/planStore';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -34,8 +35,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-const TIP_KEY = '@se7en_cycle_tip_dismissed';
-
 export function CycleScreen() {
   const { activePlan, updateDay, updatePlan, loadError, load: loadPlans } = usePlanStore();
   const { toast, confirm } = useFeedback();
@@ -44,15 +43,6 @@ export function CycleScreen() {
   const { presets, load: loadPresets, savePreset, deletePreset } = usePresetStore();
   const uid = useAuthStore(u => u.user?.uid);
 
-  // First-run tip explaining the day actions; hidden for good once dismissed.
-  const [showTip, setShowTip] = useState(false);
-  useEffect(() => {
-    AsyncStorage.getItem(TIP_KEY).then(v => setShowTip(v !== '1')).catch(() => {});
-  }, []);
-  const dismissTip = () => {
-    setShowTip(false);
-    AsyncStorage.setItem(TIP_KEY, '1').catch(() => {});
-  };
 
   const currentDayPos = computeDayPosition(settings.cycleStartDate, settings.currentDayPosition, activePlan?.days.length ?? 7);
   const dockClearance = useDockClearance();
@@ -270,7 +260,14 @@ export function CycleScreen() {
         <View style={s.header}>
           <View style={{ flex: 1 }}>
             <Text style={s.planLabel}>{activePlan.splitType}</Text>
-            <Text style={s.title}>{activePlan.name}</Text>
+            <View style={s.titleRow}>
+              <Text style={s.title} numberOfLines={1}>{activePlan.name}</Text>
+              <InfoTip
+                title="Managing your days"
+                text="Tap ⋯ on a day to mark it done, edit or clear it. Swipe right to mark done, swipe left to edit or clear, and hold ≡ to drag a day to a new spot."
+                size={17}
+              />
+            </View>
           </View>
           <AnimatedPressable
             onPress={openPlanEdit}
@@ -338,53 +335,33 @@ export function CycleScreen() {
           </GlassView>
         )}
 
-        {/* ── Completion card ── */}
-        <GlassView radius={16} style={s.rateCard}>
-          <View style={s.rateRow}>
-            <View>
-              <Text style={s.rateLabel}>Last 14 days</Text>
-              <View style={s.rateNumRow}>
-                <Text style={s.rateVal}>{rate}%</Text>
-                <Text style={s.rateSub}> completion</Text>
-              </View>
-            </View>
-            <View style={s.bars}>
-              {(bars.length === 0 ? Array(7).fill('pending') : bars).map((v, i) => (
-                <View key={i} style={[s.barBg, {
-                  height: v === 'done' ? 22 : v === 'rest' ? 14 : 8,
-                }]}>
-                  {v === 'done' && (
-                    <LinearGradient
-                      colors={GRAD.accent}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={{ flex: 1, borderRadius: 3 }}
-                    />
-                  )}
-                  {v === 'rest'    && <View style={[s.barFill, { backgroundColor: COLORS.textLabel }]} />}
-                  {v === 'missed'  && <View style={[s.barFill, { backgroundColor: COLORS.danger }]} />}
-                </View>
-              ))}
-            </View>
+        {/* ── Last 14 days ── */}
+        <View style={s.rateCard}>
+          <View style={s.rateHead}>
+            <Text style={s.rateVal}>{rate}%</Text>
+            <Text style={s.rateSub}>on plan, last 14 days</Text>
+            <InfoTip
+              title="Last 14 days"
+              text="Days you stayed on plan over the last 14 days: workouts done plus rest days, out of the days so far. Today only counts once it is done. Each square is a day: orange done, grey rest, red outline missed."
+              size={15}
+            />
           </View>
-        </GlassView>
+          <View style={s.bars}>
+            {(bars.length === 0 ? Array(14).fill('pending') : bars).map((v, i) => (
+              <View
+                key={i}
+                style={[
+                  s.cell,
+                  v === 'done' && { backgroundColor: COLORS.accent },
+                  v === 'rest' && { backgroundColor: ink(0.12) },
+                  v === 'missed' && { borderWidth: 1.5, borderColor: COLORS.danger },
+                  v === 'pending' && { borderWidth: 1, borderColor: COLORS.border },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
 
-        {showTip && (
-          <Animated.View entering={enterRise(0)} exiting={exitFade} style={s.tip}>
-            <Ionicons name="bulb-outline" size={18} color={COLORS.accent} style={{ marginTop: 1 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.tipTitle}>Managing your days</Text>
-              <Text style={s.tipTxt}>
-                Tap ⋯ on a day to mark it done, edit or clear it. Shortcuts: swipe right to mark done,
-                swipe left for edit or clear, and hold ≡ to drag a day to a new spot.
-              </Text>
-            </View>
-            <AnimatedPressable scale="strong" style={s.tipClose} onPress={dismissTip} hitSlop={8}
-              accessibilityRole="button" accessibilityLabel="Dismiss tip">
-              <Ionicons name="close" size={18} color={COLORS.textMuted} />
-            </AnimatedPressable>
-          </Animated.View>
-        )}
 
         {/* ── Day list ── */}
         <ScrollView
@@ -451,16 +428,13 @@ const s = themed(() => StyleSheet.create({
   saveTxt:        { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.onAccent },
 
   // Completion card
-  rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },
-  rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  rateLabel:  { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 4 },
-  rateNumRow: { flexDirection: 'row', alignItems: 'baseline' },
-  rateVal:    { fontSize: 30, fontFamily: FONTS.data, color: COLORS.success, letterSpacing: -1.20 },
-  rateSub:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
-  bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  barBg:      { width: 8, borderRadius: 3, backgroundColor: ink(0.1) },
-  barFill:    { flex: 1, borderRadius: 3 },
-
+  rateCard:   { marginHorizontal: 20, marginTop: 4, marginBottom: 12, gap: 10 },
+  rateHead:   { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  rateVal:    { fontSize: 26, fontFamily: FONTS.hero, color: COLORS.text, fontVariant: ['tabular-nums'] },
+  rateSub:    { flexShrink: 1, fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted },
+  bars:       { flexDirection: 'row', gap: 4 },
+  cell:       { flex: 1, aspectRatio: 1, maxHeight: 22, borderRadius: 5 },
+  titleRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tip:        {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginHorizontal: 16, marginBottom: 10,
     padding: 14, borderRadius: 16, backgroundColor: accentA(0.07), borderWidth: 1, borderColor: accentA(0.22),

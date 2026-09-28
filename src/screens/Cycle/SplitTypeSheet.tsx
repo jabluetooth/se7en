@@ -295,11 +295,10 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
             <AnimatedPressable onPress={onClose}>
               <Text style={c.cancel}>Cancel</Text>
             </AnimatedPressable>
-            <Text style={c.title}>Split Type</Text>
+            <Text style={c.title}>Split type</Text>
             <View style={{ width: 60 }} />
           </View>
 
-          <Text style={c.subtitle}>Tap a split to preview and select it</Text>
 
           <ScrollView contentContainerStyle={c.scroll} showsVerticalScrollIndicator={false}>
 

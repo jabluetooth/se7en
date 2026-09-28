@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { usePlanStore } from '../../stores/planStore';
 import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { InfoTip } from '../../components/common/InfoTip';
 import { Exercise, WorkoutDay } from '../../types';
 import { accentA, ink, themed } from '../../theme/runtime';
 
@@ -280,8 +281,12 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
           {!isRest && exercises.length > 0 && (
             <>
               <View style={s.exHeader}>
-                <Text style={s.exTitle}>Exercise Order</Text>
-                <Text style={s.exHint}>Hold ≡ to reorder</Text>
+                <Text style={s.exTitle}>Exercise order</Text>
+                <InfoTip
+                  title="Exercise order"
+                  text="Hold ≡ and drag to reorder. To add, edit or delete exercises, tap the day on the Plan tab."
+                  size={15}
+                />
               </View>
               <View style={s.exCard}>
                 <DragList
@@ -289,7 +294,6 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
                   onReorder={ids => reorderExercises(planId, day.id, ids)}
                 />
               </View>
-              <Text style={s.tip}>Add, edit, or delete exercises from the Cycle screen cabinet.</Text>
             </>
           )}
 
@@ -297,7 +301,7 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
             <View style={s.emptyCard}>
               <Ionicons name="barbell-outline" size={28} color={COLORS.textLabel} style={{ marginBottom: 8 }} />
               <Text style={s.emptyTxt}>No exercises yet</Text>
-              <Text style={s.emptySub}>Tap a day card on the Cycle screen to add exercises.</Text>
+              <Text style={s.emptySub}>Tap this day on the Plan tab to add exercises.</Text>
             </View>
           )}
 
