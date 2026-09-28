@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { COLORS, SPACING, FONTS } from '../../constants';
+import { themed } from '../../theme/runtime';
 
 interface Props { title: string; actionLabel?: string; onAction?: () => void; }
 
@@ -23,8 +24,8 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   row:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  title: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase' },
-  action:{ fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent },
-});
+  title: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
+  action:{ fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.accent },
+}));

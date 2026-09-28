@@ -14,6 +14,7 @@ import {
   scheduleRestOverNotification,
   cancelRestOverNotification,
 } from '../../services/notificationService';
+import { accentA, ink, restA, themed } from '../../theme/runtime';
 
 export interface RestContext {
   /** Changes for every new rest period, so the bar restarts cleanly. */
@@ -144,7 +145,7 @@ export function RestTimerBar({ ctx, bottom, onDismiss }: Props) {
     >
       <View style={s.ringWrap}>
         <Svg width={RING} height={RING} style={{ transform: [{ rotate: '-90deg' }] }}>
-          <Circle cx={RING / 2} cy={RING / 2} r={R} stroke="rgba(255,240,220,0.10)" strokeWidth={STROKE} fill="none" />
+          <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={ink(0.1)} strokeWidth={STROKE} fill="none" />
           <AnimatedCircle
             cx={RING / 2} cy={RING / 2} r={R}
             stroke={done ? COLORS.accent : COLORS.rest}
@@ -203,27 +204,27 @@ export function RestTimerBar({ ctx, bottom, onDismiss }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   bar: {
     position: 'absolute', left: 12, right: 12,
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingLeft: 12, paddingRight: 10,
-    borderRadius: 22, borderWidth: 1, borderColor: 'rgba(100,210,255,0.28)',
-    backgroundColor: '#12161B',
+    borderRadius: 22, borderWidth: 1, borderColor: restA(0.28),
+    backgroundColor: COLORS.surfaceElevated,
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 20, shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
-  barDone:    { borderColor: 'rgba(255,140,0,0.45)', backgroundColor: '#1C140B' },
+  barDone:    { borderColor: accentA(0.45), backgroundColor: COLORS.surfaceElevated },
   ringWrap:   { width: RING, height: RING },
   ringCenter: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   textCol:    { flex: 1, minWidth: 0 },
-  label:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.rest, textTransform: 'uppercase', letterSpacing: 0.8 },
+  label:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.rest, letterSpacing: 0 },
   time:       { fontSize: 26, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -1, fontVariant: ['tabular-nums'], marginVertical: 1 },
   next:       { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
   actions:    { flexDirection: 'row', gap: 6 },
-  adj:        { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
+  adj:        { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: ink(0.06), borderWidth: 1, borderColor: ink(0.1) },
   adjTxt:     { fontSize: 13, fontFamily: FONTS.dataBold, color: COLORS.textSecondary },
-  skip:       { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(100,210,255,0.14)' },
+  skip:       { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: restA(0.14) },
   goBtn:      { height: 44, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  goTxt:      { fontSize: 15, fontFamily: FONTS.headline, color: '#000' },
-});
+  goTxt:      { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.onAccent },
+}));

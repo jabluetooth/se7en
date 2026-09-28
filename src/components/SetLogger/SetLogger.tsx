@@ -10,6 +10,7 @@ import { SetLog, SessionExercise } from '../../types';
 import { usePRStore } from '../../stores/prStore';
 import { isSetPR } from '../../utils/prDetection';
 import type { LastSet } from '../../utils/exerciseHistory';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 interface Props {
   set:             SetLog;
@@ -151,7 +152,7 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
       <Animated.View entering={enterFade} style={[s.doneRow, justPRed && s.doneRowPR]}>
         <Animated.View entering={enterSettle}>
           <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.doneCheck}>
-            <Ionicons name="checkmark" size={15} color="#000" />
+            <Ionicons name="checkmark" size={15} color={COLORS.onAccent} />
           </LinearGradient>
         </Animated.View>
         <Text style={s.doneLabel}>Set {set.setNumber}</Text>
@@ -165,7 +166,7 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
             entering={enterSettle}
             style={s.prBadge}
           >
-            <Ionicons name="trophy" size={11} color="#000" />
+            <Ionicons name="trophy" size={11} color={COLORS.onAccent} />
             <Text style={s.prBadgeTxt}>PR</Text>
           </Animated.View>
         )}
@@ -232,7 +233,7 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
           accessibilityHint="Uses the numbers shown, or the placeholders if you left a field empty"
         >
           <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.checkBtn}>
-            <Ionicons name="checkmark" size={24} color="#000" />
+            <Ionicons name="checkmark" size={24} color={COLORS.onAccent} />
           </LinearGradient>
         </AnimatedPressable>
       </View>
@@ -242,22 +243,22 @@ export function SetLogger({ set, exercise, lastSet, canUndo, onComplete, onUndo,
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const st = StyleSheet.create({
+const st = themed(() => StyleSheet.create({
   wrap:    { flex: 1, minWidth: 0 },
-  caption: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 },
+  caption: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginBottom: 5 },
   row:     {
     flexDirection: 'row', alignItems: 'center', height: 48,
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)',
+    borderRadius: 12, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04),
   },
   btn:     { width: 36, height: '100%', alignItems: 'center', justifyContent: 'center' },
   input:   { flex: 1, minWidth: 0, height: '100%', textAlign: 'center', fontSize: 18, fontFamily: FONTS.dataBold, color: COLORS.text, padding: 0 },
-});
+}));
 
-const s = StyleSheet.create({
-  row:       { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,240,220,0.08)' },
+const s = themed(() => StyleSheet.create({
+  row:       { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ink(0.08) },
   topLine:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minHeight: 28 },
   setLabel:  { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: -0.2 },
-  lastChip:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
+  lastChip:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.1) },
   lastTxt:   { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
   controls:  { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   checkWrap: { borderRadius: 14 },
@@ -266,13 +267,13 @@ const s = StyleSheet.create({
   doneRow:   {
     flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52,
     paddingHorizontal: 12, marginVertical: 4, borderRadius: 12,
-    backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)',
+    backgroundColor: accentA(0.07), borderWidth: 1, borderColor: accentA(0.2),
   },
-  doneRowPR: { backgroundColor: 'rgba(255,180,0,0.14)', borderColor: 'rgba(255,190,0,0.55)' },
+  doneRowPR: { backgroundColor: accentA(0.14), borderColor: accentA(0.55) },
   doneCheck: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   doneLabel: { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.accent, width: 44 },
   doneVal:   { flex: 1, fontSize: 15, fontFamily: FONTS.dataBold, color: COLORS.text },
   prBadge:   { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: COLORS.accent },
-  prBadgeTxt:{ fontSize: 11, fontFamily: FONTS.display, color: '#000', letterSpacing: 0.4 },
+  prBadgeTxt:{ fontSize: 11, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: 0.4 },
   undoBtn:   { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-});
+}));

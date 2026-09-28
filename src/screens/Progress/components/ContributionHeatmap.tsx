@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
 import { localDateStr, localDateOf } from '../../../utils/cycleUtils';
+import { accentA, ink, themed } from '../../../theme/runtime';
 
 const HM_WEEKS    = 8;
 const HM_SHIFT_BY = 4;   // shift the window by 4 weeks per ‹ / › tap
@@ -70,9 +71,9 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
   }, [days, counts, today]);
 
   const intensity = (n: number) =>
-    n === 0 ? 'rgba(255,240,220,0.08)' :
-    n === 1 ? 'rgba(255,140,0,0.35)'   :
-    n === 2 ? 'rgba(255,140,0,0.65)'   :
+    n === 0 ? ink(0.08) :
+    n === 1 ? accentA(0.35)   :
+    n === 2 ? accentA(0.65)   :
               COLORS.accent;
 
   const fmtRange = (a: Date, b: Date) => {
@@ -176,19 +177,19 @@ export function ContributionHeatmap({ sessions }: { sessions: WorkoutSession[] }
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   navRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  navBtn:     { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
-  navLabel:   { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.48 },
+  navBtn:     { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08) },
+  navLabel:   { fontSize: 12, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.48 },
   metaRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  metaTxt:    { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
+  metaTxt:    { fontSize: 11, color: COLORS.textMuted, fontFamily: FONTS.semibold },
   wrap:       { flexDirection: 'row', gap: 8, alignItems: 'flex-start', justifyContent: 'center' },
   dayCol:     { gap: HM_GAP },
-  dayLbl:     { fontSize: 11, color: COLORS.textMuted, fontWeight: '700', fontFamily: FONTS.headline, height: HM_CELL, lineHeight: HM_CELL, textAlign: 'right', width: 14 },
+  dayLbl:     { fontSize: 11, color: COLORS.textMuted, fontFamily: FONTS.headline, height: HM_CELL, lineHeight: HM_CELL, textAlign: 'right', width: 14 },
   grid:       { flexDirection: 'row', gap: HM_GAP },
   weekCol:    { gap: HM_GAP },
   cell:       { width: HM_CELL, height: HM_CELL, borderRadius: 5 },
   legendRow:  { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12, justifyContent: 'flex-end' },
-  legendTxt:  { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', fontFamily: FONTS.semibold },
+  legendTxt:  { fontSize: 11, color: COLORS.textMuted, fontFamily: FONTS.semibold },
   legendCell: { width: 12, height: 12, borderRadius: 3 },
-});
+}));

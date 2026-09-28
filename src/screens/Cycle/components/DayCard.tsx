@@ -16,6 +16,7 @@ import { ExerciseFormSheet } from '../ExerciseFormSheet';
 import { DayStatus, STATUS_BADGE, dayIsRest, topTags, getRecommended, LIB_GROUP_TO_TAGS } from '../helpers';
 import { SwipeActions, DoneAction } from './SwipeActions';
 import { ExerciseDragSort } from './ExerciseDragSort';
+import { accentA, ink, themed } from '../../../theme/runtime';
 
 interface Props {
   day:           WorkoutDay;
@@ -211,9 +212,9 @@ export function DayCard({
               radius={(showList || showEditor) ? 0 : 16}
               style={[dc.card, isCurrent && dc.cardCurrent]}
               borderColor={
-                isCurrent ? 'rgba(255,140,0,0.45)' :
-                isDone    ? 'rgba(255,140,0,0.20)' :
-                'rgba(255,255,255,0.10)'
+                isCurrent ? accentA(0.45) :
+                isDone    ? accentA(0.2) :
+                ink(0.1)
               }
               glow={isCurrent}
             >
@@ -300,7 +301,7 @@ export function DayCard({
 
           {/* ── Read-only list (tap) — safe inside Swipeable, no drag needed ── */}
           {showList && !showEditor && (
-            <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,255,255,0.10)">
+            <GlassView radius={0} style={dc.cabinet} borderColor={ink(0.1)}>
               {isRest ? (
                 <Text style={dc.restTxt}>Recovery day — no exercises scheduled.</Text>
               ) : exercises.length > 0 ? (
@@ -343,10 +344,10 @@ export function DayCard({
       {/* ── Editor cabinet — OUTSIDE Swipeable so RNGH doesn't block PanResponder ── */}
       {showEditor && (
         <View style={dc.editorClip}>
-        <GlassView radius={0} style={dc.cabinet} borderColor="rgba(255,140,0,0.20)">
+        <GlassView radius={0} style={dc.cabinet} borderColor={accentA(0.2)}>
 
           {/* Day name */}
-          <Text style={dc.labelHint}>DAY NAME</Text>
+          <Text style={dc.labelHint}>Day name</Text>
           <GlassView opacity="low" radius={10} style={dc.labelField}>
             <TextInput
               style={dc.labelInput}
@@ -379,9 +380,9 @@ export function DayCard({
                 }
                 updateDay(planId, day.id, update);
               }}
-              trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
+              trackColor={{ false: ink(0.12), true: COLORS.accent }}
               thumbColor="#fff"
-              ios_backgroundColor="rgba(255,240,220,0.12)"
+              ios_backgroundColor={ink(0.12)}
             />
           </View>
 
@@ -422,7 +423,7 @@ export function DayCard({
 
               <AnimatedPressable style={dc.addBtn} onPress={openAdd}>
                 <LinearGradient colors={GRAD.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dc.addGrad}>
-                  <Ionicons name="add" size={16} color="#fff" />
+                  <Ionicons name="add" size={16} color={COLORS.text} />
                   <Text style={dc.addTxt}>Add Exercise</Text>
                 </LinearGradient>
               </AnimatedPressable>
@@ -449,57 +450,57 @@ export function DayCard({
 // ─── DayCard styles ──────────────────────────────────────────────────────────
 // Exported so DayListDragSort can reuse the day-number badge styles in its
 // floating drag preview.
-export const dc = StyleSheet.create({
+export const dc = themed(() => StyleSheet.create({
   wrap:         { marginBottom: 10 },
   swipeContent: { borderRadius: 16, overflow: 'hidden' },
   editorClip:   { overflow: 'hidden', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
   card:         { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
-  dimOverlay:   { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.28)' },
+  dimOverlay:   { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: COLORS.background + '66' },
   dragHandle:   { width: 26, alignItems: 'center', justifyContent: 'center', marginLeft: -2 },
   cardCurrent:  {},
   numBadge:     { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  numBadgeMuted:{ backgroundColor: 'rgba(255,240,220,0.07)' },
-  num:          { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
-  numActive:    { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  numBadgeMuted:{ backgroundColor: ink(0.07) },
+  num:          { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  numActive:    { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text },
   content:      { flex: 1, minWidth: 0 },
   nameRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  label:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48, flexShrink: 1 },
+  label:        { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48, flexShrink: 1 },
   todayDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
   sub:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, marginBottom: 6 },
   tagsRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   tag:          { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:       { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:       { fontSize: 11, fontFamily: FONTS.headline },
   right:        { alignItems: 'flex-end', justifyContent: 'center', gap: 0 },
   rightTop:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
   moreBtn:      { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: -6 },
 
   // Cabinet
   cabinet:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
-  labelHint:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 7 },
+  labelHint:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 7 },
   labelField:   { paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14 },
-  labelInput:   { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, padding: 0 },
+  labelInput:   { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.51, padding: 0 },
   recSection:   { marginBottom: 12 },
-  recLabel:     { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
+  recLabel:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   recRow:       { gap: 8, flexDirection: 'row' },
-  recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.10)' },
-  recChipTxt:   { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent, maxWidth: 120 },
+  recChip:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: accentA(0.35), backgroundColor: accentA(0.1) },
+  recChipTxt:   { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, maxWidth: 120 },
   exList:       { marginBottom: 8 },
 
   // Read-only row
-  readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.05)' },
+  readRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: ink(0.05) },
   readInfo:     { flex: 1 },
-  readName:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  readName:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 2 },
   readMeta:     { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   readTag:      { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, marginLeft: 8 },
-  readTagTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  readTagTxt:   { fontSize: 11, fontFamily: FONTS.headline },
   emptyTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 16 },
   addBtn:       { borderRadius: 12, overflow: 'hidden', marginBottom: 12, marginTop: 4 },
   addGrad:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
-  addTxt:       { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  addTxt:       { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.text },
   restTxt:       { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
   capBottom:     { height: 0 },
-  restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
-  restToggleLbl: { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  readLastChip:  { marginTop: 4, alignSelf: 'flex-start', backgroundColor: 'rgba(255,140,0,0.12)', borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', paddingHorizontal: 7, paddingVertical: 2 },
-  readLastTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
-});
+  restToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: ink(0.06) },
+  restToggleLbl: { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  readLastChip:  { marginTop: 4, alignSelf: 'flex-start', backgroundColor: accentA(0.12), borderRadius: 5, borderWidth: 1, borderColor: accentA(0.28), paddingHorizontal: 7, paddingVertical: 2 },
+  readLastTxt:   { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
+}));

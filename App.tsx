@@ -19,20 +19,23 @@ import { usePRStore }       from './src/stores/prStore';
 import { AuthScreen }       from './src/screens/Auth/AuthScreen';
 import { OnboardingScreen } from './src/screens/Onboarding/OnboardingScreen';
 import { AppNavigator }     from './src/navigation/AppNavigator';
-import { COLORS }           from './src/constants';
+import { COLORS, FONTS }    from './src/constants';
 import { FeedbackProvider, FeedbackHost } from './src/components/feedback/Feedback';
+import { useThemeStore, hydrateTheme } from './src/theme/themeStore';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Syne_400Regular:           require('@expo-google-fonts/syne/400Regular/Syne_400Regular.ttf'),
-    Syne_500Medium:            require('@expo-google-fonts/syne/500Medium/Syne_500Medium.ttf'),
-    Syne_600SemiBold:          require('@expo-google-fonts/syne/600SemiBold/Syne_600SemiBold.ttf'),
-    Syne_700Bold:              require('@expo-google-fonts/syne/700Bold/Syne_700Bold.ttf'),
-    Syne_800ExtraBold:         require('@expo-google-fonts/syne/800ExtraBold/Syne_800ExtraBold.ttf'),
-    JetBrainsMono_400Regular:  require('@expo-google-fonts/jetbrains-mono/400Regular/JetBrainsMono_400Regular.ttf'),
-    JetBrainsMono_700Bold:     require('@expo-google-fonts/jetbrains-mono/700Bold/JetBrainsMono_700Bold.ttf'),
-    JetBrainsMono_800ExtraBold: require('@expo-google-fonts/jetbrains-mono/800ExtraBold/JetBrainsMono_800ExtraBold.ttf'),
+    Inter_400Regular:  require('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf'),
+    Inter_500Medium:   require('@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf'),
+    Inter_600SemiBold: require('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
+    Inter_700Bold:     require('@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf'),
   });
+
+  // Saved Dark/Light choice is applied before anything themed renders.
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => { hydrateTheme().finally(() => setThemeReady(true)); }, []);
+  const theme = useThemeStore(s => s.theme);
+  const barStyle = theme === 'dark' ? 'light-content' : 'dark-content';
 
   const { initialised, startListener } = useAuthStore();
   const { settings, load: loadSettings, startSync: syncSettings, stopSync: stopSettings } = useSettingsStore();
@@ -105,7 +108,7 @@ export default function App() {
   const user = useAuthStore(s => s.user);
 
   // Wait for custom fonts before rendering anything
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !themeReady) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
@@ -132,7 +135,7 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <FeedbackProvider>
-            <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+            <StatusBar barStyle={barStyle} backgroundColor={COLORS.background} />
             <AuthScreen />
             <FeedbackHost />
           </FeedbackProvider>
@@ -147,7 +150,7 @@ export default function App() {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, padding: 32 }}>
-          <Text style={{ color: COLORS.text, fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+          <Text style={{ color: COLORS.text, fontSize: 18, fontFamily: FONTS.display, textAlign: 'center', marginBottom: 8 }}>
             Couldn't load your data
           </Text>
           <Text style={{ color: COLORS.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
@@ -159,7 +162,7 @@ export default function App() {
             accessibilityLabel="Retry"
             style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.accent }}
           >
-            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Retry</Text>
+            <Text style={{ color: COLORS.onAccent, fontFamily: FONTS.headline, fontSize: 15 }}>Retry</Text>
           </TouchableOpacity>
         </View>
       </GestureHandlerRootView>
@@ -177,11 +180,14 @@ export default function App() {
     );
   }
 
+  // Keyed by theme: switching remounts every screen so each re-reads the live
+  // COLORS and themed() styles. Store data survives; AppNavigator restores
+  // the open tab itself.
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView key={theme} style={{ flex: 1 }}>
       <SafeAreaProvider>
         <FeedbackProvider>
-          <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+          <StatusBar barStyle={barStyle} backgroundColor={COLORS.background} />
           {settings.activePlanId === null ? (
             <OnboardingScreen onComplete={() => {}} />
           ) : (

@@ -15,6 +15,7 @@ import { GRAD, COLORS, FONTS } from '../../constants';
 import { WorkoutSession } from '../../types';
 import { sessionTotalVolume } from '../../utils/volume';
 import { RestTimerBar, type RestContext } from './RestTimerBar';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 interface Props {
   onFinish: (session: WorkoutSession) => void;
@@ -255,22 +256,22 @@ export function ActiveSessionScreen({ onFinish, onBack, onClear }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   root:          { flex: 1 },
   safe:          { flex: 1 },
   header:        { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 },
   headerTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   headerBtn:     { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
-  skipBtn:       { height: 36, paddingHorizontal: 14, borderRadius: 99, justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)' },
+  skipBtn:       { height: 36, paddingHorizontal: 14, borderRadius: 99, justifyContent: 'center', borderWidth: 1, borderColor: ink(0.14) },
   skipTxt:       { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  headerSup:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.96, textTransform: 'uppercase', marginBottom: 3 },
+  headerSup:     { fontSize: 12, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, marginBottom: 3 },
   headerTitle:   { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.2, lineHeight: 34 },
   statsRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
   statBlock:     { flex: 1, alignItems: 'center', gap: 3 },
-  statDivider:   { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: 'rgba(255,240,220,0.14)' },
+  statDivider:   { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: ink(0.14) },
   statValue:     { fontSize: 21, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   statValueAccent: { fontSize: 21, fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  statLabel:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.8 },
+  statLabel:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0 },
   timerInner:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot:       { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent },
   scroll:        { flex: 1 },
@@ -278,12 +279,12 @@ const s = StyleSheet.create({
   footer:        {
     position: 'absolute', left: 0, right: 0, bottom: 0,
     paddingHorizontal: 16, paddingTop: 10, gap: 10,
-    backgroundColor: 'rgba(12,10,8,0.94)', borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)',
+    backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: ink(0.08),
   },
-  track:         { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.08)', overflow: 'hidden' },
+  track:         { height: 4, borderRadius: 2, backgroundColor: ink(0.08), overflow: 'hidden' },
   trackFill:     { height: '100%', borderRadius: 2, overflow: 'hidden' },
   finishBtn:     { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  finishBtnQuiet:{ backgroundColor: 'rgba(255,140,0,0.12)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)' },
-  finishTxt:     { fontSize: 16, fontFamily: FONTS.display, color: '#000', letterSpacing: -0.4 },
+  finishBtnQuiet:{ backgroundColor: accentA(0.12), borderWidth: 1, borderColor: accentA(0.35) },
+  finishTxt:     { fontSize: 16, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: -0.4 },
   finishTxtQuiet:{ color: COLORS.accent },
-});
+}));

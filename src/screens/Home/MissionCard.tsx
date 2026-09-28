@@ -8,10 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { GlassView } from '../../components/common/GlassView';
 import { WorkoutDay } from '../../types';
 import { COLORS, FONTS } from '../../constants';
+import { ink, themed } from '../../theme/runtime';
 
-// "Ready" indicator dot — was green, switched to the accent orange so the
-// home cycle palette stays warm.
-const GREEN = COLORS.accent;
 
 interface Props {
   currentDay:    WorkoutDay | undefined;
@@ -70,12 +68,12 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
 
   // Badge label adapts to state: in-progress takes priority, then done/rest/mission.
   const badgeLabel = isInProgress
-    ? 'WORKOUT IN PROGRESS'
+    ? 'Workout in progress'
     : isDone
-    ? `TODAY · ${completedToday!.dayLabel.toUpperCase()} COMPLETE`
+    ? `${completedToday!.dayLabel} done today`
     : isRest
-    ? 'REST DAY'
-    : 'NEXT MISSION';
+    ? 'Rest day'
+    : 'Up next';
 
   // Show the start button only when there's a real next workout to start AND
   // today wasn't already done (avoids tempting the user into a second session).
@@ -92,7 +90,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
           )}
           <View style={[
             s.dot,
-            { backgroundColor: isDone ? COLORS.accent : isRest ? COLORS.rest : GREEN },
+            { backgroundColor: isDone ? COLORS.accent : isRest ? COLORS.rest : COLORS.accent },
           ]} />
         </View>
         <Text style={s.badgeTxt}>{badgeLabel}</Text>
@@ -108,7 +106,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
           accessibilityRole="button"
           accessibilityLabel="Resume workout"
         >
-          <Text style={s.ctaTxt}>RESUME</Text>
+          <Text style={s.ctaTxt}>Resume workout</Text>
         </AnimatedPressable>
       )}
 
@@ -119,7 +117,7 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
           accessibilityRole="button"
           accessibilityLabel="Start session"
         >
-          <Text style={s.ctaTxt}>START SESSION</Text>
+          <Text style={s.ctaTxt}>Start workout</Text>
         </AnimatedPressable>
       )}
 
@@ -132,20 +130,20 @@ export function MissionCard({ currentDay, currentDayNum, completedToday, isInPro
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   card:     { marginHorizontal: 16, marginBottom: 8, padding: 18 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
 
   dotWrap:  { width: 10, height: 10, alignItems: 'center', justifyContent: 'center' },
-  dotRing:  { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: GREEN },
+  dotRing:  { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
   dot:      { width: 8, height: 8, borderRadius: 4 },
 
-  badgeTxt: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
-  title:    { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 4 },
+  badgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
+  title:    { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.88, marginBottom: 4 },
   subtitle: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 14 },
   ctaWrap:  { borderRadius: 14, height: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  ctaTxt:   { fontSize: 14, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 1.12, textTransform: 'uppercase' },
+  ctaTxt:   { fontSize: 14, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
 
-  doneFooter:    { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  doneFooter:    { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: ink(0.08) },
   doneFooterTxt: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', fontStyle: 'italic' },
-});
+}));

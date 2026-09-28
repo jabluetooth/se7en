@@ -18,6 +18,8 @@ import {
   scheduleDailyCoachReminder,
   cancelDailyCoachReminder,
 } from '../../services/notificationService';
+import { ink, themed } from '../../theme/runtime';
+import { useThemeStore } from '../../theme/themeStore';
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 // All hoisted to module scope. Previously these lived inside SettingsScreen,
@@ -132,6 +134,8 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
   const { clearAllSessions }        = useSessionStore();
   const dockClearance               = useDockClearance();
   const uid                         = useAuthStore(u => u.user?.uid);
+  const theme                       = useThemeStore(t => t.theme);
+  const setTheme                    = useThemeStore(t => t.setTheme);
 
   const handleClearHistory = () =>
     confirm({
@@ -169,6 +173,25 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
               <Badge label="Active" variant="accent" size="xs" />
             </GlassView>
           )}
+
+          <Section title="Appearance">
+            <Row
+              label="Theme"
+              sub="Applies on this device"
+              right={
+                <SegControl
+                  options={['Dark', 'Light'] as const}
+                  value={theme === 'dark' ? 'Dark' : 'Light'}
+                  onChange={v => {
+                    const next = v === 'Dark' ? 'dark' : 'light';
+                    save({ theme: next });
+                    setTheme(next);
+                  }}
+                />
+              }
+              last
+            />
+          </Section>
 
           {/* Weight & Units — now persisted via settings store */}
           <Section title="Weight & Units">
@@ -294,36 +317,36 @@ export function SettingsScreen({ onOpenExerciseBuilder, onSignOut, userEmail, us
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   header:         { paddingHorizontal: 20, paddingBottom: 16 },
-  title:          { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20 },
+  title:          { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.20 },
   scroll:         { paddingHorizontal: 16 },
 
   planCard:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, marginBottom: 24 },
   planIcon:       { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  planIconText:   { fontSize: 24, fontWeight: '800', fontFamily: FONTS.display, color: '#000' },
-  planName:       { fontSize: 17, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.68 },
+  planIconText:   { fontSize: 24, fontFamily: FONTS.display, color: COLORS.onAccent },
+  planName:       { fontSize: 17, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.68 },
   planSub:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
 
   section:        { marginBottom: 24 },
-  sectionTitle:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 },
+  sectionTitle:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 8, paddingLeft: 4 },
   sectionCard:    { overflow: 'hidden', borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
 
   row:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  rowBorder:      { borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.09)' },
-  rowLabel:       { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
-  rowSub:         { fontSize: 12, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
+  rowBorder:      { borderBottomWidth: 1, borderBottomColor: ink(0.09) },
+  rowLabel:       { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.text },
+  rowSub:         { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textSecondary, marginTop: 2 },
 
   seg:            { flexDirection: 'row', padding: 2, gap: 2, borderRadius: 8, backgroundColor: COLORS.background },
   segBtn:         { borderRadius: 6, paddingHorizontal: 11, paddingVertical: 5 },
   segBtnActive:   { backgroundColor: COLORS.accent },
-  segText:        { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
-  segTextActive:  { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#000' },
+  segText:        { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  segTextActive:  { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.onAccent },
 
-  toggle:         { width: 48, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,240,220,0.12)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,240,220,0.16)', position: 'relative' },
+  toggle:         { width: 48, height: 28, borderRadius: 14, backgroundColor: ink(0.12), overflow: 'hidden', borderWidth: 1, borderColor: ink(0.16), position: 'relative' },
   toggleOn:       { borderColor: 'transparent', backgroundColor: COLORS.accent },
   toggleThumb:    { position: 'absolute', top: 4, left: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.textSecondary },
-  toggleThumbOn:  { left: 24, backgroundColor: '#000' },
+  toggleThumbOn:  { left: 24, backgroundColor: COLORS.onAccent },
 
   version:        { textAlign: 'center', fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, paddingTop: 8 },
-});
+}));

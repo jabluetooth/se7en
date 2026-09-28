@@ -7,6 +7,7 @@ import { COLORS, FONTS } from '../../../constants';
 import { WeightUnit } from '../../../types';
 import { fmtDate } from '../../../utils/format';
 import { ExerciseSessionPoint } from '../../../utils/exerciseHistory';
+import { accentA, ink } from '../../../theme/runtime';
 
 interface Props {
   sessions:     ExerciseSessionPoint[];
@@ -105,11 +106,11 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {/* Grid lines */}
         <Path d={`M${padL},${padTop} L${W - padR},${padTop}`}
-          stroke="rgba(255,240,220,0.06)" strokeWidth={1} />
+          stroke={ink(0.06)} strokeWidth={1} />
         <Path d={`M${padL},${padTop + innerH / 2} L${W - padR},${padTop + innerH / 2}`}
-          stroke="rgba(255,240,220,0.06)" strokeWidth={1} strokeDasharray="2,3" />
+          stroke={ink(0.06)} strokeWidth={1} strokeDasharray="2,3" />
         <Path d={`M${padL},${baseY} L${W - padR},${baseY}`}
-          stroke="rgba(255,240,220,0.10)" strokeWidth={1} />
+          stroke={ink(0.1)} strokeWidth={1} />
 
         {/* Y-axis labels — single centred label when flat, otherwise max / mid / min */}
         {isFlat ? (
@@ -138,7 +139,7 @@ export const ExpandedChart = React.memo(function ExpandedChart({ sessions, isBod
 
         {/* Area fill + line */}
         <AnimatedG opacity={0} animatedProps={restProps}>
-          <Path d={areaPath} fill="rgba(255,140,0,0.12)" />
+          <Path d={areaPath} fill={accentA(0.12)} />
         </AnimatedG>
         <AnimatedPath d={linePath} stroke={COLORS.accent} strokeWidth={2} fill="none"
           strokeLinecap="round" strokeLinejoin="round"

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../../constants';
+import { themed } from '../../theme/runtime';
 
 interface Props {
   message:   string;
@@ -41,7 +42,7 @@ export function InlineBanner({ message, onRetry, variant = 'warning' }: Props) {
   );
 }
 
-const ib = StyleSheet.create({
+const ib = themed(() => StyleSheet.create({
   wrap: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     marginHorizontal: 16, marginBottom: SPACING.sm,
@@ -49,12 +50,12 @@ const ib = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md, borderWidth: 1,
   },
   text: {
-    flex: 1, fontSize: 12, fontFamily: FONTS.semibold, fontWeight: '600', lineHeight: 17,
+    flex: 1, fontSize: 12, fontFamily: FONTS.semibold, lineHeight: 17,
   },
   retryBtn: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: BORDER_RADIUS.sm, borderWidth: 1,
   },
   retryTxt: {
-    fontSize: 11, fontFamily: FONTS.headline, fontWeight: '700',
+    fontSize: 11, fontFamily: FONTS.headline, 
   },
-});
+}));

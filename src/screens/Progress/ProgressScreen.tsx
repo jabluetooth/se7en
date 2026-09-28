@@ -21,9 +21,9 @@ import { useDockClearance } from '../../hooks/useDockClearance';
 import Animated from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { enterRise } from '../../motion/presets';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 // Progress signal text colour — applied to font only.
-const PROGRESS_GREEN_TXT = '#34D399';
 
 type SortMode = 'recent' | 'volume' | 'name';
 
@@ -322,55 +322,55 @@ function FirstRun({ bottom, onStart }: { bottom: number; onStart?: () => void })
   );
 }
 
-const fr = StyleSheet.create({
+const fr = themed(() => StyleSheet.create({
   wrap:      { paddingHorizontal: 20, paddingTop: 12, gap: 12 },
   hero:      { alignItems: 'center', paddingVertical: 20 },
-  icon:      { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.12)', marginBottom: 16 },
+  icon:      { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.12), marginBottom: 16 },
   title:     { fontSize: 24, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.8, textAlign: 'center' },
   sub:       { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 21 },
-  item:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  item:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08) },
   itemTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
   itemDesc:  { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2 },
   cta:       { marginTop: 8, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  ctaTxt:    { fontSize: 16, fontFamily: FONTS.display, color: '#000' },
-});
+  ctaTxt:    { fontSize: 16, fontFamily: FONTS.display, color: COLORS.onAccent },
+}));
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   header:           { paddingHorizontal: 20, paddingBottom: 14, zIndex: 10 },
-  title:            { fontSize: 30, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.20 },
+  title:            { fontSize: 30, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.20 },
   sub:              { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, marginTop: 2 },
   scroll:           { paddingHorizontal: 16 },
 
   // Stats row — bare, no card background
   statsRow:         { flexDirection: 'row', alignItems: 'center', marginBottom: 18, paddingHorizontal: 4 },
   statCard:         { flex: 1, alignItems: 'center' },
-  statDivider:      { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: 'rgba(255,240,220,0.14)' },
+  statDivider:      { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: ink(0.14) },
   statHeader:       { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
-  statLabel:        { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase' },
-  statValue:        { fontSize: 22, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -0.88 },
-  statAccent:       { color: PROGRESS_GREEN_TXT },
-  statUnit:         { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  statLabel:        { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
+  statValue:        { fontSize: 22, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.88 },
+  statAccent:       { color: COLORS.success },
+  statUnit:         { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 
   // Activity card
   activityCard:     { padding: 14, marginBottom: 14 },
-  cardTitle:        { fontSize: 12, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.96, marginBottom: 12 },
+  cardTitle:        { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 12 },
 
   // Section header + sort toggle
   progressHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2, marginBottom: 10, paddingHorizontal: 2 },
   titleRow:         { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
+  sectionTitle:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
   searchIcon:       { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
-  toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 8, padding: 2, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  toggle:           { flexDirection: 'row', backgroundColor: ink(0.05), borderRadius: 8, padding: 2, borderWidth: 1, borderColor: ink(0.08) },
   togglePill:       { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
-  toggleTxt:        { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  toggleTxtActive:  { color: '#fff', fontWeight: '800', fontFamily: FONTS.display },
+  togglePillActive: { backgroundColor: ink(0.14) },
+  toggleTxt:        { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  toggleTxtActive:  { color: COLORS.text, fontFamily: FONTS.display },
 
   // Search bar (replaces section header when active)
-  searchRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
-  searchInput:      { flex: 1, fontSize: 14, color: '#fff', padding: 0, fontWeight: '500', fontFamily: FONTS.medium },
+  searchRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.1) },
+  searchInput:      { flex: 1, fontSize: 14, color: COLORS.text, padding: 0, fontFamily: FONTS.medium },
   searchClose:      { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  searchHint:       { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, paddingHorizontal: 4, fontWeight: '600', fontFamily: FONTS.semibold },
+  searchHint:       { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, paddingHorizontal: 4, fontFamily: FONTS.semibold },
 
   // Card list
   cardList:         { gap: 8 },
@@ -378,6 +378,6 @@ const s = StyleSheet.create({
   emptyText:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center' },
 
   // See more / less control
-  seeMoreBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, marginTop: 2, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.06)' },
-  seeMoreTxt:       { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
-});
+  seeMoreBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, marginTop: 2, borderRadius: 10, borderWidth: 1, borderColor: accentA(0.28), backgroundColor: accentA(0.06) },
+  seeMoreTxt:       { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.accent },
+}));

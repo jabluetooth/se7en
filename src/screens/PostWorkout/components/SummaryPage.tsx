@@ -12,6 +12,7 @@ import { enterFade, enterRise } from '../../../motion/presets';
 import { COUNT_STAGGER, useCountUp } from '../../../motion/useCountUp';
 import { summarizeSession, prMetricLabel, fmtRecord } from '../../../utils/sessionSummary';
 import { VolumeLineGraph } from './VolumeLineGraph';
+import { accentA, ink, themed } from '../../../theme/runtime';
 
 interface Props {
   session: WorkoutSession;
@@ -181,12 +182,12 @@ export function SummaryPage({ session, width, active, bottomInset }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   page:        { paddingHorizontal: 16, paddingTop: 4, gap: 22 },
 
   top:         { alignItems: 'center', gap: 4 },
   chip:        { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 6, marginBottom: 8 },
-  chipText:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  chipText:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   chipDot:     { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.textMuted },
   chipDate:    { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   name:        { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
@@ -195,23 +196,23 @@ const s = StyleSheet.create({
   stats:       { alignItems: 'center', gap: 14 },
   heroStat:    { alignItems: 'center' },
   heroVal:     { fontSize: 56, fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -2.5, fontVariant: ['tabular-nums'], lineHeight: 62 },
-  heroUnit:    { fontSize: 13, fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
+  heroUnit:    { fontSize: 13, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
   smallStats:  { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
   smallStat:   { flex: 1, alignItems: 'center', gap: 2 },
   smallVal:    { fontSize: 22, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  smallLbl:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.8 },
-  smallDivider:{ width: StyleSheet.hairlineWidth, height: 28, backgroundColor: 'rgba(255,240,220,0.14)' },
-  compare:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.05)' },
+  smallLbl:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0 },
+  smallDivider:{ width: StyleSheet.hairlineWidth, height: 28, backgroundColor: ink(0.14) },
+  compare:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, backgroundColor: ink(0.05) },
   compareTxt:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary, flexShrink: 1 },
 
   prCard:      {
-    borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)',
-    backgroundColor: 'rgba(255,140,0,0.07)', paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 18, borderWidth: 1, borderColor: accentA(0.35),
+    backgroundColor: accentA(0.07), paddingHorizontal: 16, paddingVertical: 14,
   },
   prHead:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   prTitle:     { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: -0.2 },
   prRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  prRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,140,0,0.25)' },
+  prRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: accentA(0.25) },
   prInfo:      { flex: 1, minWidth: 0, gap: 2 },
   prExercise:  { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.3 },
   prMetric:    { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
@@ -219,15 +220,15 @@ const s = StyleSheet.create({
   prValue:     { fontSize: 17, fontFamily: FONTS.dataBold, color: COLORS.accent },
   prWas:       { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textMuted },
 
-  baseline:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,240,220,0.05)' },
+  baseline:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 16, backgroundColor: ink(0.05) },
   baselineTxt: { flex: 1, fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 19 },
 
   graphBlock:  { alignItems: 'center', gap: 10 },
   graphLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', alignSelf: 'stretch', paddingHorizontal: 4 },
-  graphTitle:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88 },
+  graphTitle:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
   graphAxis:   { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
   pillRow:     { alignSelf: 'stretch', gap: 8 },
-  pill:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,140,0,0.08)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.22)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
-  pillLbl:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.8, textTransform: 'uppercase', width: 72 },
+  pill:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: accentA(0.08), borderWidth: 1, borderColor: accentA(0.22), borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
+  pillLbl:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, width: 72 },
   pillVal:     { flex: 1, fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.text },
-});
+}));

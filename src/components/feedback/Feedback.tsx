@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../constants';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
 import { enterFade, enterFromTop, enterSheet, exitFade, exitSheet, exitToTop, layoutSoft } from '../../motion/presets';
+import { accentA, dangerA, ink, themed } from '../../theme/runtime';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,12 +94,12 @@ const StateContext = createContext<FeedbackState | null>(null);
 
 const MAX_TOASTS = 3;
 
-const VARIANT: Record<ToastVariant, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+const VARIANT = themed((): Record<ToastVariant, { icon: keyof typeof Ionicons.glyphMap; color: string }> => ({
   success: { icon: 'checkmark-circle', color: COLORS.accent },
   info:    { icon: 'information-circle', color: COLORS.rest },
   warning: { icon: 'alert-circle', color: COLORS.warning },
   error:   { icon: 'close-circle', color: COLORS.danger },
-};
+}));
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
@@ -277,7 +278,7 @@ function ActionSheet({ item, onClose }: { item: ActionsOptions; onClose: () => v
             accessibilityLabel={o.label}
           >
             {o.icon && (
-              <View style={[as.icon, o.destructive && { backgroundColor: 'rgba(255,69,58,0.14)' }]}>
+              <View style={[as.icon, o.destructive && { backgroundColor: dangerA(0.14) }]}>
                 <Ionicons name={o.icon} size={18} color={o.destructive ? COLORS.danger : COLORS.accent} />
               </View>
             )}
@@ -322,7 +323,7 @@ function ConfirmSheet({ item, onAnswer }: { item: ConfirmItem; onAnswer: (ok: bo
           accessibilityRole="button"
           accessibilityLabel={item.confirmLabel ?? 'Confirm'}
         >
-          <Text style={[cs.confirmTxt, { color: item.destructive ? '#fff' : '#000' }]}>
+          <Text style={[cs.confirmTxt, { color: item.destructive ? '#fff' : COLORS.onAccent }]}>
             {item.confirmLabel ?? 'Confirm'}
           </Text>
         </AnimatedPressable>
@@ -341,7 +342,7 @@ function ConfirmSheet({ item, onAnswer }: { item: ConfirmItem; onAnswer: (ok: bo
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const ts = StyleSheet.create({
+const ts = themed(() => StyleSheet.create({
   stack:   { position: 'absolute', left: 12, right: 12, gap: 8 },
   toast:   {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -357,16 +358,16 @@ const ts = StyleSheet.create({
   message: { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 19 },
   action:  { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   actionTxt: { fontSize: 13, fontFamily: FONTS.headline, letterSpacing: 0.3 },
-});
+}));
 
-const as = StyleSheet.create({
+const as = themed(() => StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
-  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,240,220,0.10)' },
-  icon:      { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.12)' },
+  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ink(0.1) },
+  icon:      { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.12) },
   label:     { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text },
-});
+}));
 
-const cs = StyleSheet.create({
+const cs = themed(() => StyleSheet.create({
   backdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet:      {
     position: 'absolute', left: 0, right: 0, bottom: 0,
@@ -381,4 +382,4 @@ const cs = StyleSheet.create({
   confirmTxt: { fontSize: 16, fontFamily: FONTS.headline, letterSpacing: -0.2 },
   cancelBtn:  { height: 50, marginTop: 8, alignItems: 'center', justifyContent: 'center' },
   cancelTxt:  { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-});
+}));

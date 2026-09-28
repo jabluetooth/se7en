@@ -19,6 +19,7 @@ import { AppBackground } from '../../components/ui/AppBackground';
 import { SummaryPage } from './components/SummaryPage';
 import { ExercisesPage } from './components/ExercisesPage';
 import { NextUpPage } from './components/NextUpPage';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 const PAGE_NAMES = ['Summary', 'Exercises', 'Next up'] as const;
 const MAX_TAB_W = 96;
@@ -253,27 +254,27 @@ export function PostWorkoutSummary({ session, nextDay, onDone }: Props) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const hd = StyleSheet.create({
+const hd = themed(() => StyleSheet.create({
   bar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12 },
   side:    { width: 40, alignItems: 'flex-end' },
-  tabs:    { flexDirection: 'row', borderRadius: 99, backgroundColor: 'rgba(255,240,220,0.06)', padding: 3 },
-  pill:    { position: 'absolute', top: 3, left: 3, bottom: 3, borderRadius: 99, backgroundColor: 'rgba(255,140,0,0.18)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)' },
+  tabs:    { flexDirection: 'row', borderRadius: 99, backgroundColor: ink(0.06), padding: 3 },
+  pill:    { position: 'absolute', top: 3, left: 3, bottom: 3, borderRadius: 99, backgroundColor: accentA(0.18), borderWidth: 1, borderColor: accentA(0.35) },
   tab:     { height: 34, alignItems: 'center', justifyContent: 'center' },
   tabTxt:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
   tabTxtActive: { color: COLORS.text },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
-});
+}));
 
-const ft = StyleSheet.create({
+const ft = themed(() => StyleSheet.create({
   bar:     { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12 },
   done:    { height: FOOTER_H, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  doneTxt: { fontSize: 16, fontFamily: FONTS.display, color: '#000', letterSpacing: -0.3 },
-});
+  doneTxt: { fontSize: 16, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: -0.3 },
+}));
 
-const mn = StyleSheet.create({
+const mn = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'flex-end', paddingRight: 12 },
-  sheet:    { minWidth: 230, borderRadius: 14, backgroundColor: 'rgba(28,28,32,0.97)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', paddingVertical: 6 },
+  sheet:    { minWidth: 230, borderRadius: 14, backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: ink(0.1), paddingVertical: 6 },
   item:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 13 },
   itemTxt:  { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text },
-  divider:  { height: 1, backgroundColor: 'rgba(255,240,220,0.08)', marginVertical: 2 },
-});
+  divider:  { height: 1, backgroundColor: ink(0.08), marginVertical: 2 },
+}));

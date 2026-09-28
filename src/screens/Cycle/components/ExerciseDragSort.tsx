@@ -7,21 +7,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../../constants';
 import { Exercise } from '../../../types';
 import { usePlanStore } from '../../../stores/planStore';
+import { accentA, ink, themed } from '../../../theme/runtime';
 
 const EX_H = 56;
 
 // ─── Exercise row styles (shared by the row + the floating preview) ─────────
 
-const er = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)' },
+const er = themed(() => StyleSheet.create({
+  row:     { flexDirection: 'row', alignItems: 'center', height: EX_H, borderBottomWidth: 1, borderBottomColor: ink(0.06) },
   info:    { flex: 1, minWidth: 0 },
-  name:    { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 3 },
+  name:    { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   setInfo: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textSecondary },
   tag:     { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:  { fontSize: 11, fontFamily: FONTS.headline },
   iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-});
+}));
 
 interface Props {
   exercises:              Exercise[];
@@ -225,9 +226,9 @@ export function ExerciseDragSort({
   );
 }
 
-const ed = StyleSheet.create({
+const ed = themed(() => StyleSheet.create({
   line:      { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 1 },
-  rowLifted: { backgroundColor: 'rgba(255,140,0,0.08)', borderRadius: 10 },
+  rowLifted: { backgroundColor: accentA(0.08), borderRadius: 10 },
   float: {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
     ...Platform.select({
@@ -235,4 +236,4 @@ const ed = StyleSheet.create({
       android: { elevation: 8 },
     }),
   },
-});
+}));

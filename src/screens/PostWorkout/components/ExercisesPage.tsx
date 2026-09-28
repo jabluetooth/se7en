@@ -9,16 +9,19 @@ import { GlassView } from '../../../components/common/GlassView';
 import { COLORS, FONTS } from '../../../constants';
 import { WorkoutSession } from '../../../types';
 import { fmtVol } from '../../../utils/format';
+import { accentA, ink, themed } from '../../../theme/runtime';
 
 // Per-exercise colour palette — locked to the exercise's *original* index so
 // the same exercise keeps its hue regardless of how the list is sorted.
-const EX_COLORS = [COLORS.accent, COLORS.rest, COLORS.warning, '#A78BFA'];
+// Shades of the accent (read at render so they follow the theme): the
+// volume split stays legible without a rainbow of unrelated colours.
+const exColor = (i: number) => [COLORS.accent, accentA(0.62), accentA(0.38), COLORS.textLabel][i % 4];
 
 function rpeColor(n: number): string {
-  if (n <= 4) return '#30D158';
-  if (n <= 6) return '#FFD60A';
-  if (n <= 8) return '#FF8C00';
-  return '#FF453A';
+  if (n <= 4) return COLORS.success;
+  if (n <= 6) return COLORS.warning;
+  if (n <= 8) return COLORS.accent;
+  return COLORS.danger;
 }
 
 interface Props {
@@ -74,7 +77,7 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
     );
     return {
       ex, completed, volume, totalReps, bestSet,
-      color: EX_COLORS[originalIdx % EX_COLORS.length],
+      color: exColor(originalIdx),
     };
   });
 
@@ -175,7 +178,7 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
                   <Text style={s.name} numberOfLines={1}>{x.ex.exerciseName}</Text>
                   {recordIds.has(x.ex.exerciseId) && (
                     <View style={s.prTag} accessibilityLabel="New personal record">
-                      <TrophyIcon size={11} color="#000" />
+                      <TrophyIcon size={11} color={COLORS.onAccent} />
                       <Text style={s.prTagTxt}>PR</Text>
                     </View>
                   )}
@@ -189,7 +192,7 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
                     s.chip,
                     { backgroundColor: x.color + '22', borderColor: x.color + '55' },
                   ]}>
-                    <Text style={[s.chipTxt, { color: x.color, fontWeight: '700' }]}>{volLabel}</Text>
+                    <Text style={[s.chipTxt, { color: x.color, fontFamily: FONTS.display }]}>{volLabel}</Text>
                   </View>
                   {showWeight && x.bestSet && x.bestSet.actualWeight != null && (
                     <View style={s.chip}>
@@ -200,7 +203,7 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
                   )}
                   {x.ex.rpe != null && x.ex.rpe > 0 && (
                     <View style={[s.chip, { backgroundColor: rpeColor(x.ex.rpe) + '22', borderColor: rpeColor(x.ex.rpe) + '55' }]}>
-                      <Text style={[s.chipTxt, { color: rpeColor(x.ex.rpe), fontWeight: '800' }]}>RPE {x.ex.rpe}</Text>
+                      <Text style={[s.chipTxt, { color: rpeColor(x.ex.rpe), fontFamily: FONTS.display }]}>RPE {x.ex.rpe}</Text>
                     </View>
                   )}
                 </View>
@@ -246,24 +249,24 @@ export function ExercisesPage({ session, width, active, bottomInset }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   page:             { paddingHorizontal: 16, paddingTop: 8 },
 
   // Section header
   header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  headerTitle:      { fontSize: 12, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.96 },
+  headerTitle:      { fontSize: 12, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0 },
 
   // Sort toggle
-  toggle:           { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.05)', borderRadius: 9, padding: 3, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
+  toggle:           { flexDirection: 'row', backgroundColor: ink(0.05), borderRadius: 9, padding: 3, borderWidth: 1, borderColor: ink(0.08) },
   togglePill:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  togglePillActive: { backgroundColor: 'rgba(255,240,220,0.14)' },
-  toggleTxt:        { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
-  toggleTxtActive:  { color: '#fff', fontWeight: '800', fontFamily: FONTS.display },
+  togglePillActive: { backgroundColor: ink(0.14) },
+  toggleTxt:        { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  toggleTxtActive:  { color: COLORS.text, fontFamily: FONTS.display },
 
   // Stacked bar
   bar:      { flexDirection: 'row', height: 32, marginBottom: 14, gap: 2 },
   barSeg:   { justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  barLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display, color: '#0d0d0f' },
+  barLabel: { fontSize: 11, fontFamily: FONTS.display, color: COLORS.onAccent },
 
   // Card
   card:     { overflow: 'hidden' },
@@ -271,24 +274,24 @@ const s = StyleSheet.create({
   marker:   { width: 5, alignSelf: 'stretch', borderRadius: 3 },
   info:     { flex: 1, minWidth: 0, gap: 7 },
   nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name:     { flexShrink: 1, fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  name:     { flexShrink: 1, fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
   prTag:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: COLORS.accent },
-  prTagTxt: { fontSize: 11, fontFamily: FONTS.display, color: '#000', letterSpacing: 0.3 },
+  prTagTxt: { fontSize: 11, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: 0.3 },
 
   chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  chip:     { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)' },
-  chipTxt:  { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  chip:     { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04) },
+  chipTxt:  { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
 
   // Expanded set table
-  table:     { borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', backgroundColor: 'rgba(0,0,0,0.18)' },
+  table:     { borderTopWidth: 1, borderTopColor: ink(0.07), backgroundColor: ink(0.03) },
   tableHead: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 9 },
-  th:        { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.88, flex: 1 },
+  th:        { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, flex: 1 },
   thRight:   { textAlign: 'right' },
-  tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  td:        { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', flex: 1 },
+  tableRow:  { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: ink(0.06) },
+  td:        { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, flex: 1 },
   tdRight:   { textAlign: 'right' },
   // Exercise note
-  noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.06)' },
-  noteLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.80, marginTop: 2, width: 34 },
+  noteRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: ink(0.06) },
+  noteLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 2, width: 34 },
   noteTxt:   { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, fontStyle: 'italic', lineHeight: 18 },
-});
+}));

@@ -26,6 +26,7 @@ import { DayEditScreen } from './DayEditScreen';
 import { SplitTypeSheet } from './SplitTypeSheet';
 import { DayListDragSort } from './components/DayListDragSort';
 import { useDockClearance } from '../../hooks/useDockClearance';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -295,24 +296,24 @@ export function CycleScreen() {
 
         {/* ── Plan edit cabinet ── */}
         {planExpanded && (
-          <GlassView radius={16} style={s.planCabinet} borderColor="rgba(255,140,0,0.22)">
+          <GlassView radius={16} style={s.planCabinet} borderColor={accentA(0.22)}>
 
             {/* Plan name */}
-            <Text style={s.cabinetLabel}>PLAN NAME</Text>
+            <Text style={s.cabinetLabel}>Plan name</Text>
             <View style={s.nameField}>
               <TextInput
                 style={s.nameInput}
                 value={editName}
                 onChangeText={setEditName}
                 placeholder="Plan name"
-                placeholderTextColor="rgba(255,240,220,0.25)"
+                placeholderTextColor={ink(0.25)}
                 returnKeyType="done"
                 autoCorrect={false}
               />
             </View>
 
             {/* Split type */}
-            <Text style={[s.cabinetLabel, { marginTop: 14 }]}>SPLIT TYPE</Text>
+            <Text style={[s.cabinetLabel, { marginTop: 14 }]}>Split type</Text>
             <AnimatedPressable
               style={s.splitBtn}
               onPress={() => setSplitSheetOpen(true)}
@@ -360,8 +361,8 @@ export function CycleScreen() {
                       style={{ flex: 1, borderRadius: 3 }}
                     />
                   )}
-                  {v === 'rest'    && <View style={[s.barFill, { backgroundColor: '#A8A29E' }]} />}
-                  {v === 'missed'  && <View style={[s.barFill, { backgroundColor: '#EF4444' }]} />}
+                  {v === 'rest'    && <View style={[s.barFill, { backgroundColor: COLORS.textLabel }]} />}
+                  {v === 'missed'  && <View style={[s.barFill, { backgroundColor: COLORS.danger }]} />}
                 </View>
               ))}
             </View>
@@ -422,50 +423,50 @@ export function CycleScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   emptyWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { fontSize: 22, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.88, marginBottom: 8 },
+  emptyTitle: { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.88, marginBottom: 8 },
   emptySub:   { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
   // Header
   header:         { paddingHorizontal: 20, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 },
-  planLabel:      { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase', marginBottom: 2 },
-  title:          { fontSize: 28, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.12 },
-  editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
-  editBtnActive:  { borderColor: 'rgba(255,140,0,0.50)', backgroundColor: 'rgba(255,140,0,0.12)' },
+  planLabel:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, marginBottom: 2 },
+  title:          { fontSize: 28, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.12 },
+  editBtn:        { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: ink(0.07), borderWidth: 1, borderColor: ink(0.1) },
+  editBtnActive:  { borderColor: accentA(0.5), backgroundColor: accentA(0.12) },
 
   // Plan edit cabinet
   planCabinet:    { marginHorizontal: 16, marginBottom: 10, padding: 14 },
-  cabinetLabel:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.80, marginBottom: 8 },
+  cabinetLabel:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
   nameField:      { paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.borderFaint },
-  nameInput:      { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
-  splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.07)' },
+  nameInput:      { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text, padding: 0 },
+  splitBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 13, borderRadius: 12, borderWidth: 1, borderColor: ink(0.12), backgroundColor: ink(0.07) },
   splitBtnLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
   splitDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
-  splitBtnTxt:    { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  splitBtnTxt:    { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.text },
   cabinetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
-  presetBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  presetBtnTxt:   { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  presetBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: accentA(0.4), backgroundColor: accentA(0.08) },
+  presetBtnTxt:   { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.accent },
   saveBtn:        { borderRadius: 10, paddingHorizontal: 22, paddingVertical: 9 },
-  saveTxt:        { fontSize: 14, fontWeight: '700', fontFamily: FONTS.headline, color: '#000' },
+  saveTxt:        { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.onAccent },
 
   // Completion card
   rateCard:   { marginHorizontal: 16, padding: 16, marginBottom: 8 },
   rateRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  rateLabel:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 4 },
+  rateLabel:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 4 },
   rateNumRow: { flexDirection: 'row', alignItems: 'baseline' },
-  rateVal:    { fontSize: 30, fontWeight: '800', fontFamily: FONTS.data, color: '#34D399', letterSpacing: -1.20 },
+  rateVal:    { fontSize: 30, fontFamily: FONTS.data, color: COLORS.success, letterSpacing: -1.20 },
   rateSub:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
   bars:       { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  barBg:      { width: 8, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)' },
+  barBg:      { width: 8, borderRadius: 3, backgroundColor: ink(0.1) },
   barFill:    { flex: 1, borderRadius: 3 },
 
   tip:        {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginHorizontal: 16, marginBottom: 10,
-    padding: 14, borderRadius: 16, backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.22)',
+    padding: 14, borderRadius: 16, backgroundColor: accentA(0.07), borderWidth: 1, borderColor: accentA(0.22),
   },
   tipTitle:   { fontSize: 14, fontFamily: FONTS.headline, color: COLORS.text, marginBottom: 3 },
   tipTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 19 },
   tipClose:   { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginTop: -4, marginRight: -4 },
   list:       { paddingHorizontal: 16 },
-});
+}));

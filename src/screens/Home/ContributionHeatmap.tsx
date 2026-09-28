@@ -6,12 +6,10 @@ import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { WorkoutSession, WorkoutPlan, WorkoutDay } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { sessionLoad } from '../../utils/volume';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 // ─── Color maps ───────────────────────────────────────────────────────────────
 
-const REST_STONE    = '#A8A29E';
-const DEFAULT_COLOR = '#636366';
-const MISSED_RED    = '#EF4444';
 
 const MONTH_FULL = [
   'January','February','March','April','May','June',
@@ -191,12 +189,12 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
       const counts = new Map<string, number>();
       sess.forEach(s => {
         if (isRestDay(s.dayPosition)) return;
-        const c = DAY_COLOR[s.dayPosition] ?? DEFAULT_COLOR;
+        const c = DAY_COLOR[s.dayPosition] ?? COLORS.textLabel;
         counts.set(c, (counts.get(c) ?? 0) + 1);
       });
       const color = counts.size
         ? [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0]
-        : DEFAULT_COLOR;
+        : COLORS.textLabel;
       const title = planSplitMap.get(sess[0].planId) ?? splitName;
       info.set(idx, { color, title });
     });
@@ -258,8 +256,8 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
   const selIsPast  = sel ? new Date(year, month, sel.day) < today : false;
   const selIsToday = sel ? isTodayFn(sel.day) : false;
   const selColor   = selIsRest
-    ? REST_STONE
-    : (selSess ? (DAY_COLOR[selSess.dayPosition] ?? DEFAULT_COLOR) : DEFAULT_COLOR);
+    ? COLORS.textLabel
+    : (selSess ? (DAY_COLOR[selSess.dayPosition] ?? COLORS.textLabel) : COLORS.textLabel);
 
   return (
     <View style={s.root}>
@@ -282,7 +280,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
           >
             <Text style={s.navArrow}>‹</Text>
           </AnimatedPressable>
-          <Text style={s.navLabel}>{MONTH_FULL[month].slice(0,3).toUpperCase()} {year}</Text>
+          <Text style={s.navLabel}>{MONTH_FULL[month]} {year}</Text>
           <AnimatedPressable
             onPress={() => navMonth(1)}
             hitSlop={{top:10,bottom:10,left:6,right:10}}
@@ -357,7 +355,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                               : (!!sess && isRestDay(sess.dayPosition));
 
                             const color = sess && !schedRest
-                              ? (DAY_COLOR[sess.dayPosition] ?? DEFAULT_COLOR)
+                              ? (DAY_COLOR[sess.dayPosition] ?? COLORS.textLabel)
                               : null;
 
                             // Missed: past workout slot with no session —
@@ -376,20 +374,20 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
 
                             const showAsRest   = isRestCell && (pillColor !== null || isPastOrToday);
                             const previewColor = !color && !missed && !isRestCell && pillColor && planDay && !sess && !isPast
-                              ? (DAY_COLOR[planDay.dayPosition] ?? DEFAULT_COLOR)
+                              ? (DAY_COLOR[planDay.dayPosition] ?? COLORS.textLabel)
                               : null;
 
                             let bgStyle: object | null = null;
                             if (color) {
                               bgStyle = { backgroundColor: rgba(color, 0.20), borderColor: rgba(color, 0.42) };
                             } else if (missed) {
-                              bgStyle = { backgroundColor: rgba(MISSED_RED, 0.06), borderColor: rgba(MISSED_RED, 0.75) };
+                              bgStyle = { backgroundColor: rgba(COLORS.danger, 0.06), borderColor: rgba(COLORS.danger, 0.75) };
                             } else if (showAsRest && pillColor && isPastOrToday) {
                               bgStyle = { backgroundColor: rgba(pillColor, 0.14), borderColor: rgba(pillColor, 0.30) };
                             } else if (showAsRest && pillColor) {
-                              bgStyle = { backgroundColor: rgba(REST_STONE, 0.10), borderColor: rgba(REST_STONE, 0.22) };
+                              bgStyle = { backgroundColor: rgba(COLORS.textLabel, 0.10), borderColor: rgba(COLORS.textLabel, 0.22) };
                             } else if (showAsRest) {
-                              bgStyle = { backgroundColor: rgba(REST_STONE, 0.16), borderColor: rgba(REST_STONE, 0.30) };
+                              bgStyle = { backgroundColor: rgba(COLORS.textLabel, 0.16), borderColor: rgba(COLORS.textLabel, 0.30) };
                             } else if (previewColor) {
                               bgStyle = { backgroundColor: rgba(previewColor, 0.14), borderColor: rgba(previewColor, 0.55) };
                             } else {
@@ -427,8 +425,8 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                                   showAsRest && s.cellNumRest,
                                   todayD && !sess && s.cellNumToday,
                                   !!color && s.cellNumSess,
-                                  missed       && { color: rgba(MISSED_RED, 0.70),    fontWeight: '600' } as any,
-                                  !!previewColor && !todayD && { color: rgba(previewColor, 0.65), fontWeight: '600' } as any,
+                                  missed       && { color: rgba(COLORS.danger, 0.70),    fontFamily: FONTS.semibold } as any,
+                                  !!previewColor && !todayD && { color: rgba(previewColor, 0.65), fontFamily: FONTS.semibold } as any,
                                 ]}>
                                   {day}
                                 </Text>
@@ -481,9 +479,9 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                 {new Date(year, month, sel.day)
                   .toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
               </Text>
-              <View style={[s.cardPill, { borderColor: rgba(REST_STONE, 0.45), backgroundColor: rgba(REST_STONE, 0.14), marginTop: 6 }]}>
-                <Text style={[s.cardPillTxt, { color: REST_STONE }]}>
-                  {selIsToday ? 'REST · TODAY' : selIsPast ? 'REST · COMPLETED' : 'REST · SCHEDULED'}
+              <View style={[s.cardPill, { borderColor: rgba(COLORS.textLabel, 0.45), backgroundColor: rgba(COLORS.textLabel, 0.14), marginTop: 6 }]}>
+                <Text style={[s.cardPillTxt, { color: COLORS.textLabel }]}>
+                  {selIsToday ? 'Rest · today' : selIsPast ? 'Rest · done' : 'Rest · scheduled'}
                 </Text>
               </View>
               <Text style={[s.cardEmptyTxt, { marginTop: 8 }]}>
@@ -495,8 +493,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
               <View style={s.cardTopRow}>
                 <Text style={s.cardDateTxt}>
                   {new Date(year, month, sel.day)
-                    .toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
-                    .toUpperCase()}
+                    .toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
                 </Text>
                 <View style={[s.cardPill, { borderColor: rgba(selColor, 0.45), backgroundColor: rgba(selColor, 0.14) }]}>
                   <Text style={[s.cardPillTxt, { color: selColor }]}>{selSess.dayLabel}</Text>
@@ -544,7 +541,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
             const selCycleIdx   = sel ? cycleForCalDay(sel.day) : null;
             const selInCycle    = selCycleIdx !== null && cycleInfo.has(selCycleIdx);
             const selDayColor   = selPlanDay && !selIsRest
-              ? (DAY_COLOR[selPlanDay.dayPosition] ?? DEFAULT_COLOR)
+              ? (DAY_COLOR[selPlanDay.dayPosition] ?? COLORS.textLabel)
               : null;
             const showScheduled = selInCycle && selPlanDay && !selIsRest && (selIsToday || !selIsPast);
             return (
@@ -556,7 +553,7 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
                 {showScheduled && selDayColor && (
                   <View style={[s.cardPill, { borderColor: rgba(selDayColor, 0.45), backgroundColor: rgba(selDayColor, 0.14), marginTop: 6 }]}>
                     <Text style={[s.cardPillTxt, { color: selDayColor }]}>
-                      {selPlanDay!.label.toUpperCase()} · {selIsToday ? 'TODAY' : 'UPCOMING'}
+                      {selPlanDay!.label} · {selIsToday ? 'Today' : 'Upcoming'}
                     </Text>
                   </View>
                 )}
@@ -572,17 +569,17 @@ export function ContributionHeatmap({ sessions, activePlan, cycleStartDate }: Pr
       {/* ── Legend ── */}
       <View style={s.legend}>
         <View style={s.legendWorkout}>
-          <View style={[s.legendCell, { backgroundColor: rgba(REST_STONE, 0.18) }]} />
-          <Text style={[s.legendWorkoutTxt, { color: REST_STONE }]}>Rest</Text>
+          <View style={[s.legendCell, { backgroundColor: rgba(COLORS.textLabel, 0.18) }]} />
+          <Text style={[s.legendWorkoutTxt, { color: COLORS.textLabel }]}>Rest</Text>
         </View>
         {!!cycleStartDate && (
           <View style={s.legendWorkout}>
-            <View style={[s.legendCell, { backgroundColor: rgba(MISSED_RED, 0.06), borderWidth: 1.5, borderColor: rgba(MISSED_RED, 0.75) }]} />
-            <Text style={[s.legendWorkoutTxt, { color: rgba(MISSED_RED, 0.80) }]}>Missed</Text>
+            <View style={[s.legendCell, { backgroundColor: rgba(COLORS.danger, 0.06), borderWidth: 1.5, borderColor: rgba(COLORS.danger, 0.75) }]} />
+            <Text style={[s.legendWorkoutTxt, { color: rgba(COLORS.danger, 0.80) }]}>Missed</Text>
           </View>
         )}
         {usedPos.map(dp => {
-          const color  = DAY_COLOR[dp] ?? DEFAULT_COLOR;
+          const color  = DAY_COLOR[dp] ?? COLORS.textLabel;
           const dayObj = activePlan?.days.find(d => d.dayPosition === dp);
           const label  = dayObj?.label ?? `Day ${dp}`;
           return (
@@ -613,69 +610,69 @@ function fillHeight(vol: number, max: number): number {
   return Math.round(4 + Math.min(vol / max, 1) * (CELL - 4));
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   root: { marginHorizontal: 20, marginBottom: 8 },
 
   header:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
-  title:     { fontSize: 17, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.68, marginBottom: 3 },
+  title:     { fontSize: 17, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.68, marginBottom: 3 },
   sub:       { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
-  subAccent: { fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  subAccent: { fontFamily: FONTS.headline, color: COLORS.textSecondary },
   navRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navArrow:  { fontSize: 22, color: COLORS.textSecondary, lineHeight: 26, fontWeight: '300' },
-  navLabel:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0.88, textTransform: 'uppercase', minWidth: 68, textAlign: 'center' },
+  navArrow:  { fontSize: 22, color: COLORS.textSecondary, lineHeight: 26, fontFamily: FONTS.body },
+  navLabel:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, minWidth: 68, textAlign: 'center' },
 
-  enclosure: { borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 16, padding: 12, marginBottom: 10 },
+  enclosure: { borderWidth: 1, borderColor: ink(0.1), borderRadius: 16, padding: 12, marginBottom: 10 },
 
   dayNameRow: { flexDirection: 'row', marginBottom: 4 },
-  dayName:    { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: 'rgba(255,240,220,0.22)' },
+  dayName:    { flex: 1, textAlign: 'center', fontSize: 11, fontFamily: FONTS.headline, color: ink(0.22) },
 
   activeCycleRow:    { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 },
   activeCycleBanner: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  activeCycleName:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase', textAlign: 'center' },
+  activeCycleName:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0, textAlign: 'center' },
 
   grid:          { gap: GAP },
   weekWrap:      {},
   weekRow:       { flexDirection: 'row', alignItems: 'center' },
   weekSlot:      { flex: 1 },
   weekPill:      { flexDirection: 'row', borderRadius: 999, height: CELL + 8, paddingHorizontal: PILL_PAD, gap: CELL_GAP, alignItems: 'center', alignSelf: 'stretch' },
-  weekPillEmpty: { backgroundColor: 'rgba(255,240,220,0.04)' },
+  weekPillEmpty: { backgroundColor: ink(0.04) },
   pillWrap:      { alignItems: 'center' },
 
-  cell:       { flex: 1, aspectRatio: 1, borderRadius: 999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)' },
-  cellEmpty:  { backgroundColor: 'rgba(255,240,220,0.04)' },
-  cellToday:  { borderWidth: 2, borderColor: 'rgba(255,140,0,0.70)' },
-  cellActive: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.65)' },
+  cell:       { flex: 1, aspectRatio: 1, borderRadius: 999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: ink(0.08) },
+  cellEmpty:  { backgroundColor: ink(0.04) },
+  cellToday:  { borderWidth: 2, borderColor: accentA(0.7) },
+  cellActive: { borderWidth: 2, borderColor: ink(0.65) },
   fillBar:    { position: 'absolute', bottom: 0, left: 0, right: 0 },
 
-  cellNum:      { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
-  cellNumEmpty: { color: 'rgba(255,240,220,0.20)', fontWeight: '400' },
-  cellNumToday: { color: COLORS.accent, fontWeight: '800' },
-  cellNumSess:  { color: '#fff', fontWeight: '700' },
-  cellNumRest:  { color: 'rgba(168,162,158,0.65)', fontWeight: '500' },
+  cellNum:      { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  cellNumEmpty: { color: ink(0.2), fontFamily: FONTS.body },
+  cellNumToday: { color: COLORS.accent, fontFamily: FONTS.display },
+  cellNumSess:  { color: COLORS.text, fontFamily: FONTS.display },
+  cellNumRest:  { color: ink(0.65), fontFamily: FONTS.medium },
 
   card:        { marginTop: 10 },
   cardBody:    { padding: 14, gap: 5 },
   cardTopRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  cardDateTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0.80, textTransform: 'uppercase' },
+  cardDateTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0 },
   cardPill:    { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
-  cardPillTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  cardPillTxt: { fontSize: 11, fontFamily: FONTS.headline },
   cardVolRow:  { flexDirection: 'row', alignItems: 'baseline' },
-  cardVolNum:  { fontSize: 30, fontWeight: '800', fontFamily: FONTS.data, letterSpacing: -1.20 },
-  cardVolUnit: { fontSize: 14, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textMuted },
+  cardVolNum:  { fontSize: 30, fontFamily: FONTS.data, letterSpacing: -1.20 },
+  cardVolUnit: { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted },
   cardMeta:    { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel },
-  cardExWrap:  { marginTop: 8, gap: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)', paddingTop: 10 },
+  cardExWrap:  { marginTop: 8, gap: 7, borderTopWidth: 1, borderTopColor: ink(0.07), paddingTop: 10 },
   cardExRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardExName:  { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary, flex: 1 },
+  cardExName:  { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary, flex: 1 },
   cardExDetail:{ fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, fontVariant: ['tabular-nums'] },
   cardExMore:  { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   cardEmpty:     { padding: 16, alignItems: 'center' },
-  cardEmptyDate: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 4 },
+  cardEmptyDate: { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 4 },
   cardEmptyTxt:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel },
 
   legend:         { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
   legendWorkout:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendCell:     { width: 16, height: 16, borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   legendFill:     { width: '100%' },
-  legendWorkoutTxt:{ fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, maxWidth: 70 },
+  legendWorkoutTxt:{ fontSize: 11, fontFamily: FONTS.headline, maxWidth: 70 },
   legendNote:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, fontStyle: 'italic', marginLeft: 'auto' as any },
-});
+}));

@@ -2,6 +2,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { GlassView } from './GlassView';
 import { COLORS, FONTS } from '../../constants';
+import { themed } from '../../theme/runtime';
 
 interface Props { label: string; value: string; unit?: string; delta?: number; accent?: boolean; style?: object; }
 
@@ -20,11 +21,11 @@ export function StatCard({ label, value, unit, delta, accent, style }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  label:  { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 5 },
+const s = themed(() => StyleSheet.create({
+  label:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 5 },
   row:    { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
-  value:  { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.04, lineHeight: 30 },
+  value:  { fontSize: 26, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -1.04, lineHeight: 30 },
   accent: { color: COLORS.accent },
   unit:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary },
-  delta:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, marginTop: 2 },
-});
+  delta:  { fontSize: 12, fontFamily: FONTS.headline, marginTop: 2 },
+}));

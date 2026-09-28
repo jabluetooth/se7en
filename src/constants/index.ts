@@ -1,60 +1,34 @@
-// ─── Se7en · Obsidian + Ember Design System ──────────────
-// Accent: Amber-Orange · Background: warm near-black obsidian
+// ─── Se7en · Design tokens ───────────────────────────────────────────────
+// Clean athletic system: neutral greys, one orange accent, flat surfaces,
+// Inter throughout. COLORS and GRAD are LIVE: theme/runtime.ts copies the
+// active palette (dark or light, see theme/palettes.ts) into them, so read
+// them at render time (or inside themed() styles), never cache a value in a
+// module-level constant.
+import { DARK, type Palette } from '../theme/palettes';
+import { registerLiveTokens } from '../theme/runtime';
 
-export const GRAD = {
-  accent:      ['#FF8C00', '#FFA940'] as const,
-  accentSoft:  ['rgba(255,140,0,0.16)', 'rgba(255,169,64,0.08)'] as const,
-  danger:      ['#FF453A', '#FF3B30'] as const,
-  warn:        ['#FFD60A', '#FF9F0A'] as const,
-  // Background — near-black with warm obsidian undertone
-  bg:          ['#0C0A08', '#0F0C09', '#0D0B08', '#0F0C09'] as const,
-  bgLocations: [0, 0.30, 0.65, 1] as const,
-  bgStart:     { x: 0.3, y: 0 } as const,
-  bgEnd:       { x: 0.7, y: 1 } as const,
-  progress:    ['#FF8C00', '#FFA940'] as const,
+type Stops = readonly [string, string, ...string[]];
+
+export const GRAD: {
+  accent: Stops; accentSoft: Stops; danger: Stops; warn: Stops; bg: Stops; progress: Stops;
+  bgLocations: readonly [number, number, ...number[]];
+  bgStart: { x: number; y: number };
+  bgEnd: { x: number; y: number };
+} = {
+  accent:      [DARK.accent, DARK.accent],
+  accentSoft:  ['rgba(255,122,26,0.14)', 'rgba(255,122,26,0.08)'],
+  danger:      [DARK.danger, DARK.danger],
+  warn:        [DARK.warning, DARK.warning],
+  bg:          [DARK.background, DARK.background, DARK.background, DARK.background],
+  bgLocations: [0, 0.30, 0.65, 1],
+  bgStart:     { x: 0.3, y: 0 },
+  bgEnd:       { x: 0.7, y: 1 },
+  progress:    [DARK.accent, DARK.accent],
 };
 
-export const COLORS = {
-  // ── Backgrounds ───────────────────────────────────────────
-  background:           '#0C0A08',
-  surface:              '#1A1510',
-  surfaceElevated:      '#221C15',
-  border:               '#3A3028',
-  borderFaint:          '#2A2218',
+export const COLORS: Palette = { ...DARK };
 
-  // ── Text — warm off-white family ─────────────────────────
-  text:                 '#FFF8F0',
-  textSecondary:        '#E8DDD0',
-  textMuted:            '#B8A898',
-  textLabel:            '#8A7A6A',
-
-  // ── Accent — Ember (amber-orange) ─────────────────────────
-  accent:               '#FF8C00',
-  accentHigh:           '#FFA940',
-  accentDim:            '#3D1A00',
-
-  // ── Semantic ──────────────────────────────────────────────
-  danger:               '#FF453A',
-  dangerDim:            '#3A0F0D',
-  warning:              '#FFD60A',
-  warningDim:           '#3A2E00',
-  rest:                 '#64D2FF',
-
-  // ── Gradient aliases ──────────────────────────────────────
-  gradientStart:        '#FF8C00',
-  gradientEnd:          '#FFA940',
-
-  // ── Misc ──────────────────────────────────────────────────
-  white:                '#FFF8F0',
-  black:                '#0C0A08',
-
-  // ── Glass surfaces — cool white, scaled to dock.tsx (bg-white/10, border-white/20)
-  glass06:              'rgba(255,255,255,0.06)',
-  glass09:              'rgba(255,255,255,0.10)',
-  glassBorder:          'rgba(255,255,255,0.14)',
-  glassBorderHi:        'rgba(255,255,255,0.20)',
-  accentGlow:           'rgba(255,140,0,0.28)',
-};
+registerLiveTokens(COLORS as unknown as Record<string, string>, GRAD as unknown as Record<string, unknown>);
 
 export const BAR_WEIGHTS: Record<string, number> = {
   barbell:  20,
@@ -107,15 +81,13 @@ export const DAY_STATUS_ICONS = {
 // Cycle-day colour map — shared by ContributionHeatmap and HighlightSlideshow
 // so the calendar heat-cells and the highlight slideshow ring stay in sync.
 // Day positions are 1-indexed (1–7).
-export const DAY_COLOR: Record<number, string> = {
-  1: '#FF6B6B',  // coral red    Push
-  2: '#4ECDC4',  // teal         Pull
-  3: '#FACC15',  // warm yellow  Legs
-  4: '#FB923C',  // orange       Upper Push
-  5: '#60A5FA',  // sky blue     Upper Pull
-  6: '#F472B6',  // pink         Lower
-  7: '#94A3B8',  // slate        Full Body / misc
-};
+// Cycle-day colour, shared by the heatmap and highlight cards. It used to
+// be a rainbow (one hue per day); the clean look uses the accent for every
+// day, so colour means "trained" rather than "which day". Resolved at read
+// time so it follows the active theme.
+export const DAY_COLOR: Record<number, string> = new Proxy({} as Record<number, string>, {
+  get: () => COLORS.accent,
+});
 
 export const SKIP_REASONS = ['Sick', 'Travel', 'Rest', 'Other'] as const;
 export const SPLIT_TYPES  = ['PPL', 'Arnold', 'Upper/Lower', 'Bro Split', 'Full Body', 'Custom'];
@@ -140,46 +112,12 @@ export const MUSCLE_TAGS = [
 export type MuscleTag = typeof MUSCLE_TAGS[number];
 
 // Foreground color for each tag (badge text + border tint)
-export const MUSCLE_TAG_COLOR: Record<string, string> = {
-  // General
-  'Chest':       '#FF6B6B',
-  'Back':        '#4ECDC4',
-  'Shoulders':   '#FFD93D',
-  'Biceps':      '#6BCB77',
-  'Triceps':     '#60A5FA',  // sky blue — distinct from amber accent
-  'Forearms':    '#C084FC',
-  'Core':        '#FF9F43',
-  'Quads':       '#48CAE4',
-  'Hamstrings':  '#2EC4B6',
-  'Glutes':      '#F472B6',
-  'Calves':      '#94A3B8',
-  'Cardio':      '#FB7185',
-  'Full Body':   '#A78BFA',
-  // Chest specifics (red family)
-  'Upper Chest': '#FF8E8E',
-  'Mid Chest':   '#FF5C5C',
-  'Lower Chest': '#E03C3C',
-  'Inner Chest': '#FFB3B3',
-  // Back specifics (teal family)
-  'Lats':        '#4ECDC4',
-  'Upper Back':  '#38BDB5',
-  'Lower Back':  '#26A69A',
-  'Rhomboids':   '#6DDDD6',
-  // Shoulder specifics (yellow family)
-  'Front Delt':  '#FFB347',
-  'Side Delt':   '#FFD93D',
-  'Rear Delt':   '#FFA000',
-  // Arm specifics
-  'Long Head':   '#9B72F5',
-  'Short Head':  '#6BCB77',
-  'Lateral Head':'#60A5FA',  // sky blue
-  'Medial Head': '#3B82F6',  // standard blue
-  'Brachialis':  '#7CB9A8',
-  // Core specifics (orange family)
-  'Abs':         '#FF9F43',
-  'Obliques':    '#FF7043',
-  'Hip Flexors': '#FFCC02',
-};
+// Muscle-tag chip colour. Every tag used to have its own hue, which made
+// lists noisy; tags are now quiet neutral chips in the active theme. (A
+// 6-digit hex, because callers append a hex alpha like `color + '22'`.)
+export const MUSCLE_TAG_COLOR: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get: () => COLORS.textMuted,
+});
 
 export const SPACING = {
   xs:  4,
@@ -203,14 +141,18 @@ export const DOCK_HEIGHT              = 72;
 export const ANALYTICS_DEFAULT_DAYS  = 14;
 export const MAX_BACKUPS             = 7;
 
+// Inter everywhere: one clean UI family. Weight carries the hierarchy
+// (700 display and big numbers, 600 headings and labels, 500/400 text).
+// The data* aliases are kept so existing call sites read naturally; pair
+// them with fontVariant: ['tabular-nums'] so digits don't jiggle.
 export const FONTS = {
-  display:  'Syne_800ExtraBold',
-  headline: 'Syne_700Bold',
-  label:    'Syne_700Bold',      // same face as headline, used for ALL-CAPS labels
-  semibold: 'Syne_600SemiBold',
-  medium:   'Syne_500Medium',
-  body:     'Syne_400Regular',
-  data:     'JetBrainsMono_800ExtraBold',
-  dataBold: 'JetBrainsMono_700Bold',
-  dataSub:  'JetBrainsMono_400Regular',
+  display:  'Inter_700Bold',
+  headline: 'Inter_600SemiBold',
+  label:    'Inter_600SemiBold',
+  semibold: 'Inter_600SemiBold',
+  medium:   'Inter_500Medium',
+  body:     'Inter_400Regular',
+  data:     'Inter_700Bold',
+  dataBold: 'Inter_600SemiBold',
+  dataSub:  'Inter_400Regular',
 } as const;

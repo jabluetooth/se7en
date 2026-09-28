@@ -5,6 +5,7 @@ import Svg, { Path, Circle, G } from 'react-native-svg';
 import { COLORS } from '../../../constants';
 import { EASE_OUT, TIMING } from '../../../motion/tokens';
 import type { SetPoint } from '../../../utils/sessionSummary';
+import { ink } from '../../../theme/runtime';
 
 export type { SetPoint };
 
@@ -77,7 +78,7 @@ export function VolumeLineGraph({ data, peakIdx, width, animate = true }: Props)
   return (
     <View accessible accessibilityLabel={summary} accessibilityRole="image">
       <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <Path d={`M${padX},${baseY} L${W - padX},${baseY}`} stroke="rgba(255,240,220,0.10)" strokeWidth={1} />
+        <Path d={`M${padX},${baseY} L${W - padX},${baseY}`} stroke={ink(0.1)} strokeWidth={1} />
         <AnimatedPath d={areaPath} fill={COLORS.accent} animatedProps={areaProps} />
         <AnimatedPath
           d={linePath}

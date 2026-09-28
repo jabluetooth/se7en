@@ -17,6 +17,7 @@ import { recommendTemplates } from '../../utils/planRecommender';
 import { PLAN_TEMPLATES } from '../../data/planTemplates';
 import { COLORS, FONTS } from '../../constants';
 import { UserGoal, ExperienceLevel, EquipmentType, PlanTemplate } from '../../types';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 interface Props {
   onComplete: () => void;
@@ -356,7 +357,7 @@ function OptionCard({ icon, label, desc, selected, onPress }:
       accessibilityState={{ selected }}
       accessibilityLabel={`${label}, ${desc}`}
     >
-      <View style={[q.optionIcon, selected && { backgroundColor: 'rgba(255,140,0,0.18)' }]}>
+      <View style={[q.optionIcon, selected && { backgroundColor: accentA(0.18) }]}>
         <Ionicons name={icon} size={20} color={selected ? COLORS.accent : COLORS.textSecondary} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -366,7 +367,7 @@ function OptionCard({ icon, label, desc, selected, onPress }:
       <Ionicons
         name={selected ? 'checkmark-circle' : 'ellipse-outline'}
         size={22}
-        color={selected ? COLORS.accent : 'rgba(255,240,220,0.18)'}
+        color={selected ? COLORS.accent : ink(0.18)}
       />
     </AnimatedPressable>
   );
@@ -392,7 +393,7 @@ function PlanPicker({ ranked, showAll, onShowAll, onChoose }:
 
       <AnimatedPressable scale="subtle" style={q.best} onPress={() => onChoose(best.id)} accessibilityRole="button" accessibilityLabel={`Best match, ${best.name}. ${templateMeta(best)}`}>
         <View style={q.bestBadge}>
-          <Ionicons name="star" size={12} color="#000" />
+          <Ionicons name="star" size={12} color={COLORS.onAccent} />
           <Text style={q.bestBadgeTxt}>Best match</Text>
         </View>
         <Text style={q.bestName}>{best.name}</Text>
@@ -456,7 +457,7 @@ function Review({ template, planName, onName, loading, onStart }:
       <View style={q.week}>
         {days.map((d, i) => (
           <View key={d.dayPosition} style={[q.weekRow, i > 0 && q.weekRowBorder]}>
-            <View style={[q.weekDot, { backgroundColor: d.isRestDay ? 'rgba(255,240,220,0.18)' : COLORS.accent }]} />
+            <View style={[q.weekDot, { backgroundColor: d.isRestDay ? ink(0.18) : COLORS.accent }]} />
             <Text style={q.weekDay}>Day {d.dayPosition}</Text>
             <Text style={q.weekLabel} numberOfLines={1}>{d.label}</Text>
             <Text style={q.weekMeta}>
@@ -482,12 +483,12 @@ function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: (
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const pb = StyleSheet.create({
+const pb = themed(() => StyleSheet.create({
   btn: { height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent, alignSelf: 'stretch' },
-  txt: { fontSize: 17, fontFamily: FONTS.display, color: '#000', letterSpacing: -0.3 },
-});
+  txt: { fontSize: 17, fontFamily: FONTS.display, color: COLORS.onAccent, letterSpacing: -0.3 },
+}));
 
-const w = StyleSheet.create({
+const w = themed(() => StyleSheet.create({
   wrap:        { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingVertical: 24 },
   brand:       { alignItems: 'center', marginTop: 48 },
   logo:        { width: 88, height: 88, borderRadius: 22, marginBottom: 16 },
@@ -495,17 +496,17 @@ const w = StyleSheet.create({
   subtitle:    { fontSize: 17, fontFamily: FONTS.semibold, color: COLORS.textSecondary, marginTop: 4, textAlign: 'center' },
   features:    { gap: 16 },
   feature:     { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  featureIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.12)' },
+  featureIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.12) },
   featureText: { flex: 1, fontSize: 15, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 21 },
   actions:     { gap: 6 },
   link:        { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 12 },
   linkTxt:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textMuted },
-});
+}));
 
-const q = StyleSheet.create({
+const q = themed(() => StyleSheet.create({
   top:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8 },
   backBtn:      { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  track:        { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.10)', overflow: 'hidden' },
+  track:        { flex: 1, height: 6, borderRadius: 3, backgroundColor: ink(0.1), overflow: 'hidden' },
   trackFill:    { height: '100%', borderRadius: 3, backgroundColor: COLORS.accent },
   count:        { width: 40, fontSize: 13, fontFamily: FONTS.dataBold, color: COLORS.textMuted, textAlign: 'right' },
   scroll:       { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 },
@@ -515,44 +516,44 @@ const q = StyleSheet.create({
   options:      { gap: 10 },
   option:       {
     flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 16,
-    borderRadius: 18, borderWidth: 1.5, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)',
+    borderRadius: 18, borderWidth: 1.5, borderColor: ink(0.1), backgroundColor: ink(0.04),
   },
-  cardSelected: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.08)' },
-  optionIcon:   { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,240,220,0.06)' },
+  cardSelected: { borderColor: COLORS.accent, backgroundColor: accentA(0.08) },
+  optionIcon:   { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: ink(0.06) },
   optionLabel:  { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.3 },
   optionDesc:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
 
   grid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   dayCard:      {
     width: '48%', flexGrow: 1, paddingVertical: 20, alignItems: 'center', borderRadius: 18,
-    borderWidth: 1.5, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)',
+    borderWidth: 1.5, borderColor: ink(0.1), backgroundColor: ink(0.04),
   },
   dayNum:       { fontSize: 36, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -1.2 },
   dayLbl:       { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   dayDesc:      { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 4 },
 
-  best:         { padding: 18, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.07)' },
+  best:         { padding: 18, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.accent, backgroundColor: accentA(0.07) },
   bestBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, backgroundColor: COLORS.accent, marginBottom: 10 },
-  bestBadgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: '#000', letterSpacing: 0.5, textTransform: 'uppercase' },
+  bestBadgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
   bestName:     { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.6 },
   bestDesc:     { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 20, marginTop: 6, marginBottom: 8 },
   meta:         { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
   bestCta:      { marginTop: 14, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  bestCtaTxt:   { fontSize: 15, fontFamily: FONTS.display, color: '#000' },
+  bestCtaTxt:   { fontSize: 15, fontFamily: FONTS.display, color: COLORS.onAccent },
 
-  section:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0.88, textTransform: 'uppercase', marginTop: 24, marginBottom: 10 },
-  row:          { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', marginBottom: 8 },
+  section:      { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, marginTop: 24, marginBottom: 10 },
+  row:          { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04), marginBottom: 8 },
   rowName:      { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, marginBottom: 3 },
   more:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 16 },
   moreTxt:      { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textMuted },
 
   input:        { height: 52, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, paddingHorizontal: 16, fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text },
-  week:         { borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)', backgroundColor: 'rgba(255,240,220,0.03)', paddingHorizontal: 14 },
+  week:         { borderRadius: 16, borderWidth: 1, borderColor: ink(0.08), backgroundColor: ink(0.03), paddingHorizontal: 14 },
   weekRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 },
-  weekRowBorder:{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,240,220,0.10)' },
+  weekRowBorder:{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ink(0.1) },
   weekDot:      { width: 8, height: 8, borderRadius: 4 },
   weekDay:      { width: 46, fontSize: 12, fontFamily: FONTS.dataBold, color: COLORS.textMuted },
   weekLabel:    { flex: 1, fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.text },
   weekMeta:     { fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted },
   hint:         { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, lineHeight: 19, marginTop: 16, marginBottom: 20, textAlign: 'center' },
-});
+}));

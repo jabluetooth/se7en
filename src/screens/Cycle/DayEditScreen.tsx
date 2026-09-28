@@ -9,6 +9,7 @@ import { usePlanStore } from '../../stores/planStore';
 import { COLORS, MUSCLE_TAG_COLOR, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
 import { Exercise, WorkoutDay } from '../../types';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -184,17 +185,17 @@ function DragList({ exercises, onReorder }: DragListProps) {
   );
 }
 
-const dl = StyleSheet.create({
+const dl = themed(() => StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', height: ITEM_H, gap: 10, paddingRight: 4 },
-  rowLifted:{ backgroundColor: 'rgba(255,140,0,0.09)', borderRadius: 12 },
+  rowLifted:{ backgroundColor: accentA(0.09), borderRadius: 12 },
   handle:   { paddingHorizontal: 2 },
-  badge:    { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,240,220,0.08)', alignItems: 'center', justifyContent: 'center' },
-  badgeNum: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary },
+  badge:    { width: 26, height: 26, borderRadius: 8, backgroundColor: ink(0.08), alignItems: 'center', justifyContent: 'center' },
+  badgeNum: { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.textSecondary },
   info:     { flex: 1, minWidth: 0 },
-  name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 3 },
+  name:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 3 },
   tagsRow:  { flexDirection: 'row', gap: 4 },
   tag:      { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
-  tagTxt:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  tagTxt:   { fontSize: 11, fontFamily: FONTS.headline },
   setInfo:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, flexShrink: 0 },
   line:     { height: 2, marginHorizontal: 8, borderRadius: 1, backgroundColor: COLORS.accent },
   float:    {
@@ -204,7 +205,7 @@ const dl = StyleSheet.create({
       android: { elevation: 12 },
     }),
   },
-});
+}));
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -269,9 +270,9 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
             <Switch
               value={isRest}
               onValueChange={toggleRest}
-              trackColor={{ false: 'rgba(255,240,220,0.12)', true: COLORS.accent }}
+              trackColor={{ false: ink(0.12), true: COLORS.accent }}
               thumbColor="#fff"
-              ios_backgroundColor="rgba(255,240,220,0.12)"
+              ios_backgroundColor={ink(0.12)}
             />
           </View>
 
@@ -307,28 +308,28 @@ export function DayEditScreen({ day, planId, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 },
   backBtn:    { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTxt:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.accent },
-  dayPos:     { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textMuted },
+  backTxt:    { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.accent },
+  dayPos:     { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.textMuted },
   scroll:     { paddingHorizontal: 16, paddingTop: 4 },
 
   nameCard:   { padding: 14, marginBottom: 10, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  fieldLbl:   { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 8 },
-  nameInput:  { fontSize: 18, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.54, paddingVertical: 2 },
+  fieldLbl:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  nameInput:  { fontSize: 18, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.54, paddingVertical: 2 },
 
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, marginBottom: 20, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  toggleLbl:  { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  toggleLbl:  { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 2 },
   toggleSub:  { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   exHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
-  exTitle:    { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  exTitle:    { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
   exHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   exCard:     { paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
   tip:        { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 16 },
 
   emptyCard:  { padding: 32, alignItems: 'center', marginTop: 4, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  emptyTxt:   { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 6 },
+  emptyTxt:   { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.textSecondary, marginBottom: 6 },
   emptySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', lineHeight: 18 },
-});
+}));

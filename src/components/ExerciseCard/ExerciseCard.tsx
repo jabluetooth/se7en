@@ -16,12 +16,13 @@ import { SessionExercise, SetLog } from '../../types';
 import { useSessionStore } from '../../stores/sessionStore';
 import { usePlanStore } from '../../stores/planStore';
 import { findExercise } from '../../data/exercises';
+import { accentA, dangerA, ink, themed } from '../../theme/runtime';
 
 function rpeColor(n: number): string {
-  if (n <= 4) return '#30D158';
-  if (n <= 6) return '#FFD60A';
-  if (n <= 8) return '#FF8C00';
-  return '#FF453A';
+  if (n <= 4) return COLORS.success;
+  if (n <= 6) return COLORS.warning;
+  if (n <= 8) return COLORS.accent;
+  return COLORS.danger;
 }
 
 interface Props {
@@ -94,10 +95,10 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
       style={[s.card, allDone && s.cardDone, expanded && !allDone && s.cardExpanded]}
       glow={allDone}
       borderColor={
-        allDone  ? 'rgba(255,140,0,0.30)' :
-        isActive ? 'rgba(255,140,0,0.50)' :
-        expanded ? 'rgba(255,255,255,0.20)' :
-                   'rgba(255,255,255,0.10)'
+        allDone  ? accentA(0.3) :
+        isActive ? accentA(0.5) :
+        expanded ? ink(0.2) :
+                   ink(0.1)
       }
     >
       <AnimatedPressable
@@ -229,32 +230,32 @@ export function ExerciseCard({ exercise, defaultExpanded, isActive, onSetComplet
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   card:          { marginBottom: SPACING.sm, overflow: 'hidden' },
   cardDone:      {},
   cardExpanded:  {},
   header:        { flexDirection: 'row', alignItems: 'center', padding: SPACING.md, gap: SPACING.sm },
   info:          { flex: 1, minWidth: 0 },
   nameRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  name:          { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  name:          { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
   nameDone:      { color: COLORS.accent },
   metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   meta:          { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   musclePill:    { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  musclePillText:{ fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
+  musclePillText:{ fontSize: 11, fontFamily: FONTS.headline },
   rpePill:       { borderRadius: 99, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2 },
-  rpePillText:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.display },
-  sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)' },
+  rpePillText:   { fontSize: 11, fontFamily: FONTS.display },
+  sets:          { paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, borderTopWidth: 1, borderTopColor: ink(0.08) },
   setControls:   { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingTop: SPACING.sm, marginTop: 2 },
   addSetBtn:     { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: COLORS.accent + '55', backgroundColor: COLORS.accent + '18' },
-  addSetTxt:     { fontSize: 12, fontWeight: '800', fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
-  removeSetBtn:  { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,100,100,0.35)', backgroundColor: 'rgba(255,100,100,0.10)' },
-  removeSetTxt:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#FF6B6B', letterSpacing: 0.3 },
+  addSetTxt:     { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.accent, letterSpacing: 0.3 },
+  removeSetBtn:  { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: dangerA(0.35), backgroundColor: dangerA(0.1) },
+  removeSetTxt:  { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.danger, letterSpacing: 0.3 },
   // RPE saved summary
-  rpeSaved:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.08)', marginTop: SPACING.xs },
+  rpeSaved:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: ink(0.08), marginTop: SPACING.xs },
   rpeSavedBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  rpeSavedNum:   { fontSize: 13, fontWeight: '800', fontFamily: FONTS.display },
+  rpeSavedNum:   { fontSize: 13, fontFamily: FONTS.display },
   rpeSavedNote:  { flex: 1, fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, fontStyle: 'italic' },
-  rpeEditBtn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.05)' },
-  rpeEditTxt:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textLabel },
-});
+  rpeEditBtn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: ink(0.14), backgroundColor: ink(0.05) },
+  rpeEditTxt:    { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.textLabel },
+}));

@@ -11,6 +11,7 @@ import { GlassView } from '../../components/common/GlassView';
 import { useAuthStore } from '../../stores/authStore';
 import { GRAD, COLORS, FONTS } from '../../constants';
 import { AppBackground } from '../../components/ui/AppBackground';
+import { dangerA, ink, themed } from '../../theme/runtime';
 
 type Tab = 'login' | 'signup';
 
@@ -219,7 +220,7 @@ export function AuthScreen() {
                   style={[s.ctaGrad, loading && { opacity: 0.7 }]}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={COLORS.text} size="small" />
                   ) : (
                     <Text style={s.ctaTxt}>
                       {tab === 'login' ? 'Sign In' : 'Create Account'}
@@ -272,7 +273,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
         opacity="low"
         radius={12}
         style={fi.row}
-        borderColor={error ? 'rgba(255,69,58,0.45)' : undefined}
+        borderColor={error ? dangerA(0.45) : undefined}
       >
         <Ionicons name={icon as any} size={17} color={error ? COLORS.danger : COLORS.textMuted} style={fi.icon} />
         <TextInput
@@ -281,7 +282,7 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,240,220,0.30)"
+          placeholderTextColor={ink(0.3)}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -303,36 +304,36 @@ const Field = React.forwardRef<TextInput, FieldProps>(function Field(
   );
 });
 
-const fi = StyleSheet.create({
+const fi = themed(() => StyleSheet.create({
   wrap:  { marginBottom: 14 },
-  label: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 6 },
+  label: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 6 },
   row:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
   icon:  {},
-  input: { flex: 1, fontSize: 15, fontWeight: '500', fontFamily: FONTS.medium, color: '#fff', padding: 0 },
+  input: { flex: 1, fontSize: 15, fontFamily: FONTS.medium, color: COLORS.text, padding: 0 },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, paddingLeft: 2 },
   errorTxt: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.danger, flex: 1 },
-});
+}));
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
 
   scroll:       { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
   logoWrap:     { alignItems: 'center', marginBottom: 36 },
   logoBadge:    { width: 64, height: 64, borderRadius: 18, marginBottom: 14 },
-  logoWordmark: { fontSize: 32, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -1.28, marginBottom: 6 },
-  logoTagline:  { fontSize: 14, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 20 },
+  logoWordmark: { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, marginBottom: 6 },
+  logoTagline:  { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textSecondary, lineHeight: 20 },
 
-  tabs:         { flexDirection: 'row', backgroundColor: 'rgba(255,240,220,0.07)', borderRadius: 12, padding: 3, marginBottom: 20 },
+  tabs:         { flexDirection: 'row', backgroundColor: ink(0.07), borderRadius: 12, padding: 3, marginBottom: 20 },
   tab:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  tabActive:    { backgroundColor: 'rgba(255,240,220,0.12)' },
-  tabTxt:       { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  tabTxtActive: { color: '#fff', fontWeight: '700', fontFamily: FONTS.headline },
+  tabActive:    { backgroundColor: ink(0.12) },
+  tabTxt:       { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  tabTxtActive: { color: COLORS.text, fontFamily: FONTS.headline },
 
   card:         { padding: 20, marginBottom: 24 },
 
-  errorBanner:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,69,58,0.10)', borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', borderRadius: 10, padding: 12, marginBottom: 16 },
+  errorBanner:  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: dangerA(0.1), borderWidth: 1, borderColor: dangerA(0.25), borderRadius: 10, padding: 12, marginBottom: 16 },
   errorTxt:     { fontSize: 13, fontFamily: FONTS.body, color: COLORS.danger, flex: 1 },
 
   forgotBtn:    { alignSelf: 'flex-end', marginBottom: 20, marginTop: -6 },
@@ -340,7 +341,7 @@ const s = StyleSheet.create({
 
   ctaWrap:      { borderRadius: 14, overflow: 'hidden' },
   ctaGrad:      { height: 52, alignItems: 'center', justifyContent: 'center' },
-  ctaTxt:       { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  ctaTxt:       { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
 
-  footer:       { textAlign: 'center', fontSize: 12, fontWeight: '500', fontFamily: FONTS.medium, color: COLORS.textMuted, lineHeight: 20 },
-});
+  footer:       { textAlign: 'center', fontSize: 12, fontFamily: FONTS.medium, color: COLORS.textMuted, lineHeight: 20 },
+}));

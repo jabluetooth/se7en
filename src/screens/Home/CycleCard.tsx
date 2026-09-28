@@ -9,6 +9,7 @@ import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { TIMING } from '../../motion/tokens';
 import { COLORS, FONTS, GRAD } from '../../constants';
 import type { CycleSlot, CycleView } from '../../utils/cycleView';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 interface Props {
   view:       CycleView;
@@ -43,9 +44,9 @@ function Arc({ d, fill, index, reveal }: { d: string; fill: string; index: numbe
 
 function arcFill(s: CycleSlot): string {
   if (s.isToday) return COLORS.accent;
-  if (s.status === 'done') return 'rgba(255,140,0,0.42)';
-  if (s.status === 'rest' && s.isPast) return 'rgba(255,140,0,0.22)';
-  return 'rgba(255,240,220,0.10)';
+  if (s.status === 'done') return accentA(0.42);
+  if (s.status === 'rest' && s.isPast) return accentA(0.22);
+  return ink(0.1);
 }
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ export function CycleCard({ view, planName, onPressDay }: Props) {
           accessibilityLabel={`Cycle ${view.cycleNum}, ${pct}% through. ${view.doneCount} of ${view.workoutCount} workouts done.`}
         >
           <Svg width={SZ} height={SZ}>
-            <Circle cx={C} cy={C} r={RI - 1} fill="rgba(8,7,6,0.6)" />
+            <Circle cx={C} cy={C} r={RI - 1} fill={COLORS.surface} />
             {view.slots.map((sl, i) => (
               <Arc
                 key={sl.slot}
@@ -157,31 +158,31 @@ function DayPill({ slot: sl, onPress }: { slot: CycleSlot; onPress: () => void }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   card:       { marginHorizontal: 16, padding: 16, gap: 16 },
   top:        { flexDirection: 'row', alignItems: 'center', gap: 16 },
   ring:       { width: SZ, height: SZ },
   ringCenter: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   ringPct:    { fontSize: 18, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -0.6 },
   info:       { flex: 1, minWidth: 0, gap: 3 },
-  plan:       { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  plan:       { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   title:      { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.8 },
   sub:        { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textSecondary },
   days:       { flexDirection: 'row', gap: 6 },
-});
+}));
 
-const p = StyleSheet.create({
+const p = themed(() => StyleSheet.create({
   pill:      {
     flex: 1, height: 58, borderRadius: 14, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center', gap: 3,
-    backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)',
+    backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08),
   },
-  pillDone:  { backgroundColor: 'rgba(255,140,0,0.10)', borderColor: 'rgba(255,140,0,0.28)' },
+  pillDone:  { backgroundColor: accentA(0.1), borderColor: accentA(0.28) },
   todayFill: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 3 },
   num:       { fontSize: 17, fontFamily: FONTS.display, color: COLORS.textSecondary },
-  numToday:  { color: '#000' },
-  lbl:       { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, textTransform: 'uppercase', letterSpacing: 0.3, maxWidth: '90%' },
+  numToday:  { color: COLORS.onAccent },
+  lbl:       { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textLabel, letterSpacing: 0, maxWidth: '90%' },
   lblToday:  { color: 'rgba(0,0,0,0.6)' },
   dim:       { opacity: 0.45 },
   doneDot:   { position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
-});
+}));

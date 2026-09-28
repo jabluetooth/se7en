@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, FONTS } from '../../constants';
+import { accentA, dangerA, ink, restA, themed } from '../../theme/runtime';
 
 export type BadgeVariant =
   | 'accent' | 'danger' | 'warn' | 'rest'
@@ -12,18 +13,18 @@ interface Props {
   size?:    'xs' | 'sm';
 }
 
-// All variants updated to iOS-blue palette (no purple)
-const V: Record<BadgeVariant, { bg: string; text: string; border: string }> = {
-  accent:    { bg: 'rgba(255,140,0,0.15)',  text: COLORS.accent,        border: 'rgba(255,140,0,0.32)'  },
-  current:   { bg: 'rgba(255,140,0,0.20)',  text: COLORS.accentHigh,    border: 'rgba(255,140,0,0.42)'  },
-  completed: { bg: 'rgba(52,211,153,0.22)',  text: '#34D399',            border: 'rgba(52,211,153,0.50)'  },
-  danger:    { bg: 'rgba(255,69,58,0.15)',   text: COLORS.danger,        border: 'rgba(255,69,58,0.32)'   },
-  missed:    { bg: 'rgba(255,69,58,0.15)',   text: COLORS.danger,        border: 'rgba(255,69,58,0.32)'   },
-  warn:      { bg: 'rgba(255,214,10,0.14)',  text: COLORS.warning,       border: 'rgba(255,214,10,0.30)'  },
-  rest:      { bg: 'rgba(56,189,248,0.22)',  text: '#38BDF8',            border: 'rgba(56,189,248,0.48)'  },
-  neutral:   { bg: 'rgba(255,240,220,0.07)', text: COLORS.textSecondary, border: 'rgba(255,240,220,0.12)' },
-  upcoming:  { bg: 'rgba(255,240,220,0.05)', text: COLORS.textMuted,     border: 'rgba(255,240,220,0.09)' },
-};
+// Rebuilt per theme (themed) so the tints follow light/dark.
+const V = themed((): Record<BadgeVariant, { bg: string; text: string; border: string }> => ({
+  accent:    { bg: accentA(0.15),  text: COLORS.accent,        border: accentA(0.32)  },
+  current:   { bg: accentA(0.2),  text: COLORS.accentHigh,    border: accentA(0.42)  },
+  completed: { bg: accentA(0.12), text: COLORS.accent,        border: accentA(0.3)   },
+  danger:    { bg: dangerA(0.15),   text: COLORS.danger,        border: dangerA(0.32)   },
+  missed:    { bg: dangerA(0.15),   text: COLORS.danger,        border: dangerA(0.32)   },
+  warn:      { bg: ink(0.06),     text: COLORS.warning,       border: ink(0.12)      },
+  rest:      { bg: restA(0.12),   text: COLORS.rest,          border: restA(0.3)     },
+  neutral:   { bg: ink(0.07), text: COLORS.textSecondary, border: ink(0.12) },
+  upcoming:  { bg: ink(0.05), text: COLORS.textMuted,     border: ink(0.09) },
+}));
 
 export function Badge({ label, variant = 'accent', size = 'sm' }: Props) {
   const v  = V[variant];
@@ -45,7 +46,7 @@ export function Badge({ label, variant = 'accent', size = 'sm' }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   badge: { borderRadius: 5, borderWidth: 1, alignSelf: 'flex-start' },
-  text:  { fontWeight: '700', fontFamily: FONTS.label, letterSpacing: 0.5, textTransform: 'uppercase' },
-});
+  text:  { fontFamily: FONTS.label, letterSpacing: 0 },
+}));

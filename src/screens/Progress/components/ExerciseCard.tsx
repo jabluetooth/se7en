@@ -7,11 +7,10 @@ import { fmtDate, fmtVol } from '../../../utils/format';
 import { ExerciseHistory, ExerciseSessionPoint } from '../../../utils/exerciseHistory';
 import { Sparkline } from './Sparkline';
 import { ExpandedChart } from './ExpandedChart';
+import { dangerA, ink, themed } from '../../../theme/runtime';
 
 // All exercise cards share the same accent (orange) — single-hue surface so the
 // status/sparkline are the only colour signals the eye has to parse.
-const PROGRESS_GREEN_TXT = '#34D399';
-const DECLINE_RED_TXT    = '#FF8E8E';
 
 // 'kg' and 'lb' glue directly to the number ("40kg"); word-based units like
 // 'plates' or 'bodyweight' need a separating space ("7 plates").
@@ -90,7 +89,7 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, expanded
             <Text style={s.name} numberOfLines={1}>{exerciseName}</Text>
             {isRecentPR && (
               <View style={s.prBadge}>
-                <Text style={s.prTxt}>NEW PR</Text>
+                <Text style={s.prTxt}>New PR</Text>
               </View>
             )}
           </View>
@@ -106,7 +105,7 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, expanded
           ]}>
             <Text style={[
               s.trendDotTxt,
-              direction === 'up' ? { color: PROGRESS_GREEN_TXT } : { color: DECLINE_RED_TXT },
+              direction === 'up' ? { color: COLORS.success } : { color: COLORS.danger },
             ]}>
               {direction === 'up' ? '+' : '−'}
             </Text>
@@ -123,24 +122,24 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, expanded
 
       <View style={s.chipsRow}>
         <View style={[s.chip, { borderColor: exColor + '55', backgroundColor: exColor + '15' }]}>
-          <Text style={[s.chipLbl, { color: exColor }]}>BEST</Text>
+          <Text style={[s.chipLbl, { color: exColor }]}>Best</Text>
           <Text style={s.chipVal}>{bestLabel}</Text>
         </View>
         <View style={[s.chip, { borderColor: exColor + '55', backgroundColor: exColor + '15' }]}>
-          <Text style={[s.chipLbl, { color: exColor }]}>LAST</Text>
+          <Text style={[s.chipLbl, { color: exColor }]}>Last</Text>
           <Text style={s.chipVal}>{lastLabel}</Text>
         </View>
         {prev && (
           <View style={[
             s.chip,
-            direction === 'up'   && { borderColor: 'rgba(80,200,120,0.45)', backgroundColor: 'rgba(80,200,120,0.10)' },
-            direction === 'down' && { borderColor: 'rgba(255,80,80,0.45)',  backgroundColor: 'rgba(255,80,80,0.10)'  },
+            direction === 'up'   && { borderColor: COLORS.success + '73', backgroundColor: COLORS.success + '1A' },
+            direction === 'down' && { borderColor: dangerA(0.45),  backgroundColor: dangerA(0.1)  },
           ]}>
-            <Text style={s.chipLbl}>TREND</Text>
+            <Text style={s.chipLbl}>Trend</Text>
             <Text style={[
               s.chipVal,
-              direction === 'up'   && { color: PROGRESS_GREEN_TXT },
-              direction === 'down' && { color: DECLINE_RED_TXT },
+              direction === 'up'   && { color: COLORS.success },
+              direction === 'down' && { color: COLORS.danger },
             ]}>
               {direction === 'up' ? '+' : direction === 'down' ? '−' : '·'}{' '}
               {Math.abs(delta) % 1 === 0
@@ -196,38 +195,38 @@ export const ExerciseCard = React.memo(function ExerciseCard({ history, expanded
   );
 });
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   wrap:    { padding: 12, gap: 10 },
   head:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   info:    { flex: 1, minWidth: 0, gap: 3 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  name:    { fontSize: 15, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.45, flexShrink: 1 },
+  name:    { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.45, flexShrink: 1 },
   meta:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
 
   prBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: COLORS.accent },
-  prTxt:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: '#000', letterSpacing: 0.64, textTransform: 'uppercase' },
+  prTxt:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.onAccent, letterSpacing: 0 },
 
   // Circular +/- trend indicator near the sparkline
   trendDot:    { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  trendDotUp:  { backgroundColor: 'rgba(80,200,120,0.18)', borderColor: 'rgba(80,200,120,0.55)' },
-  trendDotDown:{ backgroundColor: 'rgba(255,80,80,0.18)',  borderColor: 'rgba(255,80,80,0.55)'  },
-  trendDotTxt: { fontSize: 14, fontWeight: '800', fontFamily: FONTS.display, lineHeight: 16 },
+  trendDotUp:  { backgroundColor: COLORS.success + '2E', borderColor: COLORS.success + '8C' },
+  trendDotDown:{ backgroundColor: dangerA(0.18),  borderColor: dangerA(0.55)  },
+  trendDotTxt: { fontSize: 14, fontFamily: FONTS.display, lineHeight: 16 },
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip:     { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', flexDirection: 'column', gap: 1 },
-  chipLbl:  { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.64, textTransform: 'uppercase' },
-  chipVal:  { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  chip:     { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04), flexDirection: 'column', gap: 1 },
+  chipLbl:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
+  chipVal:  { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.text },
 
   // Regression banner — appears only when a sustained decline exists
-  regressionRow:    { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,80,80,0.28)', backgroundColor: 'rgba(255,80,80,0.06)' },
-  regressionTxt:    { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600', fontFamily: FONTS.semibold },
-  regressionStrong: { color: DECLINE_RED_TXT, fontWeight: '800', fontFamily: FONTS.display },
+  regressionRow:    { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: dangerA(0.28), backgroundColor: dangerA(0.06) },
+  regressionTxt:    { fontSize: 11, color: COLORS.textSecondary, fontFamily: FONTS.semibold },
+  regressionStrong: { color: COLORS.danger, fontFamily: FONTS.display },
 
-  expanded: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
+  expanded: { gap: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: ink(0.07) },
 
-  logHead:  { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.07)' },
-  logCol:   { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.72 },
+  logHead:  { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: ink(0.07) },
+  logCol:   { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0 },
   logRight: { textAlign: 'right' },
   logRow:   { flexDirection: 'row', paddingVertical: 6 },
-  logCell:  { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
-});
+  logCell:  { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.text },
+}));

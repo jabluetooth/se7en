@@ -4,17 +4,16 @@ import Animated, {
   interpolate, interpolateColor, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, type SharedValue,
 } from 'react-native-reanimated';
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { usePRStore } from '../../stores/prStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { sessionLoad } from '../../utils/volume';
 import { fmtRecord, prMetricLabel } from '../../utils/sessionSummary';
 import { WorkoutSession } from '../../types';
-import { COLORS, DAY_COLOR, FONTS } from '../../constants';
+import { COLORS, FONTS } from '../../constants';
 import { TabName } from '../../components/FloatingDock/FloatingDock';
 import { fmtVol as fmtNum } from '../../utils/format';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDE   = 16;
@@ -22,12 +21,6 @@ const GAP    = 10;
 const CARD_W = SCREEN_W - SIDE * 2;
 const CARD_H = 236;
 
-function toRgba(hex: string, a: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${a})`;
-}
 
 interface Props {
   sessions:       WorkoutSession[];
@@ -45,8 +38,6 @@ interface CardModel {
   unit:    string;
   title:   string;
   sub:     string;
-  grad:    readonly [string, string, ...string[]];
-  hi:      string;
   tab:     TabName;
 }
 
@@ -153,7 +144,7 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
   const cards: CardModel[] = [
     {
       id:    'progress',
-      tag:   'CYCLE PROGRESS',
+      tag:   'This cycle',
       icon:  'pulse',
       hero:  fmtVol(thisCycleVol),
       unit:  thisCycleVol > 0 ? `${unit} this cycle` : 'no data yet',
@@ -161,25 +152,21 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       sub:   thisCycleSessions.length > 0
         ? `${thisCycleSessions.length} session${thisCycleSessions.length !== 1 ? 's' : ''} · ${cycleVolDelta > 0 ? '+' : ''}${cycleVolDelta}% vs last cycle`
         : 'No sessions this cycle yet',
-      grad: ['#CC4A00', '#FF8C00', '#FFA940'] as const,
-      hi:   '#FFD080',
       tab:  'Progress',
     },
     {
       id:    'pr',
-      tag:   'PERSONAL RECORD',
+      tag:   'Latest record',
       icon:  'trophy',
       hero:  prHero?.hero ?? '—',
       unit:  prHero?.unit ?? 'no records yet',
       title: 'Records',
       sub:   prHero ? prHero.name : 'Beat a previous best to set your first PR',
-      grad:  ['#2A0F9E', '#5B30D6', '#8B63FF'] as const,
-      hi:    '#C4AAFF',
       tab:   'Progress',
     },
     {
       id:    'prev',
-      tag:   'LAST SESSION',
+      tag:   'Last session',
       icon:  'barbell',
       hero:  lastSession ? fmtVol(load(lastSession)) : '—',
       unit:  lastSession ? `${unit} lifted` : 'no sessions yet',
@@ -187,18 +174,15 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
       sub:   lastSession && lastSessDate
         ? `${lastSession.dayLabel} · ${lastSessDate}`
         : 'Complete a workout to see history',
-      grad: ['#062D6B', '#0D5BC4', '#3A94F5'] as const,
-      hi:   '#8FCEFF',
       tab:  'Progress',
     },
   ];
 
-  const ringColor = DAY_COLOR[currentDay] ?? COLORS.accent;
 
 
   return (
     <View style={s.wrap}>
-      <Text style={s.label}>HIGHLIGHTS</Text>
+      <Text style={s.label}>Highlights</Text>
 
       <Animated.ScrollView
         horizontal
@@ -215,7 +199,7 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
             onPress={() => onNavigate(card.tab)}
             style={i < cards.length - 1 ? s.cardGap : undefined}
           >
-            <CardView card={card} ringColor={ringColor} />
+            <CardView card={card} />
           </AnimatedPressable>
         ))}
       </Animated.ScrollView>
@@ -232,80 +216,53 @@ export function HighlightSlideshow({ sessions, currentDay, cycleStartDate, planL
 // Page dot that widens and warms as its card scrolls into place, tracking the
 // finger continuously instead of snapping when the swipe settles.
 function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }) {
+  // Plain strings: ink() is a JS function and can't be called on the UI thread.
+  const idle = ink(0.18);
+  const active = COLORS.accent;
   const style = useAnimatedStyle(() => {
     const pos = scrollX.value / (CARD_W + GAP);
     const t = Math.max(0, 1 - Math.abs(pos - index));
     return {
       width: interpolate(t, [0, 1], [6, 20]),
-      backgroundColor: interpolateColor(t, [0, 1], ['rgba(255,255,255,0.18)', COLORS.accent]),
+      backgroundColor: interpolateColor(t, [0, 1], [idle, active]),
     };
   });
   return <Animated.View style={[s.dot, style]} />;
 }
 
-function CardView({ card, ringColor }: { card: CardModel; ringColor: string }) {
+function CardView({ card }: { card: CardModel }) {
   return (
     <View style={s.card}>
-      <LinearGradient
-        colors={card.grad}
-        start={{ x: 0.05, y: 0 }}
-        end={{ x: 0.95, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative rings tinted by current cycle day */}
-      <View style={[ring.outer, { borderColor: toRgba(ringColor, 0.32) }]} />
-      <View style={[ring.inner, { borderColor: toRgba(ringColor, 0.22) }]} />
-
-      {/* Tag + icon row */}
       <View style={s.topRow}>
-        <View style={s.tagPill}>
-          <Text style={s.tagTxt}>{card.tag}</Text>
-        </View>
+        <Text style={s.tagTxt}>{card.tag}</Text>
         <View style={s.iconCircle}>
-          <Ionicons name={card.icon as any} size={15} color={card.hi} />
+          <Ionicons name={card.icon as any} size={16} color={COLORS.accent} />
         </View>
       </View>
 
-      {/* Hero number */}
       <View style={s.heroWrap}>
         <Text style={s.heroNum} adjustsFontSizeToFit numberOfLines={1}>{card.hero}</Text>
-        <Text style={[s.heroUnit, { color: card.hi }]}>{card.unit}</Text>
+        <Text style={s.heroUnit}>{card.unit}</Text>
       </View>
 
-      {/* Bottom frosted panel */}
-      {Platform.OS === 'ios' ? (
-        <BlurView intensity={26} tint="dark" style={s.panel}>
-          <PanelRow card={card} />
-        </BlurView>
-      ) : (
-        <View style={[s.panel, { backgroundColor: 'rgba(0,0,0,0.42)' }]}>
-          <PanelRow card={card} />
+      <View style={s.panelRow}>
+        <View style={s.panelText}>
+          <Text style={s.panelTitle}>{card.title}</Text>
+          <Text style={s.panelSub} numberOfLines={1}>{card.sub}</Text>
         </View>
-      )}
-    </View>
-  );
-}
-
-function PanelRow({ card }: { card: CardModel }) {
-  return (
-    <View style={s.panelRow}>
-      <View style={s.panelText}>
-        <Text style={s.panelTitle}>{card.title}</Text>
-        <Text style={s.panelSub} numberOfLines={1}>{card.sub}</Text>
-      </View>
-      <View style={[s.arrow, { backgroundColor: `${card.hi}1A` }]}>
-        <Ionicons name="arrow-forward" size={13} color={card.hi} />
+        <View style={s.arrow}>
+          <Ionicons name="arrow-forward" size={14} color={COLORS.accent} />
+        </View>
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   wrap:  { marginBottom: 8 },
   label: {
-    fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted,
-    letterSpacing: 0.88, textTransform: 'uppercase',
+    fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted,
+    letterSpacing: 0,
     marginBottom: 10, marginHorizontal: SIDE,
   },
 
@@ -315,44 +272,27 @@ const s = StyleSheet.create({
     width: CARD_W, height: CARD_H,
     borderRadius: 22, overflow: 'hidden',
     justifyContent: 'space-between',
+    backgroundColor: COLORS.surface, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: COLORS.border,
   },
 
-  topRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
-  tagPill:    {
-    backgroundColor: 'rgba(0,0,0,0.28)',
-    borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-  },
-  tagTxt:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: 'rgba(255,255,255,0.78)', letterSpacing: 0.64, textTransform: 'uppercase' },
-  iconCircle: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.24)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  topRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16 },
+  tagTxt:     { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  iconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: accentA(0.12), alignItems: 'center', justifyContent: 'center' },
 
-  heroWrap: { paddingHorizontal: 16, paddingBottom: 8 },
-  heroNum:  { fontSize: 54, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -2.16, lineHeight: 58 },
-  heroUnit: { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, letterSpacing: -0.36, marginTop: -2 },
+  heroWrap: { paddingHorizontal: 16 },
+  heroNum:  { fontSize: 52, fontFamily: FONTS.data, color: COLORS.accent, letterSpacing: -1.6, lineHeight: 58, fontVariant: ['tabular-nums'] },
+  heroUnit: { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textSecondary, marginTop: -2 },
 
-  panel:      { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.09)', overflow: 'hidden' },
-  panelRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 10 },
+  panelRow:   {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: COLORS.border,
+  },
   panelText:  { flex: 1 },
-  panelTitle: { fontSize: 14, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.56 },
-  panelSub:   { fontSize: 11, fontFamily: FONTS.body, color: 'rgba(255,255,255,0.52)', marginTop: 2 },
-  arrow:      { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  panelTitle: { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
+  panelSub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 2 },
+  arrow:      { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.12) },
 
   dots:      { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 11 },
-  dot:       { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
-});
+  dot:       { width: 6, height: 6, borderRadius: 3, backgroundColor: ink(0.18) },
+}));
 
-const ring = StyleSheet.create({
-  outer: {
-    position: 'absolute', width: 210, height: 210, borderRadius: 105,
-    borderWidth: 34, top: -85, right: -65,
-  },
-  inner: {
-    position: 'absolute', width: 130, height: 130, borderRadius: 65,
-    borderWidth: 22, bottom: 24, left: -45,
-  },
-});

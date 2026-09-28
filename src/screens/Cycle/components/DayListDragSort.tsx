@@ -10,6 +10,7 @@ import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay, WorkoutSession } from '../../../types';
 import { getStatus } from '../helpers';
 import { DayCard, dc } from './DayCard';
+import { ink, themed } from '../../../theme/runtime';
 
 // Initial guess for a day card's rendered height — used to seed the drag-sort
 // layout map before onLayout fires with the real measurement.
@@ -207,7 +208,7 @@ export function DayListDragSort({
 
       {dragFrom !== null && (
         <Animated.View style={[dl.float, { transform: [{ translateY: floatY }], opacity: 0.92 }]} pointerEvents="none">
-          <GlassView radius={16} style={dl.floatCard} borderColor="rgba(255,255,255,0.20)">
+          <GlassView radius={16} style={dl.floatCard} borderColor={ink(0.2)}>
             <View style={[dc.numBadge, dc.numBadgeMuted]}>
               {/* Float preview shows the slot the card was picked up from,
                   matching the slot-based numbering in the rendered list. */}
@@ -223,10 +224,10 @@ export function DayListDragSort({
   );
 }
 
-const dl = StyleSheet.create({
+const dl = themed(() => StyleSheet.create({
   line:       { height: 2, borderRadius: 1, backgroundColor: COLORS.accent, marginVertical: 2, marginHorizontal: 16 },
   floatCard:  { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  floatLabel: { flex: 1, fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
+  floatLabel: { flex: 1, fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
   float: {
     position: 'absolute', left: 0, right: 0, top: 0, zIndex: 999,
     ...Platform.select({
@@ -234,4 +235,4 @@ const dl = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
-});
+}));

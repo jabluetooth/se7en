@@ -2,12 +2,12 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable, fireHaptic } from '../../motion/AnimatedPressable';
 import { TIMING } from '../../motion/tokens';
 import { GRAD, COLORS } from '../../constants';
+import { currentTheme, themed } from '../../theme/runtime';
 
 export type TabName = 'Home' | 'Cycle' | 'Progress' | 'Settings';
 
@@ -33,17 +33,10 @@ export function FloatingDock({ activeTab, onTabPress }: Props) {
   return (
     <View style={[s.wrapper, { paddingBottom: insets.bottom + 8 }]} pointerEvents="box-none">
       <View style={s.shadowWrap}>
-        {Platform.OS === 'ios' ? (
-          // systemUltraThinMaterialDark = actual Apple system glass (matches GlassView)
-          <BlurView intensity={50} tint="systemUltraThinMaterialDark" style={s.dock}>
-            <View style={[StyleSheet.absoluteFill, s.tint]} />
-            <DockContent activeTab={activeTab} onTabPress={onTabPress} />
-          </BlurView>
-        ) : (
-          <View style={[s.dock, s.androidDock]}>
-            <DockContent activeTab={activeTab} onTabPress={onTabPress} />
-          </View>
-        )}
+        {/* Flat surface in the active theme (was frosted blur). */}
+        <View style={[s.dock, { backgroundColor: COLORS.surfaceElevated, borderColor: COLORS.border }]}>
+          <DockContent activeTab={activeTab} onTabPress={onTabPress} />
+        </View>
       </View>
     </View>
   );
@@ -83,7 +76,7 @@ function DockContent({ activeTab, onTabPress }: Props) {
             <Ionicons
               name={active ? tab.iconFocused : tab.icon}
               size={active ? 24 : 22}
-              color={active ? '#fff' : COLORS.textSecondary}
+              color={active ? COLORS.onAccent : COLORS.textMuted}
             />
           </AnimatedPressable>
         );
@@ -92,7 +85,7 @@ function DockContent({ activeTab, onTabPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   wrapper: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     alignItems: 'center',
@@ -103,10 +96,11 @@ const s = StyleSheet.create({
       ios: {
         shadowColor:   '#000',
         shadowOffset:  { width: 0, height: 8 },
-        shadowOpacity: 0.55,
-        shadowRadius:  28,
+        // Strong enough to lift the dock off a dark page, soft on a light one.
+        shadowOpacity: currentTheme() === 'dark' ? 0.45 : 0.10,
+        shadowRadius:  24,
       },
-      android: { elevation: 16 },
+      android: { elevation: currentTheme() === 'dark' ? 12 : 6 },
     }),
   },
   dock: {
@@ -114,19 +108,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     height: DOCK_HEIGHT,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
     borderRadius: DOCK_RADIUS,
     paddingHorizontal: PAD,
     paddingVertical: PAD,
     gap: GAP,
     overflow: 'hidden',
-  },
-  tint: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: DOCK_RADIUS,
-  },
-  androidDock: {
-    backgroundColor: 'rgba(20,22,30,0.92)',
   },
   indicator: {
     position: 'absolute',
@@ -142,4 +128,4 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

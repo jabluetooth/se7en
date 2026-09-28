@@ -17,6 +17,7 @@ import { usePlanStore }             from '../stores/planStore';
 import { useAuthStore }             from '../stores/authStore';
 import { WorkoutSession, WorkoutDay } from '../types';
 import { FeedbackHost } from '../components/feedback/Feedback';
+import { themed } from '../theme/runtime';
 
 // The floating dock is an overlay — it sits ON TOP of screen content so the
 // page background extends edge-to-edge (including behind the dock + home
@@ -32,8 +33,13 @@ type WorkoutModal =
   | { phase: 'active' }
   | { phase: 'summary'; session: WorkoutSession };
 
+// Survives the remount App does on a theme switch, so flipping Dark/Light
+// in Settings keeps you on Settings instead of jumping back to Home.
+let lastTab: TabName = 'Home';
+
 export function AppNavigator() {
-  const [activeTab,       setActiveTab      ] = useState<TabName>('Home');
+  const [activeTab,       setActiveTab      ] = useState<TabName>(lastTab);
+  useEffect(() => { lastTab = activeTab; }, [activeTab]);
   const [workoutModal,    setWorkoutModal    ] = useState<WorkoutModal>({ phase: 'hidden' });
   const [showBuilder,     setShowBuilder     ] = useState(false);
   const [showCoach,       setShowCoach       ] = useState(false);
@@ -103,7 +109,7 @@ export function AppNavigator() {
   // Tabs are mounted the first time they're opened, then kept alive so each
   // keeps its scroll position and loaded state instead of rebuilding on every
   // switch.
-  const [visited, setVisited] = useState<TabName[]>(['Home']);
+  const [visited, setVisited] = useState<TabName[]>([activeTab]);
   useEffect(() => {
     setVisited(v => (v.includes(activeTab) ? v : [...v, activeTab]));
   }, [activeTab]);
@@ -122,7 +128,7 @@ export function AppNavigator() {
       case 'Settings': return (
         <SettingsScreen
           onOpenExerciseBuilder={() => setShowBuilder(true)}
-          onSignOut={signOut}
+          onSignOut={() => { lastTab = 'Home'; return signOut(); }}
           userEmail={user?.email ?? undefined}
           userName={user?.displayName ?? undefined}
         />
@@ -280,7 +286,7 @@ function TabScene({ active, children }: { active: boolean; children: React.React
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   container: { flex: 1 },
   content:   { flex: 1 },
-});
+}));

@@ -5,6 +5,7 @@ import {
 import { AnimatedPressable } from '../../motion/AnimatedPressable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRAD, COLORS, BORDER_RADIUS, SPACING, FONTS } from '../../constants';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent_ghost';
 
@@ -34,7 +35,7 @@ export function Button({
 
   // Text color per variant
   const textColor =
-    variant === 'primary'      ? '#FFFFFF' :   // white on iOS blue
+    variant === 'primary'      ? COLORS.onAccent :   // dark on orange
     variant === 'danger'       ? '#FFFFFF' :   // white on red
     variant === 'secondary'    ? COLORS.text :
     variant === 'accent_ghost' ? COLORS.accent :
@@ -44,7 +45,7 @@ export function Button({
     <View style={[styles.inner, { height: h, paddingHorizontal: px, borderRadius: r, gap: 8 }]}>
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' || variant === 'danger' ? '#fff' : COLORS.accent}
+          color={variant === 'primary' ? COLORS.onAccent : variant === 'danger' ? '#fff' : COLORS.accent}
           size="small"
         />
       ) : (
@@ -115,14 +116,14 @@ export function Button({
   const bg = variant === 'secondary'
     ? COLORS.glass06
     : variant === 'accent_ghost'
-    ? 'rgba(255,140,0,0.10)'
+    ? accentA(0.1)
     : 'transparent';
 
   const bc = variant === 'secondary'
     ? COLORS.glassBorder
     : variant === 'accent_ghost'
-    ? 'rgba(255,140,0,0.28)'
-    : 'rgba(255,240,220,0.14)';
+    ? accentA(0.28)
+    : ink(0.14);
 
   return (
     <AnimatedPressable
@@ -143,7 +144,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => StyleSheet.create({
   inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  label: { fontWeight: '600', fontFamily: FONTS.semibold, letterSpacing: -0.2 },
-});
+  label: { fontFamily: FONTS.semibold, letterSpacing: -0.2 },
+}));

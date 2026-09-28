@@ -11,6 +11,7 @@ import { askCoachProactive, clearCoachCache } from '../../services/coachService'
 import { useAuthStore }    from '../../stores/authStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { COLORS, SPACING, FONTS } from '../../constants';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -107,10 +108,10 @@ function TypingDot({ index, phase, still }: { index: number; phase: SharedValue<
   return <Animated.View style={[td.dot, style]} />;
 }
 
-const td = StyleSheet.create({
+const td = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', gap: 5, paddingVertical: 6 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: COLORS.accent },
-});
+}));
 
 // ─── Rate-limit countdown ─────────────────────────────────────────────────────
 
@@ -125,12 +126,12 @@ function RateLimitBanner({ secsLeft, onRetry }: { secsLeft: number; onRetry: () 
   );
 }
 
-const rl = StyleSheet.create({
-  wrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.06)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.18)' },
-  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontWeight: '600', fontFamily: FONTS.semibold },
-  btn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,140,0,0.35)', backgroundColor: 'rgba(255,140,0,0.12)' },
-  btnTxt: { fontSize: 11, color: COLORS.accent, fontWeight: '800', fontFamily: FONTS.display },
-});
+const rl = themed(() => StyleSheet.create({
+  wrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8, padding: 8, borderRadius: 10, backgroundColor: accentA(0.06), borderWidth: 1, borderColor: accentA(0.18) },
+  txt:    { flex: 1, fontSize: 11, color: COLORS.accent, fontFamily: FONTS.semibold },
+  btn:    { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: accentA(0.35), backgroundColor: accentA(0.12) },
+  btnTxt: { fontSize: 11, color: COLORS.accent, fontFamily: FONTS.display },
+}));
 
 // ─── InsightHeader ────────────────────────────────────────────────────────────
 
@@ -165,13 +166,13 @@ function InsightHeader({ cached, loading }: { cached?: boolean; loading?: boolea
   );
 }
 
-const ih = StyleSheet.create({
+const ih = themed(() => StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: SPACING.sm },
-  label:     { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.80, textTransform: 'uppercase' },
-  line:      { flex: 1, height: 1, backgroundColor: 'rgba(255,140,0,0.15)' },
-  cachedPill:{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
-  cachedTxt: { fontSize: 11, color: COLORS.textLabel, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
-});
+  label:     { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
+  line:      { flex: 1, height: 1, backgroundColor: accentA(0.15) },
+  cachedPill:{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: ink(0.12), backgroundColor: ink(0.06) },
+  cachedTxt: { fontSize: 11, color: COLORS.textLabel, fontFamily: FONTS.display, letterSpacing: 0 },
+}));
 
 // ─── CoachWidget ──────────────────────────────────────────────────────────────
 
@@ -315,16 +316,16 @@ export function CoachWidget({ onAskMore }: Props) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   card:        { marginHorizontal: 16, marginBottom: 8 },
   cardInner:   { padding: SPACING.md, paddingBottom: SPACING.sm, overflow: 'hidden' },
-  accentBar:   { position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, backgroundColor: 'rgba(255,140,0,0.35)' },
+  accentBar:   { position: 'absolute', top: 0, left: 0, right: 0, height: 1.5, backgroundColor: accentA(0.35) },
   messageText: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 21, letterSpacing: -0.13 },
-  cursor:      { color: COLORS.accent, fontWeight: '900' },
+  cursor:      { color: COLORS.accent, fontFamily: FONTS.display },
   errorText:   { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted, fontStyle: 'italic', lineHeight: 18 },
-  footer:      { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
+  footer:      { flexDirection: 'row', alignItems: 'center', marginTop: SPACING.sm, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: ink(0.07) },
   refreshBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingRight: 12 },
-  refreshTxt:  { fontSize: 11, color: COLORS.textLabel, fontWeight: '600', fontFamily: FONTS.semibold, letterSpacing: -0.11 },
-  askBtn:      { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,140,0,0.28)', backgroundColor: 'rgba(255,140,0,0.08)' },
-  askTxt:      { fontSize: 12, fontWeight: '800', fontFamily: FONTS.display, color: COLORS.accent, letterSpacing: -0.48 },
-});
+  refreshTxt:  { fontSize: 11, color: COLORS.textLabel, fontFamily: FONTS.semibold, letterSpacing: -0.11 },
+  askBtn:      { marginLeft: 'auto', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: accentA(0.28), backgroundColor: accentA(0.08) },
+  askTxt:      { fontSize: 12, fontFamily: FONTS.display, color: COLORS.accent, letterSpacing: -0.48 },
+}));

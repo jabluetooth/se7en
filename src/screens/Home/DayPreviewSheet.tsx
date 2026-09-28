@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { sessionLoad } from '../../utils/volume';
 import { planLabel } from '../../utils/format';
 import { relativeDay, type CycleSlot } from '../../utils/cycleView';
+import { ink, themed } from '../../theme/runtime';
 
 interface Props {
   slot:      CycleSlot | null;
@@ -130,7 +131,7 @@ export function DayPreviewSheet({ slot, canStart, onStart, onEdit, onClose }: Pr
   );
 }
 
-const sh = StyleSheet.create({
+const sh = themed(() => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet:    {
     position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '82%',
@@ -139,21 +140,21 @@ const sh = StyleSheet.create({
     backgroundColor: COLORS.surface, borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.border,
   },
   grabber:  { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginBottom: 16 },
-  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   title:    { fontSize: 28, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1, marginTop: 4 },
   date:     { fontSize: 14, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
   chip:     { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 14, marginBottom: 16, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },
   chipTxt:  { fontSize: 13, fontFamily: FONTS.semibold },
   restTxt:  { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 22, marginBottom: 8 },
   list:     { flexGrow: 0, marginBottom: 4 },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: 'rgba(255,240,220,0.04)' },
+  row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: ink(0.04) },
   idx:      { width: 20, fontSize: 14, fontFamily: FONTS.dataBold, color: COLORS.textLabel, textAlign: 'center' },
   exName:   { fontSize: 15, fontFamily: FONTS.headline, color: COLORS.text },
   exMeta:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, marginTop: 2 },
   actions:  { gap: 8, marginTop: 16 },
   primary:  { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accent },
-  primaryTxt: { fontSize: 16, fontFamily: FONTS.display, color: '#000' },
+  primaryTxt: { fontSize: 16, fontFamily: FONTS.display, color: COLORS.onAccent },
   secondary:  { height: 48, borderRadius: 14, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
-  secondaryAlone: { height: 50, borderRadius: 14, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)' },
+  secondaryAlone: { height: 50, borderRadius: 14, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: ink(0.14) },
   secondaryTxt: { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-});
+}));

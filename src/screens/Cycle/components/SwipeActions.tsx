@@ -3,6 +3,7 @@ import { Text, StyleSheet, Animated } from 'react-native';
 import { AnimatedPressable } from '../../../motion/AnimatedPressable';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../../constants';
+import { themed } from '../../../theme/runtime';
 
 // ─── Swipe-LEFT actions: Edit / Clear (revealed from the right edge) ─────────
 
@@ -30,25 +31,25 @@ export function SwipeActions({
   return (
     <Animated.View style={[sw.row, sw.rowRight, { transform: [{ translateX }], opacity }]}>
       <AnimatedPressable style={sw.editBtn} onPress={onEdit}>
-        <Ionicons name="pencil" size={16} color="#fff" />
+        <Ionicons name="pencil" size={16} color={COLORS.text} />
         <Text style={sw.editTxt}>Edit</Text>
       </AnimatedPressable>
       <AnimatedPressable style={sw.clearBtn} onPress={onClear}>
-        <Ionicons name="trash-outline" size={16} color="#fff" />
+        <Ionicons name="trash-outline" size={16} color={COLORS.text} />
         <Text style={sw.clearTxt}>Clear</Text>
       </AnimatedPressable>
     </Animated.View>
   );
 }
 
-const sw = StyleSheet.create({
+const sw = themed(() => StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   rowRight: { paddingLeft: 10, paddingRight: 16 },
   editBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.accent, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, marginRight: 6 },
-  editTxt:  { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
+  editTxt:  { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.text },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.danger, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
-  clearTxt: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff' },
-});
+  clearTxt: { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.text },
+}));
 
 // ─── Swipe-RIGHT action: Done button ─────────────────────────────────────────
 
@@ -78,16 +79,16 @@ export function DoneAction({
   return (
     <Animated.View style={[sd.row, sd.rowLeft, { transform: [{ translateX }], opacity }]}>
       <AnimatedPressable style={sd.btn} onPress={onPress}>
-        <Ionicons name="checkmark-circle" size={18} color="#000" />
+        <Ionicons name="checkmark-circle" size={18} color={COLORS.onAccent} />
         <Text style={sd.txt}>Done</Text>
       </AnimatedPressable>
     </Animated.View>
   );
 }
 
-const sd = StyleSheet.create({
+const sd = themed(() => StyleSheet.create({
   row:     { width: DONE_ACTION_WIDTH, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 8 },
   rowLeft: { paddingRight: 10 },
-  btn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#34D399', paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
-  txt:     { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: '#000' },
-});
+  btn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.success, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14 },
+  txt:     { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.onAccent },
+}));

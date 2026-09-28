@@ -6,6 +6,7 @@ import { COLORS, FONTS } from '../../../constants';
 import { WorkoutDay } from '../../../types';
 import { planLabel } from '../../../utils/format';
 import { enterFade, enterRise } from '../../../motion/presets';
+import { ink, themed } from '../../../theme/runtime';
 
 interface Props {
   nextDay?:    WorkoutDay;
@@ -66,7 +67,7 @@ export function NextUpPage({ nextDay, width, visible, bottomInset }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   page:     { paddingHorizontal: 16, paddingTop: 8 },
   center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -74,7 +75,7 @@ const s = StyleSheet.create({
   emptySub: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 6 },
 
   head:     { alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 26 },
-  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.88, textTransform: 'uppercase' },
+  eyebrow:  { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   dayName:  { fontSize: 32, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -1.28, lineHeight: 36, textAlign: 'center' },
   daySub:   { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center' },
 
@@ -82,11 +83,11 @@ const s = StyleSheet.create({
   row:      {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16,
-    backgroundColor: 'rgba(255,240,220,0.04)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)',
+    backgroundColor: ink(0.04), borderWidth: 1, borderColor: ink(0.08),
   },
   index:    { width: 22, fontSize: 15, fontFamily: FONTS.dataBold, color: COLORS.textLabel, textAlign: 'center' },
   rowText:  { flex: 1, minWidth: 0, gap: 3 },
   exName:   { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.4 },
   exMeta:   { fontSize: 13, fontFamily: FONTS.medium, color: COLORS.textMuted, fontVariant: ['tabular-nums'] },
   footnote: { marginTop: 10, fontSize: 12, fontFamily: FONTS.body, color: COLORS.textLabel, textAlign: 'center', lineHeight: 18 },
-});
+}));

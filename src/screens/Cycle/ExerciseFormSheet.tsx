@@ -14,6 +14,7 @@ import { Exercise, SetType, WeightUnit } from '../../types';
 import { EXERCISE_LIBRARY } from '../../data/exercises';
 import { ExerciseLibraryItem } from '../../types';
 import { FeedbackHost } from '../../components/feedback/Feedback';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 // ─── Keyword → muscle group mapping ──────────────────────────────────────────
 
@@ -87,12 +88,12 @@ function Stepper({
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 0 },
-  btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.07)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
+  btn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: ink(0.07), borderWidth: 1, borderColor: ink(0.1) },
   val: { minWidth: 56, alignItems: 'center', paddingHorizontal: 12 },
-  num: { fontSize: 26, fontWeight: '800', fontFamily: FONTS.data, color: '#fff', letterSpacing: -1.04 },
-});
+  num: { fontSize: 26, fontFamily: FONTS.data, color: COLORS.text, letterSpacing: -1.04 },
+}));
 
 // ─── Search suggestions ───────────────────────────────────────────────────────
 
@@ -138,16 +139,16 @@ function Suggestions({
   );
 }
 
-const sg = StyleSheet.create({
+const sg = themed(() => StyleSheet.create({
   wrap:     { marginTop: 10, marginBottom: 6 },
-  label:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.08)', backgroundColor: 'rgba(255,240,220,0.04)', marginBottom: 6 },
+  label:    { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 8 },
+  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: ink(0.08), backgroundColor: ink(0.04), marginBottom: 6 },
   left:     { flex: 1 },
-  name:     { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', marginBottom: 2 },
+  name:     { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text, marginBottom: 2 },
   meta:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted },
   badge:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  badgeTxt: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline },
-});
+  badgeTxt: { fontSize: 11, fontFamily: FONTS.headline },
+}));
 
 // ─── Form ──────────────────────────────────────────────────────────────────────
 
@@ -240,19 +241,19 @@ function RestTimerSlider({
   );
 }
 
-const sl = StyleSheet.create({
+const sl = themed(() => StyleSheet.create({
   track:    { height: 36, justifyContent: 'center', marginBottom: 2 },
-  trackBg:  { position: 'absolute', left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,240,220,0.12)' },
+  trackBg:  { position: 'absolute', left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: ink(0.12) },
   trackFg:  { position: 'absolute', left: 0, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
   thumb:    { position: 'absolute', top: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff',
               shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
   ticks:    { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   tickWrap: { alignItems: 'center', gap: 3 },
-  tick:     { width: 3, height: 3, borderRadius: 1.5, backgroundColor: 'rgba(255,240,220,0.18)' },
+  tick:     { width: 3, height: 3, borderRadius: 1.5, backgroundColor: ink(0.18) },
   tickActive:   { backgroundColor: COLORS.accent },
-  tickLbl:      { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
-  tickLblActive:{ fontFamily: FONTS.headline, color: COLORS.accent, fontWeight: '700' },
-});
+  tickLbl:      { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel },
+  tickLblActive:{ fontFamily: FONTS.headline, color: COLORS.accent },
+}));
 
 const SET_TYPES: SetType[] = [
   'standard', 'repRange', 'toFailure', 'superset', 'dropSet', 'pyramid', 'progressive',
@@ -362,7 +363,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
               value={name}
               onChangeText={setName}
               placeholder="Exercise name…"
-              placeholderTextColor="rgba(255,240,220,0.30)"
+              placeholderTextColor={ink(0.3)}
               returnKeyType="done"
               autoCorrect={false}
               autoFocus={!isEdit}
@@ -474,7 +475,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                           value={weight}
                           onChangeText={setWeight}
                           placeholder="0"
-                          placeholderTextColor="rgba(255,240,220,0.25)"
+                          placeholderTextColor={ink(0.25)}
                           keyboardType="decimal-pad"
                           selectTextOnFocus
                         />
@@ -529,7 +530,7 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
                       value={notes}
                       onChangeText={setNotes}
                       placeholder="Cues, reminders…"
-                      placeholderTextColor="rgba(255,240,220,0.25)"
+                      placeholderTextColor={ink(0.25)}
                       multiline
                     />
                   </View>
@@ -548,17 +549,17 @@ export function ExerciseFormSheet({ visible, initial, dayLabel, nextOrder, onSav
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const f = StyleSheet.create({
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
+const f = themed(() => StyleSheet.create({
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: ink(0.2), alignSelf: 'center', marginTop: 10, marginBottom: 8 },
   header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
   headerSide:  { width: 60 },
   headerRight: { alignItems: 'flex-end' },
   cancel:      { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent },
-  titleInput:  { flex: 1, fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51, textAlign: 'center', padding: 0 },
-  save:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  titleInput:  { flex: 1, fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.51, textAlign: 'center', padding: 0 },
+  save:        { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:     { paddingHorizontal: 20, paddingTop: 4 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10 },
+  fieldLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10 },
 
   // Vertically stacked sections (sets, min reps, max reps)
   stackSection: { marginTop: 24 },
@@ -567,37 +568,37 @@ const f = StyleSheet.create({
   // Side-by-side row (used in advanced weight/unit section)
   quickRow:    { flexDirection: 'row', gap: 0, marginTop: 20 },
   quickField:  { flex: 1 },
-  quickDivider:{ width: 1, backgroundColor: 'rgba(255,240,220,0.07)', marginHorizontal: 16, marginTop: 24 },
+  quickDivider:{ width: 1, backgroundColor: ink(0.07), marginHorizontal: 16, marginTop: 24 },
 
   // Rest timer
   restHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  restCurrent: { fontSize: 13, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  restCurrent: { fontSize: 13, fontFamily: FONTS.headline, color: COLORS.accent },
 
   // Advanced toggle
-  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.09)' },
-  advancedLabel:  { fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  advancedToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.09) },
+  advancedLabel:  { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   advancedRight:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tagDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent },
 
   // Chips
   chipGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,240,220,0.12)', backgroundColor: 'rgba(255,240,220,0.06)' },
-  chipActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.14)' },
-  chipTxt:    { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  chip:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: ink(0.12), backgroundColor: ink(0.06) },
+  chipActive: { borderColor: COLORS.accent, backgroundColor: accentA(0.14) },
+  chipTxt:    { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   chipTxtActive: { color: COLORS.accent },
 
   // Weight
   weightWrap:  { paddingHorizontal: 14, paddingVertical: 14, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  weightInput: { fontSize: 22, fontWeight: '700', color: '#fff', padding: 0, textAlign: 'center' },
+  weightInput: { fontSize: 22, fontFamily: FONTS.display, color: COLORS.text, padding: 0, textAlign: 'center' },
 
   // Unit
   unitCol:    { gap: 6 },
-  unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', backgroundColor: 'rgba(255,240,220,0.04)', alignItems: 'center' },
-  unitBtnActive: { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.12)' },
-  unitTxt:    { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  unitBtn:    { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: ink(0.1), backgroundColor: ink(0.04), alignItems: 'center' },
+  unitBtnActive: { borderColor: COLORS.accent, backgroundColor: accentA(0.12) },
+  unitTxt:    { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
   unitTxtActive: { color: COLORS.accent },
 
   // Notes
   notesWrap:  { paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  notesInput: { fontSize: 15, fontFamily: FONTS.body, color: '#fff', padding: 0, minHeight: 60 },
-});
+  notesInput: { fontSize: 15, fontFamily: FONTS.body, color: COLORS.text, padding: 0, minHeight: 60 },
+}));

@@ -12,6 +12,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { GRAD, COLORS, SPLIT_TYPES, FONTS } from '../../constants';
 import { WorkoutDay, WorkoutPlan } from '../../types';
 import { FeedbackHost } from '../../components/feedback/Feedback';
+import { accentA, dangerA, ink, restA, themed } from '../../theme/runtime';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -184,14 +185,14 @@ function DayDragSort({ days, onReorder }: DayDragProps) {
   );
 }
 
-const dd = StyleSheet.create({
+const dd = themed(() => StyleSheet.create({
   dayRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, height: DAY_H, paddingHorizontal: 14 },
-  dayRowLifted:{ backgroundColor: 'rgba(255,140,0,0.08)', borderRadius: 12 },
-  badge:       { width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,140,0,0.18)', alignItems: 'center', justifyContent: 'center' },
-  badgeRest:   { backgroundColor: 'rgba(100,210,255,0.12)' },
-  badgeNum:    { fontSize: 12, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  dayRowLifted:{ backgroundColor: accentA(0.08), borderRadius: 12 },
+  badge:       { width: 26, height: 26, borderRadius: 8, backgroundColor: accentA(0.18), alignItems: 'center', justifyContent: 'center' },
+  badgeRest:   { backgroundColor: restA(0.12) },
+  badgeNum:    { fontSize: 12, fontFamily: FONTS.headline, color: COLORS.accent },
   badgeNumRest:{ color: COLORS.rest },
-  label:       { flex: 1, fontSize: 14, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff' },
+  label:       { flex: 1, fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.text },
   sub:         { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textMuted },
   line:        { height: 2, marginHorizontal: 14, borderRadius: 1, backgroundColor: COLORS.accent },
   float:       {
@@ -201,7 +202,7 @@ const dd = StyleSheet.create({
       android: { elevation: 8 },
     }),
   },
-});
+}));
 
 // ─── Sheet ────────────────────────────────────────────────────────────────────
 
@@ -292,7 +293,7 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: '#08090F' }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.background }}>
         <LinearGradient colors={GRAD.bg} locations={GRAD.bgLocations} start={GRAD.bgStart} end={GRAD.bgEnd} style={StyleSheet.absoluteFill} />
 
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -409,31 +410,31 @@ export function PlanEditSheet({ visible, plan, onClose }: Props) {
   );
 }
 
-const f = StyleSheet.create({
-  handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+const f = themed(() => StyleSheet.create({
+  handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: ink(0.2), alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 },
   cancel:       { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent },
-  title:        { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.48 },
-  save:         { fontSize: 16, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent },
+  title:        { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.48 },
+  save:         { fontSize: 16, fontFamily: FONTS.headline, color: COLORS.accent },
 
   scroll:       { paddingHorizontal: 20, paddingTop: 4 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.label, color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.88, marginBottom: 10, marginTop: 20 },
+  sectionLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textSecondary, letterSpacing: 0, marginBottom: 10, marginTop: 20 },
   subLabel:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textMuted, marginTop: 8, marginBottom: 0 },
 
   inputCard:    { paddingHorizontal: 14, paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
-  textInput:    { fontSize: 16, fontWeight: '600', fontFamily: FONTS.semibold, color: '#fff', padding: 0 },
+  textInput:    { fontSize: 16, fontFamily: FONTS.semibold, color: COLORS.text, padding: 0 },
 
   chipGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,240,220,0.14)', backgroundColor: 'rgba(255,240,220,0.07)' },
-  chipActive:   { borderColor: COLORS.accent, backgroundColor: 'rgba(255,140,0,0.15)' },
-  chipTxt:      { fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textSecondary },
-  chipTxtActive:{ color: COLORS.accent, fontWeight: '700', fontFamily: FONTS.headline },
+  chip:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: ink(0.14), backgroundColor: ink(0.07) },
+  chipActive:   { borderColor: COLORS.accent, backgroundColor: accentA(0.15) },
+  chipTxt:      { fontSize: 13, fontFamily: FONTS.semibold, color: COLORS.textSecondary },
+  chipTxtActive:{ color: COLORS.accent, fontFamily: FONTS.headline },
 
   daysHeader:   { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, marginTop: 20 },
   daysHint:     { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel },
   daysCard:     { paddingVertical: 4, overflow: 'hidden', borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.borderFaint },
 
   dangerSection:{ marginTop: 32, alignItems: 'center' },
-  deleteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,69,58,0.25)', backgroundColor: 'rgba(255,69,58,0.08)' },
-  deleteTxt:    { fontSize: 15, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.danger },
-});
+  deleteBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: dangerA(0.25), backgroundColor: dangerA(0.08) },
+  deleteTxt:    { fontSize: 15, fontFamily: FONTS.semibold, color: COLORS.danger },
+}));

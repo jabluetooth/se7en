@@ -11,6 +11,7 @@ import { GlassView } from '../../components/common/GlassView';
 import { COLORS, DAY_COLOR, FONTS } from '../../constants';
 import { PlanPreset } from '../../types';
 import { FeedbackHost } from '../../components/feedback/Feedback';
+import { accentA, dangerA, ink, themed } from '../../theme/runtime';
 
 // ─── Split preview data ───────────────────────────────────────────────────────
 
@@ -143,16 +144,16 @@ function SplitCard({ split, active, onSelect }: {
       <GlassView
         radius={18}
         style={[c.card, active && c.cardActive]}
-        borderColor={active ? `${BLUE}60` : 'rgba(255,240,220,0.10)'}
+        borderColor={active ? `${BLUE}60` : ink(0.1)}
       >
         <View style={c.cardHeader}>
           <View style={c.cardTitles}>
-            <Text style={[c.cardType, active && { color: BLUE }]}>{split.type}</Text>
+            <Text style={[c.cardType, active && { color: COLORS.accent }]}>{split.type}</Text>
             <Text style={c.cardFreq}>{split.frequency}</Text>
           </View>
           {active && (
             <View style={[c.checkBadge, { backgroundColor: COLORS.accent }]}>
-              <Ionicons name="checkmark" size={14} color="#000" />
+              <Ionicons name="checkmark" size={14} color={COLORS.onAccent} />
             </View>
           )}
         </View>
@@ -161,8 +162,8 @@ function SplitCard({ split, active, onSelect }: {
           {DAY_LABELS.map((d, i) => (
             <View key={i} style={c.gridCol}>
               <Text style={c.dayLetter}>{d}</Text>
-              <View style={[c.dayBlock, { backgroundColor: split.days[i].color + (split.days[i].isRest ? '28' : '33') }]}>
-                <View style={[c.dayDot, { backgroundColor: split.days[i].color + (split.days[i].isRest ? '60' : 'CC') }]} />
+              <View style={[c.dayBlock, { backgroundColor: (split.days[i].isRest ? COLORS.textLabel : COLORS.accent) + (split.days[i].isRest ? '28' : '33') }]}>
+                <View style={[c.dayDot, { backgroundColor: (split.days[i].isRest ? COLORS.textLabel : COLORS.accent) + (split.days[i].isRest ? '60' : 'CC') }]} />
               </View>
               <Text style={[c.dayLabel, split.days[i].isRest && c.dayLabelRest]} numberOfLines={1}>
                 {split.days[i].label}
@@ -193,13 +194,13 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
       <GlassView
         radius={18}
         style={[c.card, active && c.cardActive]}
-        borderColor={active ? 'rgba(255,140,0,0.55)' : 'rgba(255,140,0,0.22)'}
+        borderColor={active ? accentA(0.55) : accentA(0.22)}
       >
         <View style={c.cardHeader}>
           <View style={c.cardTitles}>
             <View style={c.presetNameRow}>
               <View style={c.presetBadge}>
-                <Text style={c.presetBadgeTxt}>PRESET</Text>
+                <Text style={c.presetBadgeTxt}>Preset</Text>
               </View>
               <Text style={[c.cardType, active && { color: COLORS.accent }]} numberOfLines={1}>
                 {preset.name}
@@ -210,7 +211,7 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
           <View style={c.presetActions}>
             {active && (
               <View style={[c.checkBadge, { backgroundColor: COLORS.accent }]}>
-                <Ionicons name="checkmark" size={14} color="#000" />
+                <Ionicons name="checkmark" size={14} color={COLORS.onAccent} />
               </View>
             )}
             <AnimatedPressable
@@ -220,7 +221,7 @@ function PresetCard({ preset, active, onSelect, onDelete }: {
               accessibilityRole="button"
               accessibilityLabel={`Delete preset ${preset.name}`}
             >
-              <Ionicons name="trash-outline" size={16} color={COLORS.danger ?? '#FF6B6B'} />
+              <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
             </AnimatedPressable>
           </View>
         </View>
@@ -305,7 +306,7 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
             {/* ── My Presets ── */}
             {presets.length > 0 && (
               <>
-                <Text style={c.sectionLabel}>MY PRESETS</Text>
+                <Text style={c.sectionLabel}>My presets</Text>
                 {presets.map(preset => (
                   <PresetCard
                     key={preset.id}
@@ -315,7 +316,7 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
                     onDelete={() => handleDeletePreset(preset)}
                   />
                 ))}
-                <Text style={c.sectionLabel}>BUILT-IN SPLITS</Text>
+                <Text style={c.sectionLabel}>Built-in splits</Text>
               </>
             )}
 
@@ -339,14 +340,14 @@ export function SplitTypeSheet({ visible, current, presets = [], onSelect, onSel
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const c = StyleSheet.create({
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,240,220,0.20)', alignSelf: 'center', marginTop: 10, marginBottom: 8 },
+const c = themed(() => StyleSheet.create({
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: ink(0.2), alignSelf: 'center', marginTop: 10, marginBottom: 8 },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 4 },
   cancel:      { fontSize: 16, fontFamily: FONTS.body, color: COLORS.accent, width: 60 },
-  title:       { fontSize: 17, fontWeight: '700', fontFamily: FONTS.headline, color: '#fff', letterSpacing: -0.51 },
+  title:       { fontSize: 17, fontFamily: FONTS.headline, color: COLORS.text, letterSpacing: -0.51 },
   subtitle:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
 
-  sectionLabel: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0.80, textTransform: 'uppercase', marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
+  sectionLabel: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.textMuted, letterSpacing: 0, marginBottom: 10, marginTop: 4, paddingHorizontal: 4 },
 
   scroll:      { paddingHorizontal: 16 },
 
@@ -356,25 +357,25 @@ const c = StyleSheet.create({
 
   cardHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 },
   cardTitles:  { flex: 1, marginRight: 8 },
-  cardType:    { fontSize: 18, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.72, marginBottom: 2 },
-  cardFreq:    { fontSize: 12, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  cardType:    { fontSize: 18, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.72, marginBottom: 2 },
+  cardFreq:    { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.textMuted },
   checkBadge:  { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 
   // Preset-specific
   presetNameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-  presetBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(255,140,0,0.20)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.40)' },
-  presetBadgeTxt: { fontSize: 11, fontWeight: '800', fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0.64, textTransform: 'uppercase' },
+  presetBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: accentA(0.2), borderWidth: 1, borderColor: accentA(0.4) },
+  presetBadgeTxt: { fontSize: 11, fontFamily: FONTS.label, color: COLORS.accent, letterSpacing: 0 },
   presetActions:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  deleteBtn:      { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.12)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)' },
+  deleteBtn:      { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: dangerA(0.12), borderWidth: 1, borderColor: dangerA(0.3) },
   presetSaved:    { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textLabel, marginTop: 6, fontStyle: 'italic' },
 
   grid:        { flexDirection: 'row', gap: 4, marginBottom: 14 },
   gridCol:     { flex: 1, alignItems: 'center', gap: 5 },
-  dayLetter:   { fontSize: 11, fontWeight: '600', fontFamily: FONTS.semibold, color: COLORS.textMuted },
+  dayLetter:   { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted },
   dayBlock:    { width: '100%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   dayDot:      { width: 6, height: 6, borderRadius: 3 },
-  dayLabel:    { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.textSecondary, textAlign: 'center' },
+  dayLabel:    { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.textSecondary, textAlign: 'center' },
   dayLabelRest:{ color: COLORS.textLabel },
 
   desc:        { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, lineHeight: 18 },
-});
+}));

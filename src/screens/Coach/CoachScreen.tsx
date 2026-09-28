@@ -16,6 +16,7 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { MOTION } from '../../constants/motion';
 import { generateId } from '../../utils/idGen';
+import { accentA, ink, themed } from '../../theme/runtime';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,9 +64,9 @@ function BackSvg() {
 function SendSvg({ active }: { active: boolean }) {
   return (
     <Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
-      <Path d="M22 2L11 13" stroke={active ? '#000' : COLORS.textMuted}
+      <Path d="M22 2L11 13" stroke={active ? COLORS.onAccent : COLORS.textMuted}
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M22 2L15 22l-4-9-9-4 20-7z" stroke={active ? '#000' : COLORS.textMuted}
+      <Path d="M22 2L15 22l-4-9-9-4 20-7z" stroke={active ? COLORS.onAccent : COLORS.textMuted}
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
@@ -87,10 +88,10 @@ function BoltAvatar({ size = 36, glow = false }: { size?: number; glow?: boolean
   );
 }
 
-const av = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,140,0,0.10)', borderWidth: 1.5, borderColor: 'rgba(255,140,0,0.30)' },
+const av = themed(() => StyleSheet.create({
+  wrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: accentA(0.1), borderWidth: 1.5, borderColor: accentA(0.3) },
   glow: { shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 8 },
-});
+}));
 
 // ─── Context strip (active session only) ─────────────────────────────────────
 
@@ -112,13 +113,13 @@ function ContextStrip({ activeSession }: { activeSession: any | null }) {
   );
 }
 
-const cx = StyleSheet.create({
-  strip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)', backgroundColor: 'rgba(255,140,0,0.04)' },
+const cx = themed(() => StyleSheet.create({
+  strip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: ink(0.06), backgroundColor: accentA(0.04) },
   dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
-  exercise: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.headline, color: COLORS.accent, flex: 1 },
-  sep:      { fontSize: 11, fontFamily: FONTS.body, color: 'rgba(255,240,220,0.25)' },
-  meta:     { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel, fontWeight: '500' },
-});
+  exercise: { fontSize: 11, fontFamily: FONTS.headline, color: COLORS.accent, flex: 1 },
+  sep:      { fontSize: 11, fontFamily: FONTS.body, color: ink(0.25) },
+  meta:     { fontSize: 11, fontFamily: FONTS.medium, color: COLORS.textLabel },
+}));
 
 // ─── Typing indicator ─────────────────────────────────────────────────────────
 
@@ -196,10 +197,10 @@ const MessageBubble = React.memo(function MessageBubble({ msg }: { msg: ChatMess
   );
 });
 
-const b = StyleSheet.create({
+const b = themed(() => StyleSheet.create({
   userRow:    { alignItems: 'flex-end', marginBottom: 10 },
   userBubble: { borderRadius: 16, borderTopRightRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '82%' },
-  userText:   { fontSize: 14, fontFamily: FONTS.semibold, color: '#000', fontWeight: '600', lineHeight: 20 },
+  userText:   { fontSize: 14, fontFamily: FONTS.semibold, color: COLORS.onAccent, lineHeight: 20 },
 
   coachRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
   coachBubble:{ borderRadius: 16, borderTopLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, maxWidth: '78%' },
@@ -207,7 +208,7 @@ const b = StyleSheet.create({
 
   dotRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4, paddingVertical: 2 },
   dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent, opacity: 0.5 },
-});
+}));
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -226,12 +227,12 @@ function EmptyState() {
   );
 }
 
-const em = StyleSheet.create({
+const em = themed(() => StyleSheet.create({
   wrap:    { alignItems: 'center', paddingTop: 32, paddingBottom: 28, paddingHorizontal: 28, gap: 12 },
   iconWrap:{ marginBottom: 4 },
-  title:   { fontSize: 20, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.80 },
+  title:   { fontSize: 20, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.80 },
   body:    { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
-});
+}));
 
 // ─── CoachScreen ──────────────────────────────────────────────────────────────
 
@@ -423,17 +424,17 @@ export function CoachScreen({ onClose, initialMessage }: Props) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const s = themed(() => StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   flex: { flex: 1 },
 
   // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: 'rgba(255,240,220,0.06)', zIndex: 10 },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 56, borderBottomWidth: 1, borderBottomColor: ink(0.06), zIndex: 10 },
   backBtn:      { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm },
-  titleText:    { fontSize: 16, fontWeight: '800', fontFamily: FONTS.display, color: '#fff', letterSpacing: -0.64 },
-  subtitleText: { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+  titleText:    { fontSize: 16, fontFamily: FONTS.display, color: COLORS.text, letterSpacing: -0.64 },
+  subtitleText: { fontSize: 11, fontFamily: FONTS.semibold, color: COLORS.textMuted, letterSpacing: 0.3 },
 
   // Message list
   listContent: { paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.md, flexGrow: 1 },
@@ -441,19 +442,19 @@ const s = StyleSheet.create({
   // Quick chips
   chips:        { maxHeight: 44, flexGrow: 0, flexShrink: 0 },
   chipsContent: { paddingHorizontal: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
-  chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,140,0,0.25)', backgroundColor: 'rgba(255,140,0,0.07)' },
-  chipTxt:      { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, fontWeight: '600' },
-  chipTxtDisabled: { color: 'rgba(255,140,0,0.35)' },
+  chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: accentA(0.25), backgroundColor: accentA(0.07) },
+  chipTxt:      { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent },
+  chipTxtDisabled: { color: accentA(0.35) },
 
   // Error banner
-  errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: 'rgba(255,140,0,0.07)', borderWidth: 1, borderColor: 'rgba(255,140,0,0.20)' },
-  errorTxt:     { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, fontWeight: '600', lineHeight: 17 },
+  errorBanner:  { marginHorizontal: SPACING.md, marginBottom: 6, padding: 10, borderRadius: 10, backgroundColor: accentA(0.07), borderWidth: 1, borderColor: accentA(0.2) },
+  errorTxt:     { fontSize: 12, fontFamily: FONTS.semibold, color: COLORS.accent, lineHeight: 17 },
 
   // Input bar
-  inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,240,220,0.07)' },
-  input:       { flex: 1, backgroundColor: 'rgba(255,240,220,0.05)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)', borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, fontFamily: FONTS.body, color: '#fff', maxHeight: 100, lineHeight: 20 },
-  inputFocused:{ borderColor: 'rgba(255,140,0,0.40)', backgroundColor: 'rgba(255,140,0,0.04)' },
+  inputBar:    { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.sm, borderTopWidth: 1, borderTopColor: ink(0.07) },
+  input:       { flex: 1, backgroundColor: ink(0.05), borderWidth: 1, borderColor: ink(0.1), borderRadius: 18, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, fontSize: 14, fontFamily: FONTS.body, color: COLORS.text, maxHeight: 100, lineHeight: 20 },
+  inputFocused:{ borderColor: accentA(0.4), backgroundColor: accentA(0.04) },
   sendWrap:    { borderRadius: 18, overflow: 'hidden' },
   sendBtn:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
-  sendInactive:{ backgroundColor: 'rgba(255,240,220,0.06)', borderWidth: 1, borderColor: 'rgba(255,240,220,0.10)' },
-});
+  sendInactive:{ backgroundColor: ink(0.06), borderWidth: 1, borderColor: ink(0.1) },
+}));
